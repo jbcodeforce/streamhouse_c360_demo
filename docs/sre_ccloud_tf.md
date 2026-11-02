@@ -44,8 +44,8 @@ IaC/rtce/ — Real-Time Context Engine / Lightning Query API enablement (applied
 * Get the [git cli](https://git-scm.com/install/)
 * Clone this repository
     ```sh
-    git clone https://github.com/jbcodeforce/stream_house_c360_demo.git
-    cd stream_house_c360_demo.git
+    git clone https://github.com/jbcodeforce/streamhouse_c360_demo.git
+    cd streamhouse_c360_demo.git
     ```
 * Get [Terraform cli](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli)
 

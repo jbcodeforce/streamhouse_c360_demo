@@ -17,12 +17,12 @@ The Confluent Cloud Flink statement organization reflects the medaillon and star
     git clone https://github.com/jbcodeforce/flink-tools-for-agents.git
     cd flink-tools-for-agents
     # run shift left for dbt project
-    uv run sl-dbt init ~/Code/stream_house_c360_demo
+    uv run sl-dbt init ~/Code/streamhouse_c360_demo
     ```
 
     Here is the expected structure:
     ```sh
-    stream_house_c360_demo
+    streamhouse_c360_demo
     ├── docs
     ├── IaC
     ├── local-tests
@@ -33,7 +33,7 @@ The Confluent Cloud Flink statement organization reflects the medaillon and star
 
 1. Add a data  analytic product named `c360`, to keep metrics for customer 360 view.
     ```sh
-    uv run sl-dbt add-data-product ~/Code/stream_house_c360_demo c360
+    uv run sl-dbt add-data-product ~/Code/streamhouse_c360_demo c360
     ```
 
     Here is the expected structure:
@@ -54,7 +54,7 @@ The Confluent Cloud Flink statement organization reflects the medaillon and star
 1. Add one table as output of deduplicating customers raw data, and to filter unnecessary records:
 
     ```sh
-     uv run sl-dbt add-table ~/Code/stream_house_c360_demo src_customers c360 --table-type  src
+     uv run sl-dbt add-table ~/Code/streamhouse_c360_demo src_customers c360 --table-type  src
     ```
 
     ```sh
@@ -248,7 +248,9 @@ dbt run --select c360.sources --full-refresh
 
 ```sh
 # within the pipelines folder:
-
+dbt run --select +c360.facts.fct_c360_profile
+# Deploy other product
+dbt run --select +crm.facts
 ```
 
 ## Undeploy
@@ -256,14 +258,14 @@ dbt run --select c360.sources --full-refresh
 1. As dbt does not support undeploying, we need another tool to manage the drop table and undeploy statement. The [flink-tools-for-agents](https://github.com/jbcodeforce/flink-tools-for-agents/tree/main/tools/flink) includes tools to define a manifest of metadata about existing statements and then perform deplooy, undeploy and drop tables. 
     ```sh
     cd flink-tools-for-agents 
-    uv run generate-manifest --sql-dir ../stream_house_c360_demo/pipelines/models 
+    uv run generate-manifest --sql-dir ../streamhouse_c360_demo/pipelines/models 
     # OR
-    uv run generate-manifest --sql-dir ../stream_house_c360_demo/pipelines/models --overwrite 
+    uv run generate-manifest --sql-dir ../streamhouse_c360_demo/pipelines/models --overwrite 
     ```
 
     Drop tables listed in the `drop_tables` element of the manifest
     ```sh
-    uv run flink-sql-deploy  --sql-dir ../stream_house_c360_demo/pipelines/models drop-tables 
+    uv run flink-sql-deploy  --sql-dir ../streamhouse_c360_demo/pipelines/models drop-tables 
     ```
 
 ### IaC

@@ -5,7 +5,10 @@
 # then (optionally) runs the backend's own schema + seed bootstrap against it.
 #
 # Usage:
-#   ./scripts/local-tests/start_pg.sh [--seed] [--stop] [--reset]
+#   ./scripts/local_start_pg.sh [--seed] [--stop]
+#
+# Every start removes any existing container first, so the database is always
+# empty on startup (no volume is mounted).
 #
 # Options:
 #   --seed          Run the backend bootstrap (create schema + CDC publication
@@ -13,7 +16,6 @@
 #   --customers N   Deprecated: the backend seeds a fixed CSV dataset, so N is
 #                   ignored. Accepted only for backward compatibility; implies --seed
 #   --stop          Stop and remove the running container, then exit
-#   --reset         Stop + remove any existing container, start a fresh one
 #
 # Environment (optional overrides):
 #   PG_PASSWORD     Postgres superuser password (default: localdevonly)
@@ -35,7 +37,6 @@ BACKEND_DIR="$(cd "${SCRIPT_DIR}/../apps/backend" && pwd)"
 # ── Argument parsing ───────────────────────────────────────────────────────────
 DO_SEED=false
 DO_STOP=false
-DO_RESET=false
 NUM_CUSTOMERS=50
 
 while [[ $# -gt 0 ]]; do
@@ -45,7 +46,6 @@ while [[ $# -gt 0 ]]; do
                   echo "WARN: --customers is deprecated and ignored; the backend seeds a fixed CSV dataset." >&2
                   shift 2 ;;
     --stop)       DO_STOP=true; shift ;;
-    --reset)      DO_RESET=true; shift ;;
     *)            echo "Unknown option: $1" >&2; exit 1 ;;
   esac
 done
@@ -87,47 +87,39 @@ if [[ "${DO_STOP}" == true ]]; then
   exit 0
 fi
 
-# ── --reset: tear down first ───────────────────────────────────────────────────
-if [[ "${DO_RESET}" == true ]]; then
-  log "--reset: tearing down existing container if any …"
-  stop_and_remove
-fi
+# ── Start container (always fresh, empty database) ────────────────────────────
+# Postgres data lives only in the container's writable layer (no volume is
+# mounted), so removing any existing container guarantees that every start
+# begins from an empty database.
+log "Ensuring a clean start: removing any existing container …"
+stop_and_remove
 
-# ── Start container (skip if already running) ─────────────────────────────────
-if container_running; then
-  log "Container '${CONTAINER_NAME}' is already running — skipping start."
-elif container_exists; then
-  err "Container '${CONTAINER_NAME}' exists but is not running."
-  err "Use --reset to remove it and start fresh, or --stop to remove it."
-  exit 1
-else
-  log "Pulling image ${PG_IMAGE} (if not cached) …"
-  container run \
-    --detach \
-    --name "${CONTAINER_NAME}" \
-    --publish "${PG_PORT}:5432" \
-    --env "POSTGRES_DB=${PG_DB}" \
-    --env "POSTGRES_USER=${PG_USER}" \
-    --env "POSTGRES_PASSWORD=${PG_PASSWORD}" \
-    "${PG_IMAGE}"
+log "Pulling image ${PG_IMAGE} (if not cached) …"
+container run \
+  --detach \
+  --name "${CONTAINER_NAME}" \
+  --publish "${PG_PORT}:5432" \
+  --env "POSTGRES_DB=${PG_DB}" \
+  --env "POSTGRES_USER=${PG_USER}" \
+  --env "POSTGRES_PASSWORD=${PG_PASSWORD}" \
+  "${PG_IMAGE}"
 
-  log "Container '${CONTAINER_NAME}' started on host port ${PG_PORT}."
+log "Container '${CONTAINER_NAME}' started on host port ${PG_PORT}."
 
-  # Wait for PostgreSQL to be ready
-  log "Waiting for PostgreSQL to accept connections …"
-  MAX_WAIT=30
-  ELAPSED=0
-  until container exec "${CONTAINER_NAME}" \
-        pg_isready -U "${PG_USER}" -d "${PG_DB}" -q 2>/dev/null; do
-    if [[ ${ELAPSED} -ge ${MAX_WAIT} ]]; then
-      err "PostgreSQL did not become ready within ${MAX_WAIT}s."
-      exit 1
-    fi
-    sleep 1
-    ELAPSED=$((ELAPSED + 1))
-  done
-  log "PostgreSQL is ready (${ELAPSED}s)."
-fi
+# Wait for PostgreSQL to be ready
+log "Waiting for PostgreSQL to accept connections …"
+MAX_WAIT=30
+ELAPSED=0
+until container exec "${CONTAINER_NAME}" \
+      pg_isready -U "${PG_USER}" -d "${PG_DB}" -q 2>/dev/null; do
+  if [[ ${ELAPSED} -ge ${MAX_WAIT} ]]; then
+    err "PostgreSQL did not become ready within ${MAX_WAIT}s."
+    exit 1
+  fi
+  sleep 1
+  ELAPSED=$((ELAPSED + 1))
+done
+log "PostgreSQL is ready (${ELAPSED}s)."
 
 # ── Print connection details ───────────────────────────────────────────────────
 echo ""
@@ -142,7 +134,7 @@ printf "│  Password : %-44s│\n" "${PG_PASSWORD}"
 echo "└─────────────────────────────────────────────────────────┘"
 echo ""
 echo "  Stop / clean up:"
-echo "    ./scripts/local-tests/start_pg.sh --stop"
+echo "    ./scripts/local_start_pg.sh --stop"
 echo ""
 
 # ── Optionally run the backend bootstrap (schema + CDC publication + seed) ─────
@@ -158,5 +150,5 @@ if [[ "${DO_SEED}" == true ]]; then
   log "✅ Local test environment is fully seeded and ready."
 else
   log "Tip: pass --seed to also create tables and seed the committed CSV dataset."
-  log "  Example: ./scripts/local-tests/start_pg.sh --seed"
+  log "  Example: ./scripts/local_start_pg.sh --seed"
 fi

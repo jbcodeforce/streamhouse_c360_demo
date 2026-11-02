@@ -208,6 +208,7 @@ There is a local LLM running in the background listening on http://localhost:799
 * Examples of query to ask:
     - What is the profile of Mr Carter?
     - what about Mrs Walsh profile?
+    - What is the current CRM metrics?
 
 
 ### Verify data are in Postgresql tables. 
@@ -243,3 +244,14 @@ There is a local LLM running in the background listening on http://localhost:799
     -- Quit
     \q
     ```
+
+### Cleanup
+
+* Stop webapp
+    ```sh
+      ./scripts/stop_dev.sh
+    ```
+* Stop postgresql local server
+* Remove the database volumes
+* Undeploy flink statements
+* Destroy cloud resources with terraform
