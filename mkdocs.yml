@@ -1,0 +1,84 @@
+site_name: Apache and Confluent Flink Studies v1.0.70
+repo_url: https://github.com/jbcodeforce/streamhouse_c360_demo.git
+site_url: https://jbcodeforce.github.io/streamhouse_c360_demo
+copyright: Copyright &copy; 2018 - 2026 Jerome Boyer
+nav:
+  - Introduction: index.md
+ 
+theme: 
+  name: material 
+  logo: images/logo.drawio.png
+  favicon: images/logo.drawio.png
+  palette:
+    scheme: default
+  language: en
+  admonition:
+      example: octicons/beaker-16
+  features:
+      - content.code.annotation
+      - content.code.copy
+      - content.tooltips
+      - content.tabs.link
+      - search.suggest
+      - search.highlight
+      - navigation.instant
+      - navigation.instant.progress
+      - navigation.tabs
+      - navigation.tabs.sticky
+      - navigation.tracking
+      - navigation.sections
+      - navigation.expand
+      - navigation.top
+      - navigation.footer
+extra_css: ["extra.css"]
+plugins:
+  - search:
+      lang: en
+  - minify:
+      minify_html: true
+  - mkdocstrings
+markdown_extensions:
+  - abbr
+  - attr_list
+  - md_in_html
+  - admonition
+  - codehilite
+  - footnotes
+  - tables
+  - pymdownx.blocks.caption
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.smartsymbols
+  - toc:
+      permalink: true
+      toc_depth: 3
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.details
+  - pymdownx.inlinehilite
+  - pymdownx.critic
+  - pymdownx.caret
+  - pymdownx.keys
+  - pymdownx.tilde
+  - pymdownx.snippets
+  - pymdownx.mark
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: 'https://github.com/jbcodeforce'
+    - icon: fontawesome/brands/linkedin
+      link: 'https://linkedin.com/in/jeromeboyer'

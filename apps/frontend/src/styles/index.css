@@ -369,3 +369,50 @@ body { margin: 0; font-family: system-ui, -apple-system, sans-serif; color: #0f1
   max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .chat-session__reset { font-size: 13px; }
+
+/* CEP Patterns page */
+.cep-cards {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px;
+  margin-bottom: 24px;
+}
+.cep-card {
+  display: flex; align-items: flex-start; gap: 12px; padding: 16px;
+  border: 2px solid var(--border); border-radius: 12px; background: #fff;
+  cursor: pointer; text-align: left; transition: border-color .15s;
+}
+.cep-card:hover { border-color: #cbd5e1; background: #f8fafc; }
+.cep-card--active { background: #f8faff; box-shadow: 0 0 0 1px #c7d2fe; }
+.cep-card__dot {
+  width: 10px; height: 10px; border-radius: 50%; flex: none; margin-top: 4px;
+}
+.cep-card__body { min-width: 0; }
+.cep-card__label {
+  font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  color: #64748b; margin-bottom: 4px;
+}
+.cep-card__title { font-size: 15px; font-weight: 600; color: #0f172a; margin-bottom: 4px; }
+.cep-card__pattern code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px;
+  background: #f1f5f9; padding: 1px 6px; border-radius: 5px; color: #334155;
+}
+
+.cep-detail {
+  border: 1px solid var(--border); border-radius: 12px; background: #fff;
+  padding: 20px;
+}
+.cep-detail__head {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+  margin-bottom: 16px; flex-wrap: wrap;
+}
+.cep-detail__title { margin: 0 0 6px; font-size: 18px; color: #0f172a; }
+.cep-detail__desc { margin: 0; font-size: 14px; line-height: 1.6; color: #334155; max-width: 640px; }
+
+.cep-result { margin-top: 16px; }
+.cep-result__meta { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+
+.cep-type {
+  display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 11px;
+  font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+}
+.cep-type--debit  { background: #fee2e2; color: #991b1b; }
+.cep-type--credit { background: #dcfce7; color: #166534; }

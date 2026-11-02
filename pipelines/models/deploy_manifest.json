@@ -23,6 +23,18 @@
         "file": "c360/facts/fct_c360_profile.sql"
       },
       {
+        "name": "models-c360-facts-pipeline-fct-fraud-probe",
+        "file": "c360/facts/fct_fraud_probe.sql"
+      },
+      {
+        "name": "models-c360-facts-pipeline-fct-merchant-streak",
+        "file": "c360/facts/fct_merchant_streak.sql"
+      },
+      {
+        "name": "models-c360-facts-pipeline-fct-smb-spike",
+        "file": "c360/facts/fct_smb_spike.sql"
+      },
+      {
         "name": "models-c360-sources-pipeline-src-accounts",
         "file": "c360/sources/src_accounts.sql"
       },

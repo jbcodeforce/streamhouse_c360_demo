@@ -2,6 +2,8 @@
 
 ## Updates
 
+* 11/02/2026 Change docs in mkdocs. Clean data for scenarios.
+* 11/01/2026 Add CEP use cases, user interface, scenarion backend, flink statements.
 * 10/30/2026: Home page, kafka topic to keep chat conversation to kafka for Flink agent processing, design note improvement. Customer to account page navigation.
 * 10/29/2026: Chat to demonstrate RTCE/MCP integration for business data query in plain english. 
 * 10/27/2026: Support RTCE queries with timers. Terraform for Global key
@@ -121,7 +123,7 @@ The differences with the more complex architecture, are:
 
 The WebApp adds simple navigation, to create, update, delete customers and accounts. Transactions are creation only.
 
-![](./docs/images/customers_page.png)
+![](./docs/images/home_page.png)
 
 ### Web app backend Architecture
 
@@ -134,8 +136,10 @@ The Web App and backend to support running the demonstration has the following c
 
 ### Capabilities demonstrated
 
-#### CDC envelop automatic processing to upsert table
-#### DBT deployment, Materialized table
+#### CDC envelop automatic processing to upsert tables
+
+#### DBT deployment, Materialized and Streaming tables
+
 #### Lateral snapshot join on slow moving data
 #### Snapshot query
 #### Lightning query

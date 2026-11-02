@@ -13,6 +13,7 @@ import GeneratedTransactionsPage from './pages/GeneratedTransactionsPage'
 import DataProductsPage from './pages/DataProductsPage'
 import StatementGraphPage from './pages/StatementGraphPage'
 import AnalyticsPage from './pages/AnalyticsPage'
+import CEPPage from './pages/CEPPage'
 import ChatPage from './pages/ChatPage'
 
 export default function App() {
@@ -34,6 +35,7 @@ export default function App() {
         <Route path="/data-products" element={<DataProductsPage />} />
         <Route path="/data-products/:id" element={<StatementGraphPage />} />
         <Route path="/analytics" element={<AnalyticsPage />} />
+        <Route path="/cep" element={<CEPPage />} />
         <Route path="/chat" element={<ChatPage />} />
       </Route>
     </Routes>

@@ -24,7 +24,7 @@ _SUMMARY = {
     "complete": 10,
 }
 _SEG = [
-    {"customer_segment": "RETAIL", "customer_count": 6, "total_balance": Decimal("260601")},
+    {"customer_segment": "PRIVATE", "customer_count": 6, "total_balance": Decimal("260601")},
     {"customer_segment": "SMB", "customer_count": 4, "total_balance": Decimal("83070")},
 ]
 
@@ -40,7 +40,7 @@ def test_live_path_assembles_from_crm(monkeypatch):
     assert r.source_mode == "live"
     assert r.total_customers == 10
     assert r.row_count == 10
-    assert [c.label for c in r.by_segment] == ["RETAIL", "SMB"]
+    assert [c.label for c in r.by_segment] == ["PRIVATE", "SMB"]
     assert r.query_ms >= 0
 
 

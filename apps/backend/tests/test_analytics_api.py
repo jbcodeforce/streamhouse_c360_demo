@@ -58,7 +58,7 @@ def test_c360_profile_mock_payload(client):
     assert body["row_count"] == 10
     assert body["total_customers"] == 10
     assert body["total_accounts"] == 31
-    assert body["by_segment"][0] == {"label": "RETAIL", "count": 6}
+    assert body["by_segment"][0] == {"label": "PRIVATE", "count": 6}
     assert body["data_quality"]["missing_phone"] == 2
 
 

@@ -12,6 +12,7 @@ from api.analytics_resource import router as analytics_router
 from api.chat_resource import router as chat_router
 from api.customer_resource import router as customers_router
 from api.data_product_resource import router as data_product_router
+from api.scenario_resource import router as scenario_router
 from api.transaction_resource import router as transaction_router
 from config import settings
 from customers import inventory as customers_inventory
@@ -94,6 +95,7 @@ app.include_router(account_router, prefix="/api/v1")
 app.include_router(transaction_router, prefix="/api/v1")
 app.include_router(data_product_router, prefix="/api/v1")
 app.include_router(analytics_router, prefix="/api/v1")
+app.include_router(scenario_router, prefix="/api/v1")
 app.include_router(chat_router, prefix="/api/v1")
 
 

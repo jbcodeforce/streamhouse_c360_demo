@@ -16,7 +16,7 @@ PROFILE_SNAPSHOT: list[dict] = [
     {
         "customer_id": "00000000-0000-0000-0000-ef1234567890",
         "first_name": "James", "last_name": "Carter",
-        "customer_segment": "RETAIL", "gender": "M", "country": "US",
+        "customer_segment": "PRIVATE", "gender": "M", "country": "US",
         "city": "Springfield", "state": "IL", "customer_since": "2022-06-01",
         "generation_segment": "Gen X", "age_years": 40, "days_since_registration": 1608,
         "missing_email_flag": 0, "missing_phone_flag": 0,
@@ -34,7 +34,7 @@ PROFILE_SNAPSHOT: list[dict] = [
     {
         "customer_id": "00000000-0000-0000-0000-012345678902",
         "first_name": "Robert", "last_name": "Kim",
-        "customer_segment": "RETAIL", "gender": "M", "country": "US",
+        "customer_segment": "PRIVATE", "gender": "M", "country": "US",
         "city": "New York", "state": "NY", "customer_since": "2020-09-10",
         "generation_segment": "Gen X", "age_years": 47, "days_since_registration": 2237,
         "missing_email_flag": 0, "missing_phone_flag": 0,
@@ -43,7 +43,7 @@ PROFILE_SNAPSHOT: list[dict] = [
     {
         "customer_id": "00000000-0000-0000-0000-123456789013",
         "first_name": "Susan", "last_name": "Patel",
-        "customer_segment": "RETAIL", "gender": "F", "country": "US",
+        "customer_segment": "PRIVATE", "gender": "F", "country": "US",
         "city": "San Francisco", "state": "CA", "customer_since": "2023-01-22",
         "generation_segment": "Millennial", "age_years": 32, "days_since_registration": 1373,
         "missing_email_flag": 0, "missing_phone_flag": 1,
@@ -61,7 +61,7 @@ PROFILE_SNAPSHOT: list[dict] = [
     {
         "customer_id": "00000000-0000-0000-0000-345678901235",
         "first_name": "Jennifer", "last_name": "Walsh",
-        "customer_segment": "RETAIL", "gender": "F", "country": "US",
+        "customer_segment": "PRIVATE", "gender": "F", "country": "US",
         "city": "Boston", "state": "MA", "customer_since": "2022-11-30",
         "generation_segment": "Millennial", "age_years": 37, "days_since_registration": 1426,
         "missing_email_flag": 0, "missing_phone_flag": 0,
@@ -70,7 +70,7 @@ PROFILE_SNAPSHOT: list[dict] = [
     {
         "customer_id": "00000000-0000-0000-0000-456789012346",
         "first_name": "Michael", "last_name": "Torres",
-        "customer_segment": "RETAIL", "gender": "M", "country": "US",
+        "customer_segment": "PRIVATE", "gender": "M", "country": "US",
         "city": "Miami", "state": "FL", "customer_since": "2018-04-17",
         "generation_segment": "Gen X", "age_years": 50, "days_since_registration": 3114,
         "missing_email_flag": 0, "missing_phone_flag": 0,
@@ -79,7 +79,7 @@ PROFILE_SNAPSHOT: list[dict] = [
     {
         "customer_id": "00000000-0000-0000-0000-567890123457",
         "first_name": "Ashley", "last_name": "Nguyen",
-        "customer_segment": "RETAIL", "gender": "F", "country": "US",
+        "customer_segment": "PRIVATE", "gender": "F", "country": "US",
         "city": "Ann Arbor", "state": "MI", "customer_since": "2023-08-09",
         "generation_segment": "Millennial", "age_years": 30, "days_since_registration": 1174,
         "missing_email_flag": 0, "missing_phone_flag": 1,

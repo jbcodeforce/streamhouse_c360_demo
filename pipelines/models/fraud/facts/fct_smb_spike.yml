@@ -1,0 +1,31 @@
+models:
+- name: fct_smb_spike
+  description: >
+    CEP Pattern 3 — SMB Spike.
+    Fires when an SMB-segment customer makes 3 or more consecutive large DEBIT
+    charges (amount >= $200) followed by a CREDIT reversal on the same account
+    within a 1-hour event-time window. Flags the account for relationship-manager
+    review. One row per match (append).
+  columns:
+  - name: account_id
+    data_type: string
+    constraints:
+      - type: not_null
+  - name: customer_id
+    data_type: string
+    constraints:
+      - type: not_null
+  - name: ltx_account_id
+    data_type: string
+  - name: spike_start
+    data_type: timestamp_ltz
+  - name: spike_end
+    data_type: timestamp_ltz
+  - name: tx_count
+    data_type: bigint
+  - name: spike_total
+    data_type: decimal
+  - name: reversal_amount
+    data_type: decimal
+  - name: reversal_time
+    data_type: timestamp_ltz

@@ -34,7 +34,7 @@ def test_data_quality_rollup(result):
 
 
 def test_segment_distribution_ordered_largest_first(result):
-    assert [(c.label, c.count) for c in result.by_segment] == [("RETAIL", 6), ("SMB", 4)]
+    assert [(c.label, c.count) for c in result.by_segment] == [("PRIVATE", 6), ("SMB", 4)]
 
 
 def test_generation_distribution(result):
@@ -54,7 +54,7 @@ def test_balance_by_segment_ordered_by_value(result):
     pairs = [(c.label, c.value) for c in result.balance_by_segment]
     assert pairs[0][0] == "SMB"
     assert pairs[0][1] == pytest.approx(743850.00)
-    assert pairs[1][0] == "RETAIL"
+    assert pairs[1][0] == "PRIVATE"
     assert pairs[1][1] == pytest.approx(188151.50)
 
 

@@ -84,7 +84,7 @@ def make_full_payload(**overrides) -> dict:
         city="Testville",
         state="CA",
         postal_code="90210",
-        segment="RETAIL",
+        segment="PRIVATE",
     )
     base.update(overrides)
     return base

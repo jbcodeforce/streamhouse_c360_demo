@@ -1,0 +1,28 @@
+models:
+- name: fct_fraud_probe
+  description: >
+    CEP Pattern 1 — Fraud Probe.
+    Fires when a card-verification micro-charge (amount <= $10) is immediately
+    followed by one or more large charges (amount >= $500) on the same account
+    within a 1-hour event-time window. One row per match (append).
+  columns:
+  - name: account_id
+    data_type: string
+    constraints:
+      - type: not_null
+  - name: customer_id
+    data_type: string
+    constraints:
+      - type: not_null
+  - name: probe_account_id
+    data_type: string
+  - name: probe_time
+    data_type: timestamp_ltz
+  - name: probe_amount
+    data_type: decimal
+  - name: last_large_time
+    data_type: timestamp_ltz
+  - name: last_large_amount
+    data_type: decimal
+  - name: large_count
+    data_type: bigint

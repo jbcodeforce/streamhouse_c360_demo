@@ -1,4 +1,4 @@
-import { Home, Users, ArrowLeftRight, Workflow, BarChart3, BookOpen, Bot } from 'lucide-react'
+import { Home, Users, ArrowLeftRight, Workflow, BarChart3, BookOpen, Bot, Zap } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 
 // lucide-react dropped brand icons (no `Github` export as of v1.x), so use the official mark inline.
@@ -22,6 +22,7 @@ const links: { to: string; label: string; Icon: typeof Home; end?: boolean }[] =
   { to: '/transactions', label: 'Transactions', Icon: ArrowLeftRight },
   { to: '/data-products', label: 'Data Products', Icon: Workflow },
   { to: '/analytics', label: 'Analytics', Icon: BarChart3 },
+  { to: '/cep', label: 'CEP Patterns', Icon: Zap },
   { to: '/chat', label: 'Assistant', Icon: Bot },
 ]
 

@@ -13,7 +13,7 @@ The architecture of the demonstration at the high-level looks like:
 
 ![](./diagrams/rds_execution.drawio.png)
 
-Once the Confluent Cloud and AWS resources are created by Terraform, the user starts the local web application that connect to remote database server.
+Once the Confluent Cloud and AWS resources are created by Terraform, the user starts the local web application that connect to remote database server. To do this deployment see the [SRE doc](./sre_ccloud_tf.md)
 
 * Set environment variables to access Confluent Cloud resources, like Kafka, schema Key/secret and bootstrap address:
     ```sh
@@ -31,6 +31,7 @@ Once the Confluent Cloud and AWS resources are created by Terraform, the user st
     export ENV_CONFIG_FILE=./apps/backend/.env
     ```
 
+
 * Start the local webapp with remote RDS database
     ```sh
     ./scripts/run_dev.sh --db rds
@@ -44,6 +45,25 @@ This time the database runs locally and the web app writes to kafka in parallel 
 
 ![](./diagrams/local_execution.drawio.png)
 
+* Be sure to have the Confluent Cloud resources created with Terraform. To do this deployment see the [SRE doc](./sre_ccloud_tf.md)
+
+* Start the local Postgresql server
+    ```sh
+     ./scripts/local_start_pg.sh 
+    ```
+
+    You should get some report like:
+    ```
+    ┌─────────────────────────────────────────────────────────┐
+    │  Local PostgreSQL connection details                    │
+    ├─────────────────────────────────────────────────────────┤
+    │  Host     : localhost                                   │
+    │  Port     : 5432                                        │
+    │  Database : c360db                                      │
+    │  User     : dbadmin                                     │
+    │  Password : localdevonly                                │
+    └─────────────────────────────────────────────────────────┘
+    ```
 
 * Set environment variables to access Confluent Cloud resources, like Kafka, schema Key/secrets and bootstrap address. This can be done by looking terraform output:
     ```sh
@@ -51,6 +71,11 @@ This time the database runs locally and the web app writes to kafka in parallel 
     ```
 
     or using your own scripts to get environment variables preset, to an existing Confluent Cloud environment.
+
+* Set environment variables to the .env file
+    ```sh
+    export ENV_CONFIG_FILE=./apps/backend/.env
+    ```
 
 ## Demonstration Scenarios
 

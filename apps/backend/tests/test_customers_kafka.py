@@ -162,7 +162,7 @@ class TestCreateCustomer:
         body = client.post("/api/v1/customers", json=payload).json()
         assert body["phone"] == "555-000-1234"
         assert body["city"] == "Testville"
-        assert body["segment"] == "RETAIL"
+        assert body["segment"] == "PRIVATE"
 
     # ── Debezium envelope assertions ────────────────────────────────────────
 

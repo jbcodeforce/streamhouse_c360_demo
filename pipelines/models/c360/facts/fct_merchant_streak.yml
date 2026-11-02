@@ -1,0 +1,22 @@
+models:
+- name: fct_merchant_streak
+  description: >
+    CEP Pattern 2 — Merchant Streak.
+    Fires when a customer makes 3 or more consecutive transactions in the same
+    merchant_category within a 2-hour event-time window. Signals a spending
+    habit or loyalty opportunity. One row per match (append).
+  columns:
+  - name: customer_id
+    data_type: string
+    constraints:
+      - type: not_null
+  - name: first_customer_id
+    data_type: string
+  - name: streak_category
+    data_type: string
+  - name: streak_start
+    data_type: timestamp_ltz
+  - name: streak_end
+    data_type: timestamp_ltz
+  - name: streak_length
+    data_type: bigint

@@ -27,7 +27,7 @@ SUMMARY = {
     "complete": 10,
 }
 SEG = [
-    {"customer_segment": "RETAIL", "customer_count": 6, "total_balance": Decimal("260601")},
+    {"customer_segment": "PRIVATE", "customer_count": 6, "total_balance": Decimal("260601")},
     {"customer_segment": "SMB", "customer_count": 4, "total_balance": Decimal("83070")},
 ]
 
@@ -48,9 +48,9 @@ def test_scalars_and_derived_average():
 
 def test_segment_feeds_both_count_and_balance_series():
     r = assemble(SUMMARY, SEG, [], [], [], source_mode="live")
-    assert [(c.label, c.count) for c in r.by_segment] == [("RETAIL", 6), ("SMB", 4)]
+    assert [(c.label, c.count) for c in r.by_segment] == [("PRIVATE", 6), ("SMB", 4)]
     assert [(c.label, c.value) for c in r.balance_by_segment] == [
-        ("RETAIL", pytest.approx(260601.0)),
+        ("PRIVATE", pytest.approx(260601.0)),
         ("SMB", pytest.approx(83070.0)),
     ]
 

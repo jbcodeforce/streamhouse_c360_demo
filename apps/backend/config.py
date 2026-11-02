@@ -146,6 +146,12 @@ class Settings(BaseSettings):
     # KAFKA_CLUSTER_ID; no FLINK_CATALOG — the environment resolves the catalog).
     ANALYTICS_DATA_MODE: str = "mock"
 
+    # CEP scenarios page: "mock" returns canned matched-event fixtures without
+    # touching Postgres or Kafka; "live" injects real transactions via the DB/
+    # Kafka path and reads matched events from the Flink MATCH_RECOGNIZE output
+    # tables (fct_fraud_probe, fct_merchant_streak, fct_smb_spike).
+    CEP_DATA_MODE: str = "mock"
+
     # Live-mode credentials (unused until Task 3's LiveProvider).
     CONFLUENT_CLOUD_API_KEY: str | None = None
     CONFLUENT_CLOUD_API_SECRET: str | None = None
@@ -227,6 +233,7 @@ class Settings(BaseSettings):
             "SCHEMA_REGISTRY_URL": self.SCHEMA_REGISTRY_URL or "None",
             "GRAPH_DATA_MODE": self.GRAPH_DATA_MODE,
             "ANALYTICS_DATA_MODE": self.ANALYTICS_DATA_MODE,
+            "CEP_DATA_MODE": self.CEP_DATA_MODE,
             "CHAT_DATA_MODE": self.CHAT_DATA_MODE,
             "CHAT_PRODUCE_CONVERSATIONS": self.CHAT_PRODUCE_CONVERSATIONS,
             "CHAT_LLM": (f"{self.LLM_MODEL} @ {self.LLM_BASE_URL}" if (self.LLM_BASE_URL and self.LLM_MODEL) else "None"),
