@@ -1,7 +1,7 @@
 {
   "user_agent": "cc-sql-tools/0.1",
   "groups": {
-    "pipeline": [
+    "c360_pipeline": [
       {
         "name": "models-c360-dimensions-pipeline-dim-account-tx-agg",
         "file": "c360/dimensions/dim_account_tx_agg.sql"
@@ -23,16 +23,8 @@
         "file": "c360/facts/fct_c360_profile.sql"
       },
       {
-        "name": "models-c360-facts-pipeline-fct-fraud-probe",
-        "file": "c360/facts/fct_fraud_probe.sql"
-      },
-      {
         "name": "models-c360-facts-pipeline-fct-merchant-streak",
         "file": "c360/facts/fct_merchant_streak.sql"
-      },
-      {
-        "name": "models-c360-facts-pipeline-fct-smb-spike",
-        "file": "c360/facts/fct_smb_spike.sql"
       },
       {
         "name": "models-c360-sources-pipeline-src-accounts",
@@ -46,18 +38,56 @@
         "name": "models-c360-sources-pipeline-src-transactions",
         "file": "c360/sources/src_transactions.sql"
       }
+    ],
+    "crm_pipeline": [
+      {
+        "name": "models-crm-facts-pipeline-fct-crm-by-country",
+        "file": "crm/facts/fct_crm_by_country.sql"
+      },
+      {
+        "name": "models-crm-facts-pipeline-fct-crm-by-gender",
+        "file": "crm/facts/fct_crm_by_gender.sql"
+      },
+      {
+        "name": "models-crm-facts-pipeline-fct-crm-by-generation",
+        "file": "crm/facts/fct_crm_by_generation.sql"
+      },
+      {
+        "name": "models-crm-facts-pipeline-fct-crm-by-segment",
+        "file": "crm/facts/fct_crm_by_segment.sql"
+      },
+      {
+        "name": "models-crm-facts-pipeline-fct-crm-summary",
+        "file": "crm/facts/fct_crm_summary.sql"
+      }
+    ],
+    "fraud_pipeline": [
+      {
+        "name": "models-fraud-facts-pipeline-fct-fraud-probe",
+        "file": "fraud/facts/fct_fraud_probe.sql"
+      },
+      {
+        "name": "models-fraud-facts-pipeline-fct-smb-spike",
+        "file": "fraud/facts/fct_smb_spike.sql"
+      }
     ]
   },
   "deploy_all": [
-    "pipeline"
+    "c360_pipeline",
+    "crm_pipeline",
+    "fraud_pipeline"
   ],
   "undeploy_all": [
-    "pipeline"
+    "fraud_pipeline",
+     "crm_pipeline",
+     "c360_pipeline"
   ],
-  "drop_tables": [
-    "cdc.public.customers",
-    "cdc.public.accounts",
-    "cdc.public.transactions"
-  ],
-  "drop_statement_prefix": "models-drop"
+
+  "drop_tables": {
+    "c360" : ["fct_c360_profile", "dim_account_tx_agg","fct_merchant_streak", "dim_tx_x_account", "dim_transactions", "dim_customers", "dim_account_tx_agg", "src_transactions", "src_customers" ,  "src_accounts"],
+    "crm" : ["fct_crm_summary", "fct_crm_by_segment", "fct_crm_by_generation", "fct_crm_by_gender", "fct_crm_by_country"],
+    "fraud" : ["fct_fraud_probe",  "fct_smb_spike"],
+    "cdc": ["cdc.public.accounts", "cdc.public.customers", "cdc.public.transactions"]
+  },
+  "drop_statement_prefix": "c360-drop"
 }

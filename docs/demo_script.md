@@ -1,11 +1,18 @@
 # Demonstration Script
 
-Two approaches: 
+We may demonstrate the Streamhouse architecture in different ways, using one of the approaches implemented in this repository:
 
 1. Local database, writing directly to Kafka topics defined within Confluent Cloud Kafka Cluster
 2. Run Database on AWS, with Kafka Connector defined to get data from the database to Kafka topics. This approach has cost for the services on AWS.
 
-The web application is able to write to remote database or work with local database and remote Kafka.
+For each the following activities are common:
+
+1.  Deploy Confluent Cloud components: This step is to create Environment, Kafka cluster, schema registry, service accounts, api keys and secrets, and compute pools. We propose two approches to define the environment and components of this demonstration, one using the Confluent Console or one using Terraform:
+    * [using Terraform](./sre_ccloud_tf.md).
+    * [or using the Confluent cloud console](./sre_ccloud.md)
+1. Optional: Deploy Database in AWS RDS with the needed [AWS components](./sre_aws.md) also using terraform. It includes the terraform definition to deploy Debezium CDC source connector on Confluent Cloud managed connector. This step is optional as the application can emulates CDC connector and use local database.
+* [Deploying the Flink pipeline](./flink_deployment.md) to build the customer 360 analytics profile using Confluent dbt.
+* [See dedicated 'demo script' note](./demo_script.md) to run the application with local components.
 
 ## Run with a remote database server
 
@@ -277,6 +284,8 @@ There is a local LLM running in the background listening on http://localhost:799
       ./scripts/stop_dev.sh
     ```
 * Stop postgresql local server
-* Remove the database volumes
-* Undeploy flink statements
-* Destroy cloud resources with terraform
+* Undeploy flink statements:
+    ```sh
+
+    ```
+* Destroy cloud resources with terraform, only if you need to clean Confluent cloud resources.

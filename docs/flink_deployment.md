@@ -2,122 +2,6 @@
 
 This section addresses the Flink pipeline definition and management using [Confluent dbt](https://pypi.org/project/dbt-confluent/) plugin.
 
-## What is built
-
-We want to implement the following pipeline to process the raw/bronze layer of records coming out of the CDC Debezium source kafka connector (cdc.*):
-
-![](./diagrams/stream-flink.drawio.png)
-
-To a silver layer which includes clean source data, with no duplicate, reflecting a canonical model and filtered records. The golden layer includes the `star schema` dimensions and facts. For this demonstration the c360-profile defines analytics about a customer based on the buying transactions done so far.
-
-The Confluent Cloud Flink statement organization reflects the medaillon and star schema structure.  The Flink statements run in a compute pool, already created via the terraform deployment (or reused but referenced in FLINK_COMPUTE_POOL_ID).
-
-1. First, create the pipeline folder to manage the different Flink SQL statements, using the star schema pattern. This can be done manually or using a tool from [flink-tools-for-agents](https://github.com/jbcodeforce/flink-tools-for-agents/tree/main/tools/dbt) project, which complement the dbt Confluent CLI:
-    ```sh
-    git clone https://github.com/jbcodeforce/flink-tools-for-agents.git
-    cd flink-tools-for-agents
-    # run shift left for dbt project
-    uv run sl-dbt init ~/Code/streamhouse_c360_demo
-    ```
-
-    Here is the expected structure:
-    ```sh
-    streamhouse_c360_demo
-    ├── docs
-    ├── IaC
-    ├── local-tests
-    ├── pipelines
-    ├── sl_dbt.yaml
-    └── tools
-    ```
-
-1. Add a data  analytic product named `c360`, to keep metrics for customer 360 view.
-    ```sh
-    uv run sl-dbt add-data-product ~/Code/streamhouse_c360_demo c360
-    ```
-
-    Here is the expected structure:
-    ```sh
-    pipelines
-        ├── dbt_project.yml
-        ├── macros
-        ├── models
-        │   └── c360
-        │       ├── dimensions
-        │       ├── facts
-        │       └── sources
-        ├── pyproject.toml
-        ├── seeds
-        └── tests
-    ```
-
-1. Add one table as output of deduplicating customers raw data, and to filter unnecessary records:
-
-    ```sh
-     uv run sl-dbt add-table ~/Code/streamhouse_c360_demo src_customers c360 --table-type  src
-    ```
-
-    ```sh
-    pipelines
-        ├── dbt_project.yml
-        ├── macros
-        ├── models
-        │   └── c360
-        │       ├── dimensions
-        │       ├── facts
-        │       ├── schema.yml
-        │       └── sources
-        │           ├── src_customers.sql
-        │           └── src_customers.yml
-        ├── pyproject.toml
-        ├── seeds
-        └── tests
-    ```
-
-1. Use the Confluent Cloud Workspace to develop query by using an incremental approach: starts by selecting the different sources, to assess data quality. We will illustrate the approach for beginner.
-
-    1. Assess the source table structure. Run the SQL: `show create table cdc.public.customers`
-        ![](./images/flink/show_create_table.png)
-
-        We can observe the Debezium envelop is already transformed to the sub schema. We can verify the schema definitiom in the schema registry has a before and after envelop. Go to schema registry page and select `cdc.public.customers-value`. The schema has Debezium fields of `before`, `after`, `op`...
-
-        ![](./images/flink/schema_customer.png)
-
-        The reason is the default format for the value and the key are set as:
-        ```sh
-        value.format' = 'avro-debezium-registry'
-        ```
-        which means the Kafka Source connector inside Confluent Cloud Flink uses a specific [deserializer that processes the envelop model](https://docs.confluent.io/cloud/current/flink/reference/serialization.html#debezium-format).
-
-        We can do the same for: `show create table cdc.public.accounts;` and `show create table cdc.public.transactions;`
-
-        We can also discover that by default the changelog mode is set to `retract`. This is due to CDC debezium configuration that may not have  defined the primary key mapping. If the Kafka topic has `cleanup.policy` set to compact, the `changelog.mode` is set to upsert instead. 
-        With `retract` we could not run snapshot queries but only streaming query. 
-
-    1. Look at some data and select only active customers:
-        ```sql
-        SELECT * FROM `j9r-env`.`j9r-kafka`.`cdc.public.customers` where status = 'ACTIVE';
-        ```
-
-    1. Because the changelog mode is retract or upsert, within the topic there will be no duplicate for the current customers, accounts and transactions, the following query helps to validate that:
-        ```sql
-         with deduped_customer as (
-            SELECT 
-                    customer_id,
-                FROM `cdc.public.customers`
-            ),
-            numdup as (SELECT
-                customer_id,
-                count(*) as num_records
-            FROM deduped_customer
-            group by customer_id)
-            select * from numdup where num_records > 1
-        ```
-
-        ![](./images/flink/no_duplicate.png)
-
-1. We can continue the data analysis and finally build the following Flink SQL to do some filtering and data cleaning. See [flink src processing folder](../flink_sqls/).
-
 1. To be able to connect to Confluent Cloud, we need to set the environment variables for API keys and secrets. The following script loads those from Terraform output
     ```sh
     source ./scripts/set_env_from_tf.sh
@@ -258,14 +142,16 @@ dbt run --select +crm.facts
 1. As dbt does not support undeploying, we need another tool to manage the drop table and undeploy statement. The [flink-tools-for-agents](https://github.com/jbcodeforce/flink-tools-for-agents/tree/main/tools/flink) includes tools to define a manifest of metadata about existing statements and then perform deplooy, undeploy and drop tables. 
     ```sh
     cd flink-tools-for-agents 
-    uv run generate-manifest --sql-dir ../streamhouse_c360_demo/pipelines/models 
+   v
     # OR
     uv run generate-manifest --sql-dir ../streamhouse_c360_demo/pipelines/models --overwrite 
     ```
 
     Drop tables listed in the `drop_tables` element of the manifest
     ```sh
-    uv run flink-sql-deploy  --sql-dir ../streamhouse_c360_demo/pipelines/models drop-tables 
+    uv run flink-sql-deploy  --sql-dir ../streamhouse_c360_demo/pipelines/models drop-tables --group fraud
+    uv run flink-sql-deploy --sql-dir ../streamhouse_c360_demo/pipelines/models drop-tables --group crm
+    uv run flink-sql-deploy --sql-dir ../streamhouse_c360_demo/pipelines/models drop-tables --group c360 
     ```
 
 ### IaC

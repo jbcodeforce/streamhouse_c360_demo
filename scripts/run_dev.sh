@@ -10,6 +10,7 @@
 #   ./scripts/run_dev.sh --db local      # force the local PostgreSQL DSN
 #   ./scripts/run_dev.sh --db rds        # AWS RDS (DATABASE_URL must be set)
 #   ./scripts/run_dev.sh --db-url URL    # explicit DATABASE_URL (any target)
+#   ./scripts/run_dev.sh --cdc           # local dev with CDC to Confluent Cloud
 #
 # Database selection (first match wins):
 #   1. --db-url URL        use URL verbatim
@@ -25,8 +26,10 @@
 # Options:
 #   --db local|rds   Force a target. Omit to auto-detect from $DATABASE_URL.
 #   --db-url URL     Override DATABASE_URL explicitly (implies a custom target).
+#   --cdc            Setup CDC: configure PostgreSQL + start Debezium server.
 #   --no-frontend    Start the backend only.
 #   --no-backend     Start the frontend only.
+#   --no-debezium    When --cdc is set, skip starting Debezium (configure PG only).
 #   --check          Validate + print config, then exit without starting.
 #   -h, --help       Show this help.
 #
@@ -57,6 +60,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 BACKEND_DIR="${REPO_ROOT}/apps/backend"
 FRONTEND_DIR="${REPO_ROOT}/apps/frontend"
+LOCAL_IAC_DIR="${REPO_ROOT}/IaC/local"
 
 # ── Helpers ─────────────────────────────────────────────────────────────────
 log()  { echo "[$(date '+%H:%M:%S')] $*"; }
@@ -175,6 +179,8 @@ DB_TARGET=""               # "" => auto-detect | local | rds | custom | env
 DB_URL_OVERRIDE=""
 RUN_BACKEND=true
 RUN_FRONTEND=true
+RUN_CDC=false
+RUN_DEBEZIUM=true
 CHECK_ONLY=false
 
 while [[ $# -gt 0 ]]; do
@@ -183,8 +189,10 @@ while [[ $# -gt 0 ]]; do
     --db=*)        DB_TARGET="${1#*=}"; shift ;;
     --db-url)      DB_URL_OVERRIDE="${2:-}"; DB_TARGET="custom"; shift 2 ;;
     --db-url=*)    DB_URL_OVERRIDE="${1#*=}"; DB_TARGET="custom"; shift ;;
+    --cdc)         RUN_CDC=true; DB_TARGET="local"; KAFKA_PRODUCE_ENABLED=false; shift ;;
     --no-frontend) RUN_FRONTEND=false; shift ;;
     --no-backend)  RUN_BACKEND=false; shift ;;
+    --no-debezium) RUN_DEBEZIUM=false; shift ;;
     --check)       CHECK_ONLY=true; shift ;;
     -h|--help)     usage; exit 0 ;;
     *)             die "Unknown option: $1 (use --help)" ;;
@@ -292,11 +300,29 @@ if $RUN_FRONTEND; then
   command -v npm >/dev/null 2>&1 || die "'npm' not found on PATH — install Node.js to run the frontend."
 fi
 
+# CDC validation
+if $RUN_CDC; then
+  [[ -x "$LOCAL_IAC_DIR/configure_pg_cdc.sh" ]] \
+    || die "CDC setup script not found: $LOCAL_IAC_DIR/configure_pg_cdc.sh"
+  if $RUN_DEBEZIUM; then
+    [[ -x "$LOCAL_IAC_DIR/start_debezium_server.sh" ]] \
+      || die "Debezium startup script not found: $LOCAL_IAC_DIR/start_debezium_server.sh"
+    [[ -n "${CONFLUENT_CLOUD_API_KEY:-}${CONFLUENT_CLOUD_BOOTSTRAP_SERVER:-}" ]] || \
+      warn "Confluent Cloud credentials not found. Add CONFLUENT_CLOUD_API_KEY, CONFLUENT_CLOUD_API_SECRET, and CONFLUENT_CLOUD_BOOTSTRAP_SERVER to backend/.env"
+  fi
+  # Force local PostgreSQL for CDC
+  CDC_CONNECTOR_ENABLED=true
+fi
+
 # Reachability check for the local DB (best effort; warn only).
 if $RUN_BACKEND && [[ "$SINK" == "postgres" && "$DB_TARGET" == "local" ]]; then
   if command -v nc >/dev/null 2>&1 && ! nc -z "$LOCAL_PG_HOST" "$LOCAL_PG_PORT" >/dev/null 2>&1; then
     warn "No PostgreSQL listening on ${LOCAL_PG_HOST}:${LOCAL_PG_PORT}."
-    warn "Start it first:  (cd apps/backend && ./start_local_pg_server.sh)"
+    if $RUN_CDC; then
+      warn "Start PostgreSQL with CDC enabled:  (cd IaC/local && ./start_local_pg_server.sh && ./configure_pg_cdc.sh)"
+    else
+      warn "Start it first:  (cd IaC/local && ./start_local_pg_server.sh)"
+    fi
   fi
 fi
 
@@ -320,6 +346,8 @@ printf '  %-14s %s\n' "CONFIG FILE:" "${RESOLVED_ENV_FILE:-(none)}"
 $RUN_BACKEND  && printf '  %-14s %s\n' "BACKEND:"  "http://localhost:${BACKEND_PORT}  (docs: /docs)"
 $RUN_FRONTEND && printf '  %-14s %s\n' "FRONTEND:" "http://localhost:${FRONTEND_PORT}"
 $RUN_FRONTEND && printf '  %-14s %s\n' "API base:" "$VITE_API_BASE_URL"
+$RUN_CDC      && printf '  %-14s %s\n' "CDC:"      "PostgreSQL → Debezium → Confluent Cloud"
+$RUN_CDC && $RUN_DEBEZIUM && printf '  %-14s %s\n' "Debezium REST:" "http://localhost:8083"
 echo "─────────────────────────────────────────────────────────────"
 echo
 
@@ -331,6 +359,24 @@ fi
 if $CHECK_ONLY; then
   log "Configuration OK (--check): nothing started."
   exit 0
+fi
+
+# ── CDC Setup ───────────────────────────────────────────────────────────────
+if $RUN_CDC; then
+  log "Setting up CDC pipeline…"
+
+  log "Configuring PostgreSQL for CDC…"
+  ( cd "$LOCAL_IAC_DIR" && exec bash configure_pg_cdc.sh ) || \
+    die "Failed to configure PostgreSQL for CDC"
+
+  if $RUN_DEBEZIUM; then
+    log "Starting Debezium server…"
+    ( cd "$LOCAL_IAC_DIR" && bash start_debezium_server.sh ) || \
+      die "Failed to start Debezium server"
+    log "Debezium is ready. CDC events from cdc.* tables will flow to Confluent Cloud."
+  else
+    log "PostgreSQL configured for CDC (Debezium start skipped via --no-debezium)"
+  fi
 fi
 
 # ── Launch ──────────────────────────────────────────────────────────────────

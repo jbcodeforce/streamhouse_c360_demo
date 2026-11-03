@@ -1,13 +1,22 @@
-site_name: Apache and Confluent Flink Studies v1.0.70
+site_name: Streamhouse demonstrations 0.0.3
 repo_url: https://github.com/jbcodeforce/streamhouse_c360_demo.git
 site_url: https://jbcodeforce.github.io/streamhouse_c360_demo
 copyright: Copyright &copy; 2018 - 2026 Jerome Boyer
 nav:
   - Introduction: index.md
+  - Design: 
+    - WebAPP: web_app_design.md
+    - Flink DSP: build_flink_dsp.md
+  - Deployments:
+    - AWS RDS: sre_aws.md
+    - Confluent Cloud: sre_ccloud_tf.md
+    - CC Console: sre_ccloud.md
+    - Flink deploy: flink_deployment.md
+  - Demo Script: demo_script.md
  
 theme: 
   name: material 
-  logo: images/logo.drawio.png
+  logo: images/logo_wh.drawio.png
   favicon: images/logo.drawio.png
   palette:
     scheme: default
