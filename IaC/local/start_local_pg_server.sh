@@ -99,7 +99,11 @@ else
     --env "POSTGRES_DB=${PG_DB}" \
     --env "POSTGRES_USER=${PG_USER}" \
     --env "POSTGRES_PASSWORD=${PG_PASSWORD}" \
-    "${PG_IMAGE}"
+    "${PG_IMAGE}" \
+    postgres \
+      -c wal_level=logical \
+      -c max_wal_senders=4 \
+      -c max_replication_slots=4
 
   log "Container '${CONTAINER_NAME}' started on host port ${PG_PORT}."
 

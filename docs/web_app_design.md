@@ -18,11 +18,11 @@ This note is to explain the backend design and implementation, for code maintena
 
 The solution architecture looks like in the figure below:
 
-![](./diagrams/stream-cut1-local-arch.drawio.png)
+![](./diagrams/app/stream-cut1-local-arch.drawio.png)
 
 The frontend is a classic single-page app over a REST backend.
 
-![](./diagrams/web_app_flow.drawio.png)
+![](./diagrams/app/web_app_flow.drawio.png)
 
 The backend is organized in different layers to facilitate testing and adopting clear separation of concern. The structure mock a microservice implementation, which means it will be easy to separate the customer, account, transactions, analytics and chat into separate code repository and package them as 12-factors application.
 
@@ -225,7 +225,7 @@ In a developer centric demonstration, we will use an harness like Claude Code, c
   ```
 
 * The [service](https://github.com/jbcodeforce/streamhouse_c360_demo/blob/main/apps/backend/chat/service.py) manages the support to `stub` mode to return canned text or `live` mode to run the Agno agent against the local LLM + RTCE context-engine MCP server. 
-* [Agno agent]((https://github.com/jbcodeforce/streamhouse_c360_demo/blob/main/apps/backend/chat/agent.py) ) wires a local OpenAI-compatible LLM (an MLX server) to the Confluent Real-Time Context Engine context-engine MCP server. 
+* [Agno agent](https://github.com/jbcodeforce/streamhouse_c360_demo/blob/main/apps/backend/chat/agent.py) wires a local OpenAI-compatible LLM (an MLX server) to the Confluent Real-Time Context Engine context-engine MCP server. 
   ```python
     model, server_params = _build_model_and_params()
     async with MCPTools(

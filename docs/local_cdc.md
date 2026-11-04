@@ -7,11 +7,6 @@ This guide configures local PostgreSQL with Change Data Capture (CDC) via Debezi
 
 ![](./diagrams/local/local_cdc.drawio.png)
 
-Configuration:
-
-```sh
-
-```
 
 ## 1. Set Confluent Cloud Credentials
 

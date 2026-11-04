@@ -13,10 +13,13 @@
 #      (or exported).
 #
 # Usage:
-#   ./start_debezium.sh            start worker + create/update connector
-#   ./start_debezium.sh --reset    recreate the worker container
-#   ./start_debezium.sh --stop     stop and remove the worker container
-#   ./start_debezium.sh --logs     tail worker logs
+#   ./start_debezium.sh              start worker + create/update connector
+#   ./start_debezium.sh --reset      recreate the worker container (Kafka state kept)
+#   ./start_debezium.sh --full-reset recreate worker AND wipe Kafka offset/config/status
+#                                    topics + drop the PG replication slot so a full
+#                                    re-snapshot is forced (use after resetting Postgres)
+#   ./start_debezium.sh --stop       stop and remove the worker container
+#   ./start_debezium.sh --logs       tail worker logs
 #
 # Environment (optional overrides):
 #   DEBEZIUM_PORT            Host port for the Connect REST API (default: 8083)
@@ -88,14 +91,16 @@ stop_and_remove() {
 # ── Argument parsing ───────────────────────────────────────────────────────────
 DO_STOP=false
 DO_RESET=false
+DO_FULL_RESET=false
 DO_LOGS=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --stop)  DO_STOP=true; shift ;;
-    --reset) DO_RESET=true; shift ;;
-    --logs)  DO_LOGS=true; shift ;;
-    *)       err "Unknown option: $1"; exit 1 ;;
+    --stop)        DO_STOP=true; shift ;;
+    --reset)       DO_RESET=true; shift ;;
+    --full-reset)  DO_FULL_RESET=true; DO_RESET=true; shift ;;
+    --logs)        DO_LOGS=true; shift ;;
+    *)             err "Unknown option: $1"; exit 1 ;;
   esac
 done
 
@@ -117,7 +122,8 @@ if [[ "${DO_STOP}" == true ]]; then
 fi
 
 # ── Credentials ────────────────────────────────────────────────────────────────
-for var in KAFKA_BOOTSTRAP_SERVERS KAFKA_API_KEY KAFKA_API_SECRET \
+for var in KAFKA_BOOTSTRAP_SERVERS KAFKA_REST_ENDPOINT KAFKA_CLUSTER_ID \
+           KAFKA_API_KEY KAFKA_API_SECRET \
            SCHEMA_REGISTRY_URL SCHEMA_REGISTRY_API_KEY SCHEMA_REGISTRY_API_SECRET; do
   [[ -n "${!var:-}" ]] || die "${var} is not set. Add it to apps/backend/.env or export it."
 done
@@ -151,6 +157,34 @@ SLOT_PLUGIN="$(psql_pg -c "SELECT plugin FROM pg_replication_slots WHERE slot_na
 if [[ -n "${SLOT_PLUGIN}" && "${SLOT_PLUGIN}" != "pgoutput" ]]; then
   die "Replication slot '${PG_SLOT}' uses plugin '${SLOT_PLUGIN}', expected 'pgoutput'.
     Drop it:  container exec ${PG_CONTAINER_NAME} psql -U ${LOCAL_PG_USER} -d ${LOCAL_PG_DB} -c \"SELECT pg_drop_replication_slot('${PG_SLOT}')\""
+fi
+
+# ── Full reset: wipe Kafka-side state so the connector re-snapshots from scratch ─
+if [[ "${DO_FULL_RESET}" == true ]]; then
+  log "--full-reset: dropping PG replication slot '${PG_SLOT}' (if exists) …"
+  psql_pg -c "SELECT pg_drop_replication_slot('${PG_SLOT}')" 2>/dev/null || true
+
+  log "--full-reset: deleting Connect metadata topics …"
+  # Use -u for Basic Auth (same as create_debezium_topics.sh's -K <(printf user=...)).
+  _kafka_curl() {
+    curl -sS --max-time 30 \
+      -u "${KAFKA_API_KEY}:${KAFKA_API_SECRET}" \
+      "$@"
+  }
+
+  for _topic in my_connect_configs my_connect_offsets my_connect_status; do
+    _code="$(_kafka_curl -o /dev/null -w '%{http_code}' -X DELETE \
+      "${KAFKA_REST_ENDPOINT}/kafka/v3/clusters/${KAFKA_CLUSTER_ID}/topics/${_topic}")"
+    case "${_code}" in
+      204) log "  deleted ${_topic}" ;;
+      404) log "  ${_topic} not found — skipping" ;;
+      *)   warn "  DELETE ${_topic} returned HTTP ${_code} — continuing anyway" ;;
+    esac
+  done
+
+  # Brief pause so Confluent Cloud has time to fully remove the topics before
+  # create_debezium_topics.sh tries to recreate them.
+  sleep 3
 fi
 
 # ── Kafka Connect metadata topics (RF=3 is enforced by Confluent Cloud) ────────

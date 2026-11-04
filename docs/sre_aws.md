@@ -2,11 +2,11 @@
 
 This section of the documentation is to create AWS resources for the end-to-end Streamhouse demonstration with source database, S3 buckets and Catalog. 
 
-Terraform is organized under the [`IaC/`](IaC/) directory as **three independent root modules** (separate local state), each file-per-concern. This split lets the core Confluent Cloud stack run locally with **no AWS credentials**; AWS and the managed connector are opt-in cost paths.
+Terraform is organized under the [`IaC/`](https://github.com/jbcodeforce/streamhouse_c360_demo/tree/main/IaC/) directory as **three independent root modules** (separate local state), each file-per-concern. This split lets the core Confluent Cloud stack run locally with **no AWS credentials**; AWS and the managed connector are opt-in cost paths.
 
-- [`IaC/AWS/`](IaC/AWS/) — **AWS stack**: PostgreSQL RDS 17 (CDC-ready), VPC/subnet lookups, security group (allowlists Confluent egress IPs), KMS, and the Secrets Manager secret consumed by `IaC/connector/`. Run with [`scripts/tf_aws.sh`](../scripts/tf_aws.sh) as it needs AWS credentials and `CONFLUENT_CLOUD_API_KEY/SECRET` exported as to setup of the security group reads Confluent egress IPs dynamically.
+- [`IaC/AWS/`](https://github.com/jbcodeforce/streamhouse_c360_demo/tree/main/IaC/AWS/) — **AWS stack**: PostgreSQL RDS 17 (CDC-ready), VPC/subnet lookups, security group (allowlists Confluent egress IPs), KMS, and the Secrets Manager secret consumed by `IaC/connector/`. Run with [`scripts/tf_aws.sh`](https://github.com/jbcodeforce/streamhouse_c360_demo/tree/main/scripts/tf_aws.sh) as it needs AWS credentials and `CONFLUENT_CLOUD_API_KEY/SECRET` exported as to setup of the security group reads Confluent egress IPs dynamically.
 
-- [`IaC/connector/`](IaC/connector/) — managed Debezium Postgres CDC connector on Confluent cloud: reads the core stack's outputs from `../ccloud/terraform.tfstate` via `terraform_remote_state`, and the RDS credentials from AWS Secrets Manager. Run with [`scripts/tf_connector.sh`](scripts/tf_connector.sh) (needs AWS creds). Optional — in local mode the backend app writes Debezium-shaped events directly to `cdc.public.*` topics instead.
+- [`IaC/connector/`](https://github.com/jbcodeforce/streamhouse_c360_demo/tree/main/IaC/connector/) — managed Debezium Postgres CDC connector on Confluent cloud: reads the core stack's outputs from `../ccloud/terraform.tfstate` via `terraform_remote_state`, and the RDS credentials from AWS Secrets Manager. Run with [`scripts/tf_connector.sh`](https://github.com/jbcodeforce/streamhouse_c360_demo/tree/main/scripts/tf_connector.sh) (needs AWS creds). Optional — in local mode the backend app writes Debezium-shaped events directly to `cdc.public.*` topics instead.
 
 **Apply order:** `IaC/ccloud` → `IaC/AWS` →  `IaC/connector.
 
@@ -52,7 +52,7 @@ The resources created are illustrated in following figure:
 
 The database is created in a public subnet of an existing VPC but the security group uses the user ip address to define a rule 
 
-![](./docs/diagrams/aws-rds.drawio.png)
+![](./diagrams/aws-rds.drawio.png)
 
 #### AWS RDS Postgresql
 
@@ -60,7 +60,7 @@ The terraform under `IaC/AWS` folder creates the RDS Postgresql 17 instance, wit
 
 RDS storage is encrypted with KMS Customer Managed Key and DB secrets. Database credentials are securely saved in AWS Secrets Manager.
 
-Run this stack through the [`scripts/tf_aws.sh`](../scripts/tf_aws.sh) wrapper rather than calling `terraform` directly. The wrapper handles two credential gotchas that make a bare `terraform plan` fail:
+Run this stack through the [`scripts/tf_aws.sh`](https://github.com/jbcodeforce/streamhouse_c360_demo/tree/main/scripts/tf_aws.sh) wrapper rather than calling `terraform` directly. The wrapper handles two credential gotchas that make a bare `terraform plan` fail:
 
 - **AWS**: SSO profiles often store temporary (`ASIA…`) keys *without* an `aws_session_token` in the shared files. The AWS CLI still works from its SSO
   cache, but Terraform's provider rejects the incomplete set (`No valid credential sources found`). The wrapper refreshes the SSO token if needed and exports the full
@@ -138,8 +138,6 @@ SELECT * FROM public.accounts
 
 * AWS RDS requires a DB Subnet Group. RDS manages its own Elastic Network Interfaces (ENIs). An RDS instance requires a DB Subnet Group defining a pool of subnets across at least two different Availability Zones (AZs) in that VPC (even for Single-AZ instances, so AWS can perform maintenance, failover, or migrations).
 * The aws_db_instance resource only accepts db_subnet_group_name, not individual subnet IDs
-
-
 
 ### Notes
 

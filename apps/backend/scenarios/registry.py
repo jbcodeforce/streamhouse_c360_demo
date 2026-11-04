@@ -232,7 +232,7 @@ SCENARIOS: dict[str, ScenarioDefinition] = {
 # key = (scenario_id, customer_id) is not enough because one customer can have
 # multiple accounts.  We store account_number per-entry in a parallel structure.
 ACCOUNT_NUMBERS: dict[str, list[str]] = {
-    "fraud-probe":       [CARTER_CHK, CARTER_CHK, CARTER_CHK, CARTER_SAV, CARTER_CHK],
+    "fraud-probe":       [CARTER_CHK, CARTER_CHK, CARTER_CHK, CARTER_SAV],
     "merchant-streak":   [GONZALEZ_CHK, GONZALEZ_CHK, GONZALEZ_CHK, GONZALEZ_CHK],
     "smb-spike":         [OKAFOR_CHK, OKAFOR_CHK, OKAFOR_CHK, OKAFOR_CHK],
 }

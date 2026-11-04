@@ -2,7 +2,7 @@
 
 This section of the documentation is to present the exhaustive steps to deploy the Confluent Cloud components for Streamhouse using Terraform.
 
-Terraform is organized under the [`IaC/`](IaC/) directory as **four independent root modules** (separate local state), each file-per-concern:
+Terraform is organized under the [`IaC/`](https://github.com/jbcodeforce/streamhouse_c360_demo/IaC/) directory as **four independent root modules** (separate local state), each file-per-concern:
 
 | Module | Purpose |
 |--------|---------|
@@ -13,7 +13,7 @@ Terraform is organized under the [`IaC/`](IaC/) directory as **four independent 
 
 This split lets the core Confluent Cloud stack run locally with **no AWS credentials**. AWS and the managed connector are opt-in cost paths. The `rtce` module is applied **last** — after `dbt` has created the different facts tables, because it registers those *existing* topics with the Lightning serving layer (see [Enable the Real-Time Context Engine](#enable-the-real-time-context-engine-rtce-lightning-query-api) below).
 
-The figure below illustrates what the terraforms in [`IaC/ccloud/`](IaC/ccloud/) will deploy. We start from an existing Organization, with a user with Org Admin role, and Confluent Cloud Resource API Key and Secret. 
+The figure below illustrates what the terraforms in [`IaC/ccloud/`](https://github.com/jbcodeforce/streamhouse_c360_demo/IaC/ccloud/) will deploy. We start from an existing Organization, with a user with Org Admin role, and Confluent Cloud Resource API Key and Secret. 
 
 ![](./diagrams/cc-tf-comp.drawio.png)
 

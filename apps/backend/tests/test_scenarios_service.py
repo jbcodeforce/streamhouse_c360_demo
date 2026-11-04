@@ -43,7 +43,7 @@ def test_run_returns_scenario_result_with_transactions(svc):
 def test_run_merchant_streak(svc):
     result = svc.run("merchant-streak")
     assert result.scenario_id == "merchant-streak"
-    assert len(result.transactions) == 3
+    assert len(result.transactions) == 4   # 3 FOOD streak + 1 GAZ (streak breaker)
 
 
 def test_run_smb_spike(svc):
