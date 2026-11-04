@@ -1,7 +1,7 @@
 """/api/v1/analytics endpoints: the C360 snapshot dashboard.
 
-Wired to SINK=kafka exactly like test_data_products_api.py, Kafka producers
-mocked at the boundary. Two fixtures: the default ``client`` (ANALYTICS_DATA_MODE
+Postgres bootstrap mocked exactly like test_data_products_api.py.
+Two fixtures: the default ``client`` (ANALYTICS_DATA_MODE
 =mock) and ``live_client`` (=live with NO Confluent credentials) which proves
 the live path degrades to an empty 200 rather than 5xx.
 """
@@ -25,13 +25,11 @@ def _reset_modules() -> None:
 @pytest.fixture(scope="module")
 def client():
     env_patch = patch.dict("os.environ", {
-        "SINK": "kafka",
         "ANALYTICS_DATA_MODE": "mock",
         # Point at a nonexistent env file so the repo's real .env (which may set
-        # KAFKA_SEED_ON_START etc. and make startup attempt a real connection) is
+        # DATABASE_URL etc. and make startup attempt a real connection) is
         # never loaded — this suite must exercise the mock path only.
         "ENV_CONFIG_FILE": "/nonexistent/.env.test-mock",
-        "KAFKA_SEED_ON_START": "false",
         "KAFKA_BOOTSTRAP_SERVERS": "mock:9092",
         "SCHEMA_REGISTRY_URL": "http://mock-sr",
         "SCHEMA_REGISTRY_API_KEY": "key",
@@ -40,8 +38,7 @@ def client():
     env_patch.start()
     _reset_modules()
 
-    with patch("customers.kafka_producer.produce_create"), \
-         patch("customers.kafka_producer.produce_update"):
+    with patch("bootstrap.init_and_seed"):
         import main  # noqa: PLC0415 — intentional late import after env patch
         with TestClient(main.app) as test_client:
             yield test_client
@@ -127,7 +124,6 @@ def live_client():
     nonexistent path so a real repo .env (with real Flink creds) is never loaded.
     """
     env_patch = patch.dict("os.environ", {
-        "SINK": "kafka",
         "ANALYTICS_DATA_MODE": "live",
         "ENV_CONFIG_FILE": "/nonexistent/.env.test-no-creds",
         "KAFKA_BOOTSTRAP_SERVERS": "mock:9092",
@@ -144,8 +140,7 @@ def live_client():
         os.environ.pop(key, None)
     _reset_modules()
 
-    with patch("customers.kafka_producer.produce_create"), \
-         patch("customers.kafka_producer.produce_update"):
+    with patch("bootstrap.init_and_seed"):
         import main  # noqa: PLC0415 — intentional late import after env patch
         with TestClient(main.app) as test_client:
             yield test_client

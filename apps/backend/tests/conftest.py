@@ -1,9 +1,9 @@
 """Shared pytest fixtures for the C360 backend integration tests.
 
-Two test suites coexist:
+Two kinds of test suites coexist:
 
-* **Kafka suite** (``test_customers_kafka.py``) — zero infrastructure required.
-  Runs with ``SINK=kafka``; Kafka/SR calls are mocked at the boundary.
+* **Unit/API suites** — zero infrastructure required; the Postgres bootstrap
+  and Kafka/SR calls are mocked at the boundary.
 
 * **Postgres suite** (``test_customers_postgres.py``) — requires a live
   PostgreSQL instance.  The suite is automatically skipped when

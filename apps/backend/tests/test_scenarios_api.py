@@ -96,10 +96,3 @@ def test_unknown_scenario_returns_404(client, monkeypatch):
     resp = client.post("/api/v1/scenarios/no-such/run")
     assert resp.status_code == 404
     assert "not found" in resp.json()["detail"].lower()
-
-
-def test_non_postgres_sink_returns_409(client, monkeypatch):
-    monkeypatch.setattr(service, "run", MagicMock(side_effect=service.UnsupportedSinkError("kafka")))
-    resp = client.post("/api/v1/scenarios/fraud-probe/run")
-    assert resp.status_code == 409
-    assert "postgres" in resp.json()["detail"].lower()

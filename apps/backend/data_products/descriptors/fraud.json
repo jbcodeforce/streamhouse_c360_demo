@@ -1,0 +1,61 @@
+{
+  "id": "fraud",
+  "name": "Fraud",
+  "description": "Fraud data product, generated from dbt models.",
+  "nodes": [
+    {
+      "id": "fct_fraud_probe",
+      "type": "statement",
+      "label": "fct_fraud_probe",
+      "statement_name": "dbt-streamhouse-fct-fraud-probe-bc60b3",
+      "topic": "fct_fraud_probe",
+      "is_product": true,
+      "table_type": "streaming_table",
+      "compute_pool_id": "lfcp-mv6kkvw"
+    },
+    {
+      "id": "fct_smb_spike",
+      "type": "statement",
+      "label": "fct_smb_spike",
+      "statement_name": "dbt-streamhouse-fct-smb-spike-1901fb",
+      "topic": "fct_smb_spike",
+      "is_product": true,
+      "table_type": "streaming_table",
+      "compute_pool_id": "lfcp-mv6kkvw"
+    },
+    {
+      "id": "src_customers",
+      "type": "statement",
+      "label": "src_customers",
+      "statement_name": "dbt-streamhouse-src-customers-35926e",
+      "topic": "src_customers",
+      "table_type": "materialized_table",
+      "compute_pool_id": "lfcp-mv6kkvw",
+      "external": true
+    },
+    {
+      "id": "src_transactions",
+      "type": "statement",
+      "label": "src_transactions",
+      "statement_name": "dbt-streamhouse-src-transactions-ef9e60",
+      "topic": "src_transactions",
+      "table_type": "materialized_table",
+      "compute_pool_id": "lfcp-mv6kkvw",
+      "external": true
+    }
+  ],
+  "edges": [
+    {
+      "source": "src_transactions",
+      "target": "fct_fraud_probe"
+    },
+    {
+      "source": "src_transactions",
+      "target": "fct_smb_spike"
+    },
+    {
+      "source": "src_customers",
+      "target": "fct_smb_spike"
+    }
+  ]
+}

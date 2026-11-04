@@ -99,22 +99,7 @@ This time the database runs locally and the web app writes to kafka in parallel 
     ```
 
 
-With the following settings, the backend service will create cdc topics, schemas, and send data to kafka directly:
-
-```sh
-SINK=postgres
-KAFKA_PRODUCE_ENABLED=true
-CDC_CONNECTOR_ENABLED=false
-KAFKA_SEED_ON_START=true
-```
-
-When using remote database and pure CDC processing, using a CDC connector in Confluent cloud, the settings are:
-
-```
-CDC_CONNECTOR_ENABLED=true
-KAFKA_SEED_ON_START=false
-KAFKA_PRODUCE_ENABLED=false
-```
+Changes written by the backend to PostgreSQL are published to the `cdc.public.*` topics by Debezium (see [Local CDC](local_cdc.md)); the backend does not produce to Kafka itself.
 
 ### Deploy the Flink Statements / Materialized Tables
 
@@ -193,7 +178,7 @@ The transactions page presents a list of current transactions in the database:
 
 Again this is for demonstration purpose.
 
-To simulate a week of activity, click **Generate 200 transactions**. The backend creates 200 transactions on existing accounts, timestamped from 7 days ago in 15-minute increments, inserts them in Postgres and (when `KAFKA_PRODUCE_ENABLED=true` and no CDC connector owns Kafka) publishes them to the `cdc.public.transactions` topic. The page then shows the newly created transactions (the list is not kept after a browser refresh).
+To simulate a week of activity, click **Generate 200 transactions**. The backend creates 200 transactions on existing accounts, timestamped from 7 days ago in 15-minute increments, inserts them in Postgres, and Debezium publishes them to the `cdc.public.transactions` topic. The page then shows the newly created transactions (the list is not kept after a browser refresh).
 
 ### Data products view
 

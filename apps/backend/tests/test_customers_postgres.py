@@ -1,4 +1,4 @@
-"""Integration tests for the Customers REST API — SINK=postgres.
+"""Integration tests for the Customers REST API (PostgreSQL).
 
 These tests require a live PostgreSQL instance.  They are automatically
 skipped when DATABASE_URL is not available.
@@ -21,12 +21,12 @@ from tests.conftest import make_create_payload, make_full_payload
 
 
 # ---------------------------------------------------------------------------
-# App fixture — SINK=postgres, uses DATABASE_URL from .env.local / environment
+# App fixture — uses DATABASE_URL from .env.local / environment
 # ---------------------------------------------------------------------------
 
 @pytest.fixture(scope="module", autouse=False)
 def client():
-    """TestClient wired to SINK=postgres.
+    """TestClient wired to PostgreSQL.
 
     Overrides the live settings singleton and db_sink pool directly so the
     suite runs cleanly after a kafka suite in the same process.
@@ -39,13 +39,10 @@ def client():
     # Import everything fresh (modules may already be loaded from kafka suite)
     import config
     import db
-    import customers.kafka_producer as kafka_producer
     import main  # noqa: PLC0415
 
     # Directly override the settings singleton for the duration of this suite
-    original_sink = config.settings.SINK
     original_db_url = config.settings.DATABASE_URL
-    config.settings.SINK = "postgres"
     config.settings.DATABASE_URL = database_url
 
     # Reset the shared connection pool so it re-connects with the correct URL
@@ -63,7 +60,6 @@ def client():
         yield test_client
 
     # Restore settings
-    config.settings.SINK = original_sink
     config.settings.DATABASE_URL = original_db_url
     _reset_pool()
 
@@ -91,10 +87,10 @@ def _track_created(client):
 # ---------------------------------------------------------------------------
 
 class TestHealth:
-    def test_health_reports_postgres_sink(self, client):
+    def test_health_ok(self, client):
         resp = client.get("/health")
         assert resp.status_code == 200
-        assert resp.json()["sink"] == "postgres"
+        assert resp.json() == {"status": "ok"}
 
 
 # ---------------------------------------------------------------------------

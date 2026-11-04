@@ -11,7 +11,7 @@ Terraform is organized under the [`IaC/`](IaC/) directory as **four independent 
 | `IaC/connector` | Managed Debezium PostgreSQL CDC source connector (opt-in). |
 | `IaC/rtce` | **Real-Time Context Engine / Lightning Query API** enablement: the Global API key + registering `fct_c360_profile` as an RTCE topic. |
 
-This split lets the core Confluent Cloud stack run locally with **no AWS credentials**. AWS and the managed connector are opt-in cost paths. The `rtce` module is applied **last** — after `dbt` has created the different facts tables, because it registers those *existing* topics with the Lightning serving layer (see [Enable the Real-Time Context Engine](#enable-the-real-time-context-engine-rtce--lightning-query-api) below).
+This split lets the core Confluent Cloud stack run locally with **no AWS credentials**. AWS and the managed connector are opt-in cost paths. The `rtce` module is applied **last** — after `dbt` has created the different facts tables, because it registers those *existing* topics with the Lightning serving layer (see [Enable the Real-Time Context Engine](#enable-the-real-time-context-engine-rtce-lightning-query-api) below).
 
 The figure below illustrates what the terraforms in [`IaC/ccloud/`](IaC/ccloud/) will deploy. We start from an existing Organization, with a user with Org Admin role, and Confluent Cloud Resource API Key and Secret. 
 

@@ -15,9 +15,6 @@ from api.data_product_resource import router as data_product_router
 from api.scenario_resource import router as scenario_router
 from api.transaction_resource import router as transaction_router
 from config import settings
-from customers import inventory as customers_inventory
-from accounts  import inventory as account_inventory
-from transactions import inventory as transaction_inventory
 
 logger = logging.getLogger("c360.main")
 
@@ -47,35 +44,11 @@ _configure_logging()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     settings.log_summary(logger)
-    if settings.CDC_CONNECTOR_ENABLED:
-        logger.info("[bypass] OFF — a CDC connector owns the cdc.public.* topics")
-    elif settings.KAFKA_PRODUCE_ENABLED or settings.KAFKA_SEED_ON_START or settings.SINK == "kafka":
-        logger.info(
-            "[bypass] ON — backend writes Debezium-shaped events directly to Kafka "
-            "(produce=%s, seed_on_start=%s, sink=%s)",
-            settings.KAFKA_PRODUCE_ENABLED, settings.KAFKA_SEED_ON_START, settings.SINK,
-        )
-    else:
-        logger.info("[bypass] OFF — KAFKA_PRODUCE_ENABLED and KAFKA_SEED_ON_START are false")
-    if settings.SINK == "postgres":
-        bootstrap.init_and_seed()
-    elif settings.SINK == "kafka":
-        customers = customers_inventory.load()
-        account_inventory.load()
-        transaction_inventory.load()
-        logger.info("Kafka sink ready — %d customers loaded from CSV", len(customers))
-    if settings.KAFKA_SEED_ON_START:
-        if settings.CDC_CONNECTOR_ENABLED:
-            logger.warning(
-                "KAFKA_SEED_ON_START ignored — a CDC connector owns the Kafka topics"
-            )
-        else:
-            bootstrap.seed_kafka()
+    bootstrap.init_and_seed()
     yield
     # Close any cached chat (RTCE MCP) sessions on shutdown.
     try:
         from chat import agent as chat_agent
-
         await chat_agent.shutdown()
     except Exception:
         logger.exception("error shutting down chat sessions")
@@ -101,4 +74,4 @@ app.include_router(chat_router, prefix="/api/v1")
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "sink": settings.SINK}
+    return {"status": "ok"}

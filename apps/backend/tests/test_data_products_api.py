@@ -1,7 +1,7 @@
 """/api/v1/data-products endpoints: list, graph, status, node metrics.
 
-Wired to SINK=kafka + GRAPH_DATA_MODE=mock (no infra) exactly like
-test_cors.py, with the Kafka producers mocked at the boundary. The fixture
+Postgres bootstrap mocked + GRAPH_DATA_MODE=mock (no infra) exactly like
+test_cors.py. The fixture
 fully resets the imported app modules in sys.modules on teardown so suites
 that reimport ``main`` afterwards start from a clean module graph.
 """
@@ -32,12 +32,10 @@ def _reset_modules() -> None:
 @pytest.fixture(scope="module")
 def client():
     env_patch = patch.dict("os.environ", {
-        "SINK": "kafka",
         "GRAPH_DATA_MODE": "mock",
         # Isolate from the repo's real .env so app startup never attempts a real
         # connection (it may point at live/remote infra or enable seeding).
         "ENV_CONFIG_FILE": "/nonexistent/.env.test",
-        "KAFKA_SEED_ON_START": "false",
         "KAFKA_BOOTSTRAP_SERVERS": "mock:9092",
         "SCHEMA_REGISTRY_URL": "http://mock-sr",
         "SCHEMA_REGISTRY_API_KEY": "key",
@@ -46,8 +44,7 @@ def client():
     env_patch.start()
     _reset_modules()
 
-    with patch("customers.kafka_producer.produce_create"), \
-         patch("customers.kafka_producer.produce_update"):
+    with patch("bootstrap.init_and_seed"):
         import main  # noqa: PLC0415 — intentional late import after env patch
         with TestClient(main.app) as test_client:
             yield test_client
@@ -136,7 +133,6 @@ def live_client():
     environment (if present) for the same reason.
     """
     env_patch = patch.dict("os.environ", {
-        "SINK": "kafka",
         "GRAPH_DATA_MODE": "live",
         "ENV_CONFIG_FILE": "/nonexistent/.env.test-no-creds",
         "KAFKA_BOOTSTRAP_SERVERS": "mock:9092",
@@ -153,8 +149,7 @@ def live_client():
         os.environ.pop(key, None)
     _reset_modules()
 
-    with patch("customers.kafka_producer.produce_create"), \
-         patch("customers.kafka_producer.produce_update"):
+    with patch("bootstrap.init_and_seed"):
         import main  # noqa: PLC0415 — intentional late import after env patch
         with TestClient(main.app) as test_client:
             yield test_client

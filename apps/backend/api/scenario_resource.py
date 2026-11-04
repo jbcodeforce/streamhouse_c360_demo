@@ -27,8 +27,3 @@ def run_scenario(scenario_id: str) -> ScenarioResult:
         return service.run(scenario_id)
     except service.UnknownScenarioError:
         raise HTTPException(status_code=404, detail=f"Scenario '{scenario_id}' not found")
-    except service.UnsupportedSinkError as exc:
-        raise HTTPException(
-            status_code=409,
-            detail=f"Scenarios require SINK=postgres (current sink: {exc})",
-        )

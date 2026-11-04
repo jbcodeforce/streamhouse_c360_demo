@@ -20,7 +20,7 @@ def test_resolve_env_file_default():
 
 def test_resolve_env_file_custom(tmp_path):
     custom_env = tmp_path / "custom.env"
-    custom_env.write_text("SINK=kafka\n")
+    custom_env.write_text("GRAPH_DATA_MODE=live\n")
     with patch.dict(os.environ, {"ENV_CONFIG_FILE": str(custom_env)}):
         res = _resolve_env_file()
         assert res == str(custom_env)
@@ -43,14 +43,10 @@ def test_crm_compute_pool_in_settings_and_summary():
 
 def test_settings_summary_and_log():
     settings = Settings(
-        SINK="postgres",
         DATABASE_URL="postgresql://user:secret@localhost:5432/mydb",
-        CDC_CONNECTOR_ENABLED=False,
     )
     summary = settings.summary()
-    assert summary["SINK"] == "postgres"
     assert summary["DATABASE_URL"] == "postgresql://user:****@localhost:5432/mydb"
-    assert summary["CDC_CONNECTOR_ENABLED"] == "False"
 
     mock_logger = MagicMock(spec=logging.Logger)
     settings.log_summary(mock_logger)

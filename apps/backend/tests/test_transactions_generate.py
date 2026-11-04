@@ -1,4 +1,4 @@
-"""POST /transactions/generate: generator, gating, and API behaviour."""
+"""POST /transactions/generate: generator, service, and API behaviour."""
 
 from __future__ import annotations
 
@@ -64,50 +64,21 @@ def test_raises_without_eligible_accounts():
 
 
 # ---------------------------------------------------------------------------
-# service gating
+# service
 # ---------------------------------------------------------------------------
 
 @pytest.fixture
 def svc(monkeypatch):
-    monkeypatch.setattr(service.settings, "SINK", "postgres")
-    monkeypatch.setattr(service.settings, "CDC_CONNECTOR_ENABLED", False)
-    monkeypatch.setattr(service.settings, "KAFKA_PRODUCE_ENABLED", True)
     monkeypatch.setattr(service.accounts_service, "list_all", lambda: [_account()])
     monkeypatch.setattr(service.db_sink, "create_many", MagicMock(side_effect=lambda t: t))
-    monkeypatch.setattr(service.kafka_producer, "produce_create_many", MagicMock())
     return service
 
 
-def test_generate_inserts_and_publishes_once_when_enabled(svc):
+def test_generate_inserts_rows(svc):
     txns = svc.generate()
     assert len(txns) == 200
     svc.db_sink.create_many.assert_called_once()
-    svc.kafka_producer.produce_create_many.assert_called_once()
-    assert svc.kafka_producer.produce_create_many.call_args.args[0] is txns
-
-
-def test_generate_does_not_publish_when_produce_disabled(svc, monkeypatch):
-    monkeypatch.setattr(svc.settings, "KAFKA_PRODUCE_ENABLED", False)
-    assert len(svc.generate()) == 200
-    svc.kafka_producer.produce_create_many.assert_not_called()
-
-
-def test_generate_does_not_publish_when_cdc_connector_owns_kafka(svc, monkeypatch):
-    monkeypatch.setattr(svc.settings, "CDC_CONNECTOR_ENABLED", True)
-    assert len(svc.generate()) == 200
-    svc.kafka_producer.produce_create_many.assert_not_called()
-
-
-def test_generate_still_returns_rows_when_producer_raises(svc):
-    svc.kafka_producer.produce_create_many.side_effect = RuntimeError("broker down")
-    assert len(svc.generate()) == 200
-
-
-def test_generate_rejects_non_postgres_sink(svc, monkeypatch):
-    monkeypatch.setattr(svc.settings, "SINK", "kafka")
-    with pytest.raises(svc.UnsupportedSinkError):
-        svc.generate()
-    svc.db_sink.create_many.assert_not_called()
+    assert svc.db_sink.create_many.call_args.args[0] is txns
 
 
 # ---------------------------------------------------------------------------

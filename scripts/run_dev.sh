@@ -36,13 +36,6 @@
 # Environment overrides:
 #   DATABASE_URL     Required for --db rds (a postgresql://… DSN). Read from the
 #                    environment so secrets never land in a file (per repo policy).
-#   SINK             Backend sink. Default: postgres.
-#   CDC_CONNECTOR_ENABLED
-#                    true  ⇒ a CDC connector owns Kafka, so the backend never
-#                    emits (prevents double-publishing cdc.public.*). Forced true
-#                    by --db rds, false by --db local; otherwise honored if set,
-#                    else inferred from the host (only localhost ⇒ false; any
-#                    remote host ⇒ true, the safe no-double-publish default).
 #   BACKEND_PORT     Default: 8000
 #   FRONTEND_PORT    Default: 5173
 #   LOCAL_PG_*       LOCAL_PG_USER / LOCAL_PG_PASSWORD / LOCAL_PG_HOST /
@@ -80,7 +73,7 @@ dsn_target() {
 
 # Keys the script intentionally derives/overrides itself (from flags or host
 # inference), so a shell value differing from the file is expected, not a mistake.
-SHADOW_IGNORE_RE='^(ENV_CONFIG_FILE|DATABASE_URL|CDC_CONNECTOR_ENABLED|SINK|VITE_API_BASE_URL)$'
+SHADOW_IGNORE_RE='^(ENV_CONFIG_FILE|DATABASE_URL|VITE_API_BASE_URL)$'
 # Populated by load_dotenv: keys whose already-exported shell value differs from
 # the .env file, so the file edit is silently ignored (shell env wins in both
 # load_dotenv below and pydantic-settings). Printed as a warning afterward.
@@ -189,7 +182,7 @@ while [[ $# -gt 0 ]]; do
     --db=*)        DB_TARGET="${1#*=}"; shift ;;
     --db-url)      DB_URL_OVERRIDE="${2:-}"; DB_TARGET="custom"; shift 2 ;;
     --db-url=*)    DB_URL_OVERRIDE="${1#*=}"; DB_TARGET="custom"; shift ;;
-    --cdc)         RUN_CDC=true; DB_TARGET="local"; KAFKA_PRODUCE_ENABLED=false; shift ;;
+    --cdc)         RUN_CDC=true; DB_TARGET="local"; shift ;;
     --no-frontend) RUN_FRONTEND=false; shift ;;
     --no-backend)  RUN_BACKEND=false; shift ;;
     --no-debezium) RUN_DEBEZIUM=false; shift ;;
@@ -216,7 +209,6 @@ fi
 $RUN_BACKEND || $RUN_FRONTEND || die "Nothing to run: --no-backend and --no-frontend are mutually exclusive."
 
 # ── Resolve configuration ───────────────────────────────────────────────────
-SINK="${SINK:-postgres}"
 BACKEND_PORT="${BACKEND_PORT:-8000}"
 FRONTEND_PORT="${FRONTEND_PORT:-5173}"
 
@@ -231,7 +223,7 @@ DB_LABEL=""
 case "$DB_TARGET" in
   local)
     RESOLVED_DSN="$LOCAL_DSN"
-    DB_LABEL="Local PostgreSQL (container from apps/backend/start_local_pg_server.sh)"
+    DB_LABEL="Local PostgreSQL (container from IaC/local/start_local_pg_server.sh)"
     ;;
   rds)
     RESOLVED_DSN="${DATABASE_URL:-}"
@@ -254,33 +246,8 @@ case "$DB_TARGET" in
     ;;
 esac
 
-# CDC ownership of Kafka. A managed Debezium connector publishes cdc.public.*
-# for RDS / remote PostgreSQL, so the backend must NOT dual-write there.
-#   --db rds   → always force true (connector owns Kafka), overriding any
-#                exported value, so RDS can never double-publish.
-#   --db local → always false.
-#   otherwise  → honor an exported CDC_CONNECTOR_ENABLED (e.g. from
-#                set_env_from_tf.sh), else infer from the host.
-if [[ "$DB_TARGET" == "rds" ]]; then
-  CDC_CONNECTOR_ENABLED=true
-elif [[ "$DB_TARGET" == "local" ]]; then
-  CDC_CONNECTOR_ENABLED=false
-elif [[ -z "${CDC_CONNECTOR_ENABLED:-}" ]]; then
-  # Safe default: only an explicitly local host is treated as "app may emit".
-  # Anything else (RDS or any remote PG) is assumed connector-owned, since a
-  # wrong "false" double-publishes whereas a wrong "true" merely goes quiet.
-  case "$(dsn_target "$RESOLVED_DSN")" in
-    localhost*|127.0.0.1*) CDC_CONNECTOR_ENABLED=false ;;
-    *)                     CDC_CONNECTOR_ENABLED=true ;;
-  esac
-fi
-
 # ── Validation ──────────────────────────────────────────────────────────────
 log "Validating configuration…"
-
-if [[ "$SINK" != "postgres" ]]; then
-  warn "SINK=$SINK — this script targets the PostgreSQL sink; DB settings below are ignored by the backend."
-fi
 
 [[ "$RESOLVED_DSN" == postgresql://* || "$RESOLVED_DSN" == postgres://* ]] \
   || die "DATABASE_URL does not look like a postgresql:// DSN: $(mask_dsn "$RESOLVED_DSN")"
@@ -305,17 +272,15 @@ if $RUN_CDC; then
   [[ -x "$LOCAL_IAC_DIR/configure_pg_cdc.sh" ]] \
     || die "CDC setup script not found: $LOCAL_IAC_DIR/configure_pg_cdc.sh"
   if $RUN_DEBEZIUM; then
-    [[ -x "$LOCAL_IAC_DIR/start_debezium_server.sh" ]] \
-      || die "Debezium startup script not found: $LOCAL_IAC_DIR/start_debezium_server.sh"
+    [[ -x "$LOCAL_IAC_DIR/start_debezium.sh" ]] \
+      || die "Debezium startup script not found: $LOCAL_IAC_DIR/start_debezium.sh"
     [[ -n "${CONFLUENT_CLOUD_API_KEY:-}${CONFLUENT_CLOUD_BOOTSTRAP_SERVER:-}" ]] || \
       warn "Confluent Cloud credentials not found. Add CONFLUENT_CLOUD_API_KEY, CONFLUENT_CLOUD_API_SECRET, and CONFLUENT_CLOUD_BOOTSTRAP_SERVER to backend/.env"
   fi
-  # Force local PostgreSQL for CDC
-  CDC_CONNECTOR_ENABLED=true
 fi
 
 # Reachability check for the local DB (best effort; warn only).
-if $RUN_BACKEND && [[ "$SINK" == "postgres" && "$DB_TARGET" == "local" ]]; then
+if $RUN_BACKEND && [[ "$DB_TARGET" == "local" ]]; then
   if command -v nc >/dev/null 2>&1 && ! nc -z "$LOCAL_PG_HOST" "$LOCAL_PG_PORT" >/dev/null 2>&1; then
     warn "No PostgreSQL listening on ${LOCAL_PG_HOST}:${LOCAL_PG_PORT}."
     if $RUN_CDC; then
@@ -332,9 +297,7 @@ VITE_API_BASE_URL="${VITE_API_BASE_URL:-http://localhost:${BACKEND_PORT}/api/v1}
 if [[ -n "${ENV_CONFIG_FILE:-}" ]]; then
   export ENV_CONFIG_FILE
 fi
-export SINK
 export DATABASE_URL="$RESOLVED_DSN"
-export CDC_CONNECTOR_ENABLED
 export VITE_API_BASE_URL
 
 # ── Summary ─────────────────────────────────────────────────────────────────
@@ -371,7 +334,7 @@ if $RUN_CDC; then
 
   if $RUN_DEBEZIUM; then
     log "Starting Debezium server…"
-    ( cd "$LOCAL_IAC_DIR" && bash start_debezium_server.sh ) || \
+    ( cd "$LOCAL_IAC_DIR" && bash start_debezium.sh ) || \
       die "Failed to start Debezium server"
     log "Debezium is ready. CDC events from cdc.* tables will flow to Confluent Cloud."
   else

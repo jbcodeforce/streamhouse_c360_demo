@@ -96,7 +96,7 @@ vpc_cidr_block = "10......"
 vpc_id = "vpc-...."
 ```
 
-Once the database is up and running, the backend creates the tables, the `c360_cdc_publication`, and seeds the committed CSV dataset on startup — there is no separate schema/seed script. Build `DATABASE_URL` from the RDS secret and run the backend bootstrap (or just start the API with `SINK=postgres`):
+Once the database is up and running, the backend creates the tables, the `c360_cdc_publication`, and seeds the committed CSV dataset on startup — there is no separate schema/seed script. Build `DATABASE_URL` from the RDS secret and run the backend bootstrap (or just start the API):
 
 ```sh
 # Pull the RDS credentials emitted into Secrets Manager by Terraform
@@ -107,7 +107,7 @@ export DB_PASSWORD=$(aws secretsmanager get-secret-value \
 
 cd apps/backend
 DATABASE_URL="postgresql://dbadmin:${DB_PASSWORD}@${RDSHOST}:5432/c360db?sslmode=require" \
-SINK=postgres uv run python bootstrap.py
+uv run python bootstrap.py
 ```
 
 The bootstrap is idempotent, so it is safe to re-run. The CDC publication now covers all three tables (`customers`, `accounts`, `transactions`).
@@ -189,27 +189,9 @@ It is possible to retrieve the secret ARN from secrets manager:
 * And have some records
   ![](./images/ccloud/cdc_cust_records.png)
 
-### Backend must not dual-write to Kafka
+### Backend does not write to Kafka
 
 Once the CDC connector is running, it is the **only** writer of the
-`cdc.public.*` topics. The backend keeps writing to RDS (the source of truth)
-but must **not** also emit Kafka events — otherwise every change is published
-twice (once by the app, once by the connector).
-
-This is enforced by the `CDC_CONNECTOR_ENABLED` setting (see
-[`apps/backend/README.md`](../apps/backend/README.md#cdc-ownership-guard-cdc_connector_enabled)).
-When `true`, the backend never emits, regardless of
-`KAFKA_PRODUCE_ENABLED`. It is wired up automatically on the RDS path:
-
-```sh
-# Exports DATABASE_URL (RDS) and CDC_CONNECTOR_ENABLED=true for the shell:
-source scripts/set_env_from_tf.sh
-./scripts/run_dev.sh            # honors the exported RDS config
-
-# Or force the RDS target explicitly (also sets CDC_CONNECTOR_ENABLED=true):
-./scripts/run_dev.sh --db rds
-```
-
-Only **local mode** (local Postgres, no connector) should emit from the app:
-leave `CDC_CONNECTOR_ENABLED=false` (the default) and flip the runtime toggle on
-when you want the app to produce Debezium-shaped events directly.
+`cdc.public.*` topics. The backend only writes to RDS (the source of truth);
+it contains no Kafka producer for customers, accounts or transactions, so
+changes cannot be published twice.

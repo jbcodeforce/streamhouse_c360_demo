@@ -90,24 +90,6 @@ def test_ensure_kafka_resources_covers_topic_key_and_value():
     ]
 
 
-@pytest.mark.parametrize("module", ["customers", "accounts", "transactions"])
-def test_init_producer_provisions_resources(module):
-    import importlib
-
-    kp = importlib.import_module(f"{module}.kafka_producer")
-    with patch.object(kp, "SchemaRegistryClient"), \
-         patch.object(kp, "AvroSerializer"), \
-         patch.object(kp, "SerializingProducer") as producer, \
-         patch.object(kp, "ensure_kafka_resources") as ensure:
-        kp.init_producer()
-    ensure.assert_called_once()
-    args = ensure.call_args.args
-    assert args[3] == kp._KEY_SCHEMA_STR and args[4] == kp._SCHEMA_STR
-    conf = producer.call_args.args[0]
-    assert "key.serializer" in conf and "value.serializer" in conf
-    assert "key.serializer" not in args[0]  # admin config must stay plain
-
-
 # ---------------------------------------------------------------------------
 # Bypass traces
 # ---------------------------------------------------------------------------
@@ -138,15 +120,3 @@ def test_traces_when_resources_already_exist(caplog):
         kafka_setup.ensure_kafka_resources({"bootstrap.servers": "x"}, sr, "t", "K", "V")
     assert "topic t already exists" in caplog.text
     assert "subject t-key already registered" in caplog.text
-
-
-@pytest.mark.parametrize("module", ["customers", "accounts", "transactions"])
-def test_delivery_callback_traces_success(module, caplog):
-    import importlib
-
-    kp = importlib.import_module(f"{module}.kafka_producer")
-    msg = MagicMock()
-    msg.topic.return_value, msg.partition.return_value, msg.offset.return_value = "t", 2, 41
-    with caplog.at_level("INFO"):
-        kp._on_delivery(None, msg)
-    assert "DELIVERED to t [partition 2] @ offset 41" in caplog.text

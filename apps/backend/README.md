@@ -9,23 +9,16 @@ Each component is isolated in term of code base so it can be packaged, if needed
 The structure is the same for all compoents:
 
 * REST API resource 
-* Support two write sinks controlled by a single `SINK` environment variable:
+* Persist to PostgreSQL. Changes reach Kafka only through the Debezium CDC connector (`IaC/local/start_debezium.sh` locally, the managed connector on RDS); the backend never produces `cdc.public.*` events itself.
 
-| `SINK` value | Write path | Read path |
-|---|---|---|
-| `postgres` *(default)* | INSERT / UPDATE RDS PostgreSQL | SELECT from PostgreSQL |
-| `kafka` | Produce Avro message to Confluent topic | Read from in-memory CSV |
-
-* CVS bootstrap for controlled data. When `SINK=postgres`, the backend auto-creates the schema on startup.  When `SINK=kafka`, the CSV remains the in-memory read store for all GET requests.
+* CSV bootstrap for controlled data. On startup the backend auto-creates the schema and the `c360_cdc_publication`, then seeds each table from its CSV if empty.
 * Centralise all environment-driven settings in one place so every module imports from `config` rather than calling `os.environ` directly. The dotenv file path is read from the `ENV_CONFIG_FILE` environment variable (default `.env`); real environment variables always take precedence over its contents.
-* When `SINK=kafka`, write operations produce Avro-serialised messages to the Confluent topic using the Confluent Schema Registry. This bypasses CDC and lets the demo run without an RDS instance.
-
-* Define the canonical Pydantic schema for a Customer, matching the PostgreSQL table exactly (field names, types, optionality). This model is shared by all three layers: API request/response, database writes, and Kafka Avro payload.
-* Inventory pattern to support in-memory data for demo
-* Leverage a thin orchestration layer that dispatches CRU operations to the correct sink and always uses `inventory.py` for reads when `SINK=kafka`.
+* Define the canonical Pydantic schema for a Customer, matching the PostgreSQL table exactly (field names, types, optionality). This model is shared by the API request/response and database layers.
+* Inventory pattern: the committed CSVs are loaded into typed models used to seed PostgreSQL.
+* Leverage a thin orchestration layer (`service.py`) that delegates CRU operations to `db_sink.py`.
 * Expose the Customers CRU endpoints as a FastAPI `APIRouter`. The router delegates all logic to `service.py` and handles HTTP status codes.
 * Local postgres server for integration tests and demonstration
-* The `main.py` wires the FastAPI app, includes routers, and runs startup lifecycle hooks (schema creation + CSV seeding for `SINK=postgres`; CSV caches load for `SINK=kafka`).
+* The `main.py` wires the FastAPI app, includes routers, and runs startup lifecycle hooks (schema creation + CSV seeding).
     ```sh
     uv run uvicorn main:app --reload
     ```
@@ -54,48 +47,14 @@ Exposes an **Accounts CRUD REST API** mirroring customers, stored in Postgres.
 - `PUT /accounts/{account_id}` → 200 or 404
 - `DELETE /accounts/{account_id}` → 204 or 404
 
-When `KAFKA_PRODUCE_ENABLED` is on, create/update/delete also emit a best-effort Debezium envelope to `KAFKA_TOPIC_ACCOUNTS` (default `cdc.public.accounts`); failures are logged, never failing the DB op.
-
 ## Generating transactions (`POST /transactions/generate`)
 
-Creates 200 transactions on **existing, ACTIVE accounts** (each with its owning `customer_id` and the account currency) and returns them (201). `409` if no active account exists; `501` unless `SINK=postgres`.
+Creates 200 transactions on **existing, ACTIVE accounts** (each with its owning `customer_id` and the account currency) and returns them (201). `409` if no active account exists.
 
 Timestamps simulate a week of organic activity regardless of how fast the batch is produced: the first `transacted_at` is *now − 7 days* and each next transaction is *+15 minutes* (200 transactions span ~50 h). `posted_at` equals `transacted_at`.
 
-Rows are inserted in a single DB transaction. Kafka publishing follows the same gating as a single create: events go to `KAFKA_TOPIC_TRANSACTIONS` (one flush for the whole batch) only when `CDC_CONNECTOR_ENABLED=false` **and** `KAFKA_PRODUCE_ENABLED=true`; failures are logged and never fail the request. The frontend Transactions page exposes this as the **Generate 200 transactions** button and then shows the result on `/transactions/generated`.
+Rows are inserted in a single DB transaction; the Debezium connector publishes them to `cdc.public.transactions`. The frontend Transactions page exposes this as the **Generate 200 transactions** button and then shows the result on `/transactions/generated`.
 
-
-## Seeding Kafka at startup (`KAFKA_SEED_ON_START`)
-
-When `KAFKA_SEED_ON_START=true` (default `false`), the lifespan loads the seed CSVs and publishes every record as a Debezium `create` event to `KAFKA_TOPIC_CUSTOMERS`, `KAFKA_TOPIC_ACCOUNTS` and `KAFKA_TOPIC_TRANSACTIONS` (in that order). It is best-effort (failures are logged, startup continues) and is ignored when `CDC_CONNECTOR_ENABLED` is true, since the connector then owns those topics. It runs on every start, so enable it only when you want the records re-published; ids are deterministic, so re-runs upsert the same keys.
-
-
-## Kafka dual-write (`KAFKA_PRODUCE_ENABLED`)
-
-The env setting `KAFKA_PRODUCE_ENABLED` (default `false`) controls whether writes also emit a Kafka event (dual-write) when Postgres is the sink. Changing it requires a restart.
-
-When enabled, `create`/`update`/`delete` on the Postgres path emit a best-effort Kafka event (`c`/`u`/`d`); a produce failure is logged and never fails the DB operation. The `SINK=kafka` path is unaffected.
-
-### CDC ownership guard (`CDC_CONNECTOR_ENABLED`)
-
-`KAFKA_PRODUCE_ENABLED` is the right control for **local mode** (local Docker
-Postgres, no connector): the app is the only producer, so turn it on to emit
-Debezium-shaped events to `cdc.public.*`.
-
-For **RDS / remote PostgreSQL**, a managed Debezium CDC connector reads the WAL
-and publishes `cdc.public.*` itself. The app must therefore **never** also emit,
-or every change is published twice. The env setting `CDC_CONNECTOR_ENABLED`
-(default `false`) is a hard guard: when `true`, `_maybe_emit` returns before
-`KAFKA_PRODUCE_ENABLED` is even consulted, so emission is off regardless of it.
-
-| Deployment                         | `CDC_CONNECTOR_ENABLED` | App emits Kafka?                     |
-| ---------------------------------- | ----------------------- | ----------------------------------- |
-| Local Postgres, no connector       | `false` (default)       | Only if `KAFKA_PRODUCE_ENABLED=true` |
-| RDS / remote PG + CDC connector    | `true`                  | Never (connector owns `cdc.public.*`) |
-
-Set it per deployment: `scripts/set_env_from_tf.sh` exports `true` for the RDS
-path, and `scripts/run_dev.sh --db rds` forces `true`. The `SINK=kafka` path is
-unaffected (it has no Postgres and no connector).
 
 ## Testing
 

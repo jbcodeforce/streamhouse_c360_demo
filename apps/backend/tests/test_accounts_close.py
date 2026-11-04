@@ -26,9 +26,6 @@ def _account(**over) -> Account:
 
 @pytest.fixture
 def svc(monkeypatch):
-    monkeypatch.setattr(service.settings, "SINK", "postgres")
-    monkeypatch.setattr(service.settings, "CDC_CONNECTOR_ENABLED", False)
-    monkeypatch.setattr(service.settings, "KAFKA_PRODUCE_ENABLED", False)
     monkeypatch.setattr(service.db_sink, "update", MagicMock())
     return service
 

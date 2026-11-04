@@ -1,4 +1,4 @@
-"""Tests for scenarios.service — monkeypatched boundaries, no real DB/Kafka."""
+"""Tests for scenarios.service — monkeypatched boundaries, no real DB."""
 
 from __future__ import annotations
 
@@ -28,11 +28,7 @@ def _account(**over) -> Account:
 
 @pytest.fixture
 def svc(monkeypatch):
-    monkeypatch.setattr(service.settings, "SINK", "postgres")
-    monkeypatch.setattr(service.settings, "CDC_CONNECTOR_ENABLED", False)
-    monkeypatch.setattr(service.settings, "KAFKA_PRODUCE_ENABLED", True)
     monkeypatch.setattr(service.db_sink, "create_many", MagicMock(side_effect=lambda t: t))
-    monkeypatch.setattr(service.kafka_producer, "produce_create_many", MagicMock())
     return service
 
 
@@ -42,7 +38,6 @@ def test_run_returns_scenario_result_with_transactions(svc):
     assert result.pattern == "fct_fraud_probe"
     assert len(result.transactions) == 4   # 3 CHECKING + 1 SAVINGS (benign)
     svc.db_sink.create_many.assert_called_once()
-    svc.kafka_producer.produce_create_many.assert_called_once()
 
 
 def test_run_merchant_streak(svc):
@@ -61,31 +56,6 @@ def test_unknown_scenario_raises(svc):
     with pytest.raises(svc.UnknownScenarioError):
         svc.run("does-not-exist")
     svc.db_sink.create_many.assert_not_called()
-
-
-def test_non_postgres_sink_raises(svc, monkeypatch):
-    monkeypatch.setattr(svc.settings, "SINK", "kafka")
-    with pytest.raises(svc.UnsupportedSinkError):
-        svc.run("fraud-probe")
-    svc.db_sink.create_many.assert_not_called()
-
-
-def test_kafka_not_called_when_produce_disabled(svc, monkeypatch):
-    monkeypatch.setattr(svc.settings, "KAFKA_PRODUCE_ENABLED", False)
-    svc.run("fraud-probe")
-    svc.kafka_producer.produce_create_many.assert_not_called()
-
-
-def test_kafka_not_called_when_cdc_connector_owns_topics(svc, monkeypatch):
-    monkeypatch.setattr(svc.settings, "CDC_CONNECTOR_ENABLED", True)
-    svc.run("fraud-probe")
-    svc.kafka_producer.produce_create_many.assert_not_called()
-
-
-def test_kafka_failure_does_not_raise(svc):
-    svc.kafka_producer.produce_create_many.side_effect = RuntimeError("broker down")
-    result = svc.run("fraud-probe")   # must not raise
-    assert len(result.transactions) == 4
 
 
 def test_list_scenarios_returns_all_three(svc):

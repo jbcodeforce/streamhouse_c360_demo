@@ -1,7 +1,7 @@
 """/api/v1/chat endpoints: the Assistant chat (step 1 stub).
 
-Wired to SINK=kafka exactly like test_analytics_api.py, Kafka producers mocked
-at the boundary. CHAT_FIRST_PROMPT is set to a known value so the welcome test
+Postgres bootstrap mocked exactly like test_analytics_api.py.
+CHAT_FIRST_PROMPT is set to a known value so the welcome test
 proves the configured value propagates from backend config to the response.
 """
 
@@ -25,12 +25,10 @@ def _reset_modules() -> None:
 @pytest.fixture(scope="module")
 def client():
     env_patch = patch.dict("os.environ", {
-        "SINK": "kafka",
         "CHAT_FIRST_PROMPT": _FIRST_PROMPT,
         # Point at a nonexistent env file so the repo's real .env is never loaded
         # — this suite must exercise the stub path only.
         "ENV_CONFIG_FILE": "/nonexistent/.env.test-chat",
-        "KAFKA_SEED_ON_START": "false",
         "KAFKA_BOOTSTRAP_SERVERS": "mock:9092",
         "SCHEMA_REGISTRY_URL": "http://mock-sr",
         "SCHEMA_REGISTRY_API_KEY": "key",
@@ -39,8 +37,7 @@ def client():
     env_patch.start()
     _reset_modules()
 
-    with patch("customers.kafka_producer.produce_create"), \
-         patch("customers.kafka_producer.produce_update"):
+    with patch("bootstrap.init_and_seed"):
         import main  # noqa: PLC0415 — intentional late import after env patch
         with TestClient(main.app) as test_client:
             yield test_client

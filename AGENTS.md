@@ -6,24 +6,52 @@ This document outlines the architecture, decisions, security practices, and infr
 
 ## 1. Project Context
 
-**Repository**: `stream_house_c360_demo`  
-**Purpose**: Customer 360 streaming data pipeline integrating operational databases (PostgreSQL, DB2) with event streaming, Change Data Capture (CDC), and modern lakehouse analytical sinks.
+**Repository**: `streamhouse_c360_demo`  
+**Purpose**: Customer 360 streaming data pipeline integrating operational databases (PostgreSQL, DB2) with event streaming, Change Data Capture (CDC), AI Agents integration, and modern lakehouse analytical sinks.
 
 ---
 
 ## 2. Infrastructure as Code (IaC) Layout
 
-Terraform is organized under the [`IaC/`](IaC/) directory as **three independent root modules** (separate local state), each file-per-concern. This split lets the core Confluent Cloud stack run locally with **no AWS credentials**; AWS and the managed connector are opt-in cost paths.
+Terraform is organized under the [`IaC/`](IaC/) directory as **three independent root modules** (separate local state), each file-per-concern. This split lets the core Confluent Cloud stack runs locally with **no AWS credentials**; AWS and the managed connector are opt-in cost paths.
 
 - [`IaC/ccloud/`](IaC/ccloud/) — **core Confluent Cloud stack (no AWS)**: environment, Kafka cluster, Flink compute pool, Schema Registry, service account + Kafka/SR API keys. Run with [`scripts/tf.sh`](scripts/tf.sh). Needs only `CONFLUENT_CLOUD_API_KEY/SECRET`.
-- [`IaC/connector/`](IaC/connector/) — **managed Debezium Postgres CDC connector + AWS dependency**: reads the core stack's outputs from `../ccloud/terraform.tfstate` via `terraform_remote_state`, and the RDS credentials from AWS Secrets Manager. Run with [`scripts/tf_connector.sh`](scripts/tf_connector.sh) (needs AWS creds). Optional — in local mode the backend app writes Debezium-shaped events directly to `cdc.public.*` topics instead.
+- [`IaC/connector/`](IaC/connector/) — **managed Debezium Postgres CDC connector + AWS dependency**: reads the core stack's outputs from `../ccloud/terraform.tfstate` via `terraform_remote_state`, and the RDS credentials from AWS Secrets Manager. Run with [`scripts/tf_connector.sh`](scripts/tf_connector.sh) (needs AWS creds). Optional — in local mode the backend app writes Debezium-shaped events directly to `cdc.public.*` topics instead, or Debezium can run locally against a local Postgres (see section 3).
 - [`IaC/AWS/`](IaC/AWS/) — **AWS stack**: PostgreSQL RDS 17 (CDC-ready), VPC/subnet lookups, security group (allowlists Confluent egress IPs), KMS, and the Secrets Manager secret consumed by `IaC/connector/`. Run with [`scripts/tf_aws.sh`](scripts/tf_aws.sh) (needs AWS creds + `CONFLUENT_CLOUD_API_KEY/SECRET` exported; the security group reads Confluent egress IPs). Files: `provider.tf`, `variables.tf`, `data.tf`, `aws.tf`, `outputs.tf`.
 
 **Apply order:** `IaC/ccloud` (always) → `IaC/AWS` + `IaC/connector` (only for the full CDC-over-AWS path).
 
 ---
 
-## 3. Completed Infrastructure Components
+## 3. Local PostgreSQL and Debezium (no AWS)
+
+Scripts under [`IaC/local/`](IaC/local/) run the CDC path entirely on the workstation with the **Apple Container CLI** (`container`): a PostgreSQL 17 container plus a Debezium (Kafka Connect) container that publishes Avro change events to Confluent Cloud. This replaces `IaC/connector/` + `IaC/AWS/` for local work. Full details: [`IaC/local/DEBEZIUM_SETUP.md`](IaC/local/DEBEZIUM_SETUP.md).
+
+- [`start_local_pg_server.sh`](IaC/local/start_local_pg_server.sh): starts the `c360-postgres` container (`dbadmin` / `localdevonly`, db `c360db`, port 5432).
+- [`create_debezium_topics.sh`](IaC/local/create_debezium_topics.sh): creates the Kafka Connect storage topics `my_connect_configs`, `my_connect_offsets`, `my_connect_status` via the Kafka REST API. Replication factor **3** is mandatory on Confluent Cloud. The REST endpoint is derived from `KAFKA_BOOTSTRAP_SERVERS`; idempotent.
+- [`start_debezium.sh`](IaC/local/start_debezium.sh): the single entry point (`--reset`, `--stop`, `--logs`). It validates Postgres, ensures the topics exist, downloads the checksum-verified Confluent Avro converter into `~/.cache/c360-debezium`, starts the `c360-debezium` worker (REST API on `localhost:8083`), applies connector `postgres-cdc` with an idempotent `PUT /connectors/postgres-cdc/config`, and waits for `RUNNING`.
+
+```bash
+cd IaC/local
+./start_local_pg_server.sh
+# Start the backend once (or run apps/backend/bootstrap.py)
+# so the tables and c360_cdc_publication exist.
+./start_debezium.sh
+```
+
+Key behaviors to preserve:
+
+- **Credentials** come from `apps/backend/.env` (gitignored): `KAFKA_BOOTSTRAP_SERVERS`, `KAFKA_API_KEY/SECRET`, `SCHEMA_REGISTRY_URL`, `SCHEMA_REGISTRY_API_KEY/SECRET`. Already-exported variables win over the file.
+- **Connector config**: `pgoutput` plugin, publication `c360_cdc_publication` (owned by the backend bootstrap, `publication.autocreate.mode=disabled`), slot `debezium_slot`, tables `public.{accounts,customers,transactions}`, `topic.prefix=cdc` → `cdc.public.*`, Avro key/value converters against Schema Registry.
+- **Worker env vars** must use the `CONNECT_` prefix (e.g. `CONNECT_*_STORAGE_REPLICATION_FACTOR=3`) or the image ignores them. SASL settings are needed for the worker, producer, admin and consumer clients.
+- **Postgres is addressed by the container IP** (read from `container list`), not `localhost`, which inside the Debezium container is the container itself.
+- **Do not create the slot with `test_decoding`** (as `configure_pg_cdc.sh` does): the connector requires `pgoutput`, and `start_debezium.sh` aborts with the drop command if a mismatched slot exists. `configure_pg_cdc.sh` also creates `debezium_pub` on a `cdc` schema that does not exist; it is only needed to turn on `wal_level=logical`, and `./scripts/run_dev.sh --cdc` still calls it.
+- **The backend never produces `cdc.public.*`**: the Kafka producers and the `SINK` / `KAFKA_PRODUCE_ENABLED` / `CDC_CONNECTOR_ENABLED` settings were removed; all change events come from Debezium.
+- `debezium-postgres.conf` is a legacy reference and is not used by the scripts.
+
+---
+
+## 4. Completed Infrastructure Components
 
 ### PostgreSQL RDS Instance (AWS West)
 
@@ -45,7 +73,7 @@ Terraform is organized under the [`IaC/`](IaC/) directory as **three independent
 ### Customer 360 Schema Bootstrap (backend-owned)
 
 The backend is the single source of truth for the schema, the `c360_cdc_publication`
-logical replication publication, and the seed data. On startup with `SINK=postgres`,
+logical replication publication, and the seed data. On startup,
 the FastAPI lifespan runs [`apps/backend/bootstrap.py`](apps/backend/bootstrap.py),
 which, for `customers` → `accounts` → `transactions` (FK order):
 
@@ -58,7 +86,7 @@ Everything is idempotent, so it runs on every startup. To bootstrap **any** Post
 
 ```bash
 cd apps/backend
-DATABASE_URL="postgresql://<user>:<pw>@<host>:5432/<db>?sslmode=require" SINK=postgres \
+DATABASE_URL="postgresql://<user>:<pw>@<host>:5432/<db>?sslmode=require" \
   uv run python bootstrap.py
 ```
 
@@ -68,31 +96,32 @@ backend as `DATABASE_URL`. The schema's field definitions live in each service's
 `db_sink.py`; shared connection/transaction/seed mechanics live in
 [`apps/backend/db.py`](apps/backend/db.py).
 
-### Local Testing (scripts/local-tests/)
+### Local Testing (scripts/)
 
-Scripts for running services locally during development live under [`scripts/local-tests/`](scripts/local-tests/).
+Scripts for running services locally during development live under [`scripts`](scripts).
 
-- [`scripts/local-tests/start_pg.sh`](scripts/local-tests/start_pg.sh): Starts a PostgreSQL 17 container via the **Apple Container CLI** (`container`) and optionally runs the schema + seed scripts against it.
+- [`scripts/local_start_pg.sh`](scripts/local_start_pg.sh): Starts a PostgreSQL 17 container via the **Apple Container CLI** (`container`) and, with `--seed`, runs the backend bootstrap (schema, `c360_cdc_publication`, seed data) against it.
+- [`scripts/run_dev.sh`](scripts/run_dev.sh): runs the dev stack; `--cdc` configures local Postgres and starts Debezium via [`IaC/local/`](IaC/local/) (see section 3), `--no-debezium` skips the Debezium step.
 
 ```bash
 # Start container only
-./scripts/local-tests/start_pg.sh
+./scripts/local_start_pg.sh
 
-# Start + create tables + seed 100 customers in one step
-./scripts/local-tests/start_pg.sh --seed --customers 100
+# Start + create schema/publication + seed data in one step
+./scripts/local_start_pg.sh --seed
 
 # Tear down when done
-./scripts/local-tests/start_pg.sh --stop
+./scripts/local_start_pg.sh --stop
 
-# Wipe and restart fresh (full reset)
-./scripts/local-tests/start_pg.sh --reset --seed
+# Full dev stack with local Postgres CDC -> Confluent Cloud
+./scripts/run_dev.sh --cdc
 ```
 
 Environment overrides: `PG_PASSWORD` (default: `localdevonly`), `PG_PORT` (default: `5432`).
 
 ---
 
-## 4. Best Practices for Future Agents & Contributors
+## 5. Best Practices for Future Agents & Contributors
 
 When extending this repository, adhere to the following principles:
 
@@ -125,7 +154,7 @@ When extending this repository, adhere to the following principles:
 
 ---
 
-## 5. Statement Graph Page — recon notes (in design)
+## 6. Statement Graph Page — recon notes (in design)
 
 A new frontend page to visualize the deployed Flink statements that build a data
 product as a DAG, with live status/metrics from the Confluent Cloud REST API.

@@ -91,7 +91,6 @@ if [[ -d "${AWS_DIR}" ]]; then
     export DB_PASSWORD=$(aws secretsmanager get-secret-value --secret-id "${SECRET_ARN}" --query SecretString --region "${AWS_REGION}" --output text 2>/dev/null | jq -r .password 2>/dev/null || true)
     if [[ -n "${DB_PASSWORD}" ]]; then
       export DATABASE_URL="postgresql://dbadmin:${DB_PASSWORD}@${RDSHOST}:${RDSPORT}/${DBNAME}?sslmode=require"
-      export CDC_CONNECTOR_ENABLED=true
       HAVE_AWS=true
     fi
   fi
@@ -142,7 +141,6 @@ env_vars = {
     "CONFLUENT_GLOBAL_KEY": os.environ.get("CONFLUENT_GLOBAL_KEY") or None,
     "CONFLUENT_GLOBAL_SECRET": os.environ.get("CONFLUENT_GLOBAL_SECRET") or None,
     "DATABASE_URL": os.environ.get("DATABASE_URL") or None,
-    "CDC_CONNECTOR_ENABLED": os.environ.get("CDC_CONNECTOR_ENABLED") or None,
 }
 
 applied_keys = set()

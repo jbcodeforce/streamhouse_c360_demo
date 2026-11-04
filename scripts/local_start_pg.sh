@@ -143,7 +143,6 @@ if [[ "${DO_SEED}" == true ]]; then
   (
     cd "${BACKEND_DIR}"
     DATABASE_URL="postgresql://${PG_USER}:${PG_PASSWORD}@localhost:${PG_PORT}/${PG_DB}?sslmode=disable" \
-    SINK=postgres \
       uv run python bootstrap.py
   )
 

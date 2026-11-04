@@ -68,6 +68,16 @@
       "compute_pool_id": "lfcp-mv6kkvw"
     },
     {
+      "id": "fct_merchant_streak",
+      "type": "statement",
+      "label": "fct_merchant_streak",
+      "statement_name": "dbt-streamhouse-fct-merchant-streak-7e1fd9",
+      "topic": "fct_merchant_streak",
+      "is_product": true,
+      "table_type": "streaming_table",
+      "compute_pool_id": "lfcp-mv6kkvw"
+    },
+    {
       "id": "src_accounts",
       "type": "statement",
       "label": "src_accounts",
@@ -127,6 +137,10 @@
     {
       "source": "dim_tx_x_account",
       "target": "fct_c360_profile"
+    },
+    {
+      "source": "src_transactions",
+      "target": "fct_merchant_streak"
     },
     {
       "source": "topic_accounts",

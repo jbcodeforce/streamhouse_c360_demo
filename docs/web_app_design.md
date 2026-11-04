@@ -8,7 +8,7 @@ This note is to explain the backend design and implementation, for code maintena
 * [x] Pages for accounts CRUD operations
 * [x] Pages for transactions CR operations
 * [x] Local persistence with Postgresql database running in container
-* [x] Kafka producer to write Debezium schema compliant records, to bypass CDC debezium during local demonstration
+* [x] Change events published to Kafka by Debezium CDC (no backend Kafka producer)
 * [x] TDD for backend and frontend
 * [x] Run snapshot queries from UI to backend to Confluent cloud on top of fact tables
 * [x] Execute lightning query from a backend and display result to Frontend
@@ -41,34 +41,27 @@ On the backend side, `main.py` mounts every domain router under `/api/v1` and en
 
 ### Backend design pattern (models · DAO · producer · inventory)
 
-Each domain — **customers**, **accounts**, **transactions**, **analytics**, **chat**, **data lineage** — is an identical vertical slice of six small modules. Routing and HTTP stay thin; persistence, event emission, and seeding are each isolated behind their own module:
+Each domain — **customers**, **accounts**, **transactions**, **analytics**, **chat**, **data lineage** — is a similar vertical slice of small modules. Routing and HTTP stay thin; persistence and seeding are each isolated behind their own module:
 
 | Layer | Module | Responsibility |
 |-------|--------|----------------|
 | **API** | `api/<domain>_resource.py` | FastAPI router. Validates input via the models, maps results/`404`/`409` to HTTP. No business logic. |
-| **Service** | `<domain>/service.py` | Dispatch/orchestration. Calls the DAO, then does a *best-effort* Kafka emit. Postgres is the source of truth; a producer failure is logged, never fails the request. |
+| **Service** | `<domain>/service.py` | Dispatch/orchestration. Delegates to the DAO. Postgres is the source of truth; Debezium publishes the changes to Kafka. |
 | **Models** | `<domain>/models.py` | Pydantic `*Create` / `*Update` / full models. The single schema contract shared by the API, the DAO, and (mirrored) the frontend types. |
 | **DAO** | `<domain>/db_sink.py` | Data-access object: the domain's PostgreSQL DDL, column list, row↔model mapping, and CRUD — built on the shared pool in `db.py`. |
-| **Producer** | `<domain>/kafka_producer.py` | Serializes a model into a Debezium change-event envelope (`before`/`after`/`source`/`op`) and produces Avro to Kafka via Schema Registry. |
-| **Inventory** | `<domain>/inventory.py` | CSV-backed seed store. Loads the committed seed CSV into typed models used to seed PostgreSQL (and, in `SINK=kafka` mode, acts as the in-memory store). |
+| **Inventory** | `<domain>/inventory.py` | CSV-backed seed store. Loads the committed seed CSV into typed models used to seed PostgreSQL. |
 
 Cross-cutting modules keep the slices DRY:
 
 * `db.py` — one lazily-created connection pool, a `cursor()` context manager (commit/rollback/return-to-pool), and reusable `init_schema` / `seed_if_empty`
   / CDC-publication helpers. Each `db_sink` supplies only its own DDL and mapping; the connection and transaction mechanics are written once here.
-* `bootstrap.py` — on startup (`main.py` lifespan, `SINK=postgres`), creates all tables + the `c360_cdc_publication`, then seeds **customers → accounts →
+* `bootstrap.py` — on startup (`main.py` lifespan), creates all tables + the `c360_cdc_publication`, then seeds **customers → accounts →
   transactions** in FK order, each table only if empty (idempotent).
-* `config.py` — environment-derived `Settings` (`SINK`, `CDC_CONNECTOR_ENABLED`, `KAFKA_PRODUCE_ENABLED`, `DATABASE_URL`, Kafka/SR credentials, topic names).
+* `config.py` — environment-derived `Settings` (`DATABASE_URL`, Kafka/SR credentials, topic names).
 
-**Who owns Kafka.** `service._maybe_emit()` only publishes when the backend is the designated producer: it is suppressed when `CDC_CONNECTOR_ENABLED=true`
-(a managed Debezium/CDC connector on RDS/remote PostgreSQL owns the `cdc.public.*` topics, so the app must not double-publish) and gated by the
-`KAFKA_PRODUCE_ENABLED` flag. `CDC_CONNECTOR_ENABLED` is **auto-resolved from the `DATABASE_URL` host** when not set explicitly (`config.py`):
-local PostgreSQL (`localhost`/`127.0.0.1`) ⇒ `false`, so the app produces; any remote host, RDS included, ⇒ `true`, so the connector owns Kafka and the
-app stays silent. This holds however the backend is launched — `uvicorn` directly or `scripts/run_dev.sh` — so RDS never double-publishes; set the env var
-explicitly to override. The emitted value is a Debezium-style Avro envelope (`before`/`after`/`source`/`op`), Confluent-framed and registered in Schema
-Registry, identical in shape to what the real connector produces (`source.connector = "c360-backend-bypass"` marks the app-produced ones).
+**Who owns Kafka.** Debezium (local container or the managed connector on RDS) is the only producer of the `cdc.public.*` topics; the backend has no Kafka producer for these entities.
 
-A new domain is added by copying the five-module slice, registering its router in `main.py`, and adding its `init_db` + `seed_from_csv` to `bootstrap.py`.
+A new domain is added by copying the slice, registering its router in `main.py`, and adding its `init_db` + `seed_from_csv` to `bootstrap.py`.
 
 ## Execute during development
 
@@ -283,12 +276,7 @@ Configured in `pyproject.toml` (`testpaths = ["tests"]`, `pythonpath = ["."]`). 
 * **Unit / isolated** — the bulk of the suite. Exercises each layer at its boundary with the dependency mocked:
   * `test_*_models.py` — Pydantic validation and defaults on the model contract.
   * `test_*_inventory.py` / `test_*_seed.py` — CSV load, row↔model mapping, and idempotent seeding.
-  * `test_*_kafka_producer.py` / `test_kafka_producer_delete.py` — the Debezium envelope shape (`before`/`after`/`op`, date/timestamp/decimal encoding) with
-    the producer mocked at the boundary.
-  * `test_*_service_emit.py` / `test_service_emit.py` — the dispatch rules in `service.py`: that create/update/delete emit the right op, and that emission
-    is correctly **suppressed** when `CDC_CONNECTOR_ENABLED` or the runtime toggle says so, and that a producer failure never fails the request.
-  * `test_*_api.py`, `test_cors.py` — router behavior via FastAPI `TestClient` (status codes, `404`/`409` mapping, CORS headers), with the DAO/producer stubbed.
-  * `test_customers_kafka.py` — the full `SINK=kafka` path with Kafka/SR mocked.
+  * `test_*_api.py`, `test_cors.py` — router behavior via FastAPI `TestClient` (status codes, `404`/`409` mapping, CORS headers), with the DAO stubbed.
 * **Postgres integration** — `test_*_postgres.py`. These require a live database and are **auto-skipped when `DATABASE_URL` is unset** (via the   `skip_without_postgres` fixture / `requires_postgres` marker).
 
 Seed isolation: the session-scoped `isolate_seed_csvs` fixture copies the committed seed CSVs to a temp dir and points `*_CSV_PATH` at the copies, so tests never mutate the checked-in seed files.

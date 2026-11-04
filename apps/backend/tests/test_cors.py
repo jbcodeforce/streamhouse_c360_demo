@@ -1,9 +1,8 @@
 """CORS must allow the Vite dev origin.
 
-Wired to SINK=kafka (no infra) exactly like test_customers_kafka, with the
-Kafka producer mocked at the boundary. The fixture fully resets the imported
+Postgres bootstrap is mocked (no infra). The fixture fully resets the imported
 app modules in sys.modules on teardown so suites that reimport ``main``
-afterwards (e.g. test_customers_kafka) start from a clean module graph.
+afterwards start from a clean module graph.
 """
 
 from __future__ import annotations
@@ -34,11 +33,9 @@ def _reset_modules() -> None:
 @pytest.fixture(scope="module")
 def client():
     env_patch = patch.dict("os.environ", {
-        "SINK": "kafka",
         # Isolate from the repo's real .env so app startup never attempts a real
         # connection (it may point at live/remote infra or enable seeding).
         "ENV_CONFIG_FILE": "/nonexistent/.env.test",
-        "KAFKA_SEED_ON_START": "false",
         "KAFKA_BOOTSTRAP_SERVERS": "mock:9092",
         "SCHEMA_REGISTRY_URL": "http://mock-sr",
         "SCHEMA_REGISTRY_API_KEY": "key",
@@ -47,8 +44,7 @@ def client():
     env_patch.start()
     _reset_modules()
 
-    with patch("customers.kafka_producer.produce_create"), \
-         patch("customers.kafka_producer.produce_update"):
+    with patch("bootstrap.init_and_seed"):
         import main  # noqa: PLC0415 — intentional late import after env patch
         with TestClient(main.app) as test_client:
             yield test_client

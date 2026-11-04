@@ -147,7 +147,25 @@ The Web App and backend to support running the demonstration has the following c
 
 ### Capabilities demonstrated
 
+#### Hybrid ingestion
+
+One of the path of the demonstration is to run database and Debezium connector on local servers, (the user laptop to make the demonstration simpler). The CDC can be connected to a Confluent Cloud Kafka cluster, creates the expected topics, and then process changes to the source database. 
+
+[See detail in this note](./local_cdc.md)
+
 #### CDC envelop automatic processing to upsert tables
+
+When created by Debezium connector the created tables have a changelog.mode set to retract if the source table in the SQL database has not primary key.
+
+```sql
+WITH (
+  'changelog.mode' = 'retract',
+  'kafka.cleanup-policy' = 'delete',
+  'key.format' = 'avro-registry',
+  'scan.startup.mode' = 'earliest-offset',
+  'value.format' = 'avro-debezium-registry'
+)
+```
 
 #### DBT deployment, Materialized and Streaming tables
 
