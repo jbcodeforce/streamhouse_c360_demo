@@ -1,4 +1,4 @@
-# Streamhouse Customer 360
+# [Streamhouse Customer 360](https://jbcodeforce.github.io/streamhouse_c360_demo)
 
 ## Updates
 
@@ -16,3 +16,7 @@
 ## Documentation
 
 [Read documentation](https://jbcodeforce.github.io/streamhouse_c360_demo) for demonstration script, application design, deployments...
+
+## Features
+
+[]()

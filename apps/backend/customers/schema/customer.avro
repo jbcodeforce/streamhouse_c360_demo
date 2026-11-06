@@ -153,6 +153,33 @@
                 "connect.version": 1,
                 "type": "string"
               }
+            },
+            {
+              "default": null,
+              "name": "per_capita_income",
+              "type": [
+                "null",
+                {
+                  "connect.name": "org.apache.kafka.connect.data.Decimal",
+                  "connect.parameters": {
+                    "connect.decimal.precision": "18",
+                    "scale": "2"
+                  },
+                  "connect.version": 1,
+                  "logicalType": "decimal",
+                  "precision": 18,
+                  "scale": 2,
+                  "type": "bytes"
+                }
+              ]
+            },
+            {
+              "default": null,
+              "name": "retirement_age",
+              "type": [
+                "null",
+                "int"
+              ]
             }
           ],
           "name": "Value",

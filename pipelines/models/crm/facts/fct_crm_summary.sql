@@ -18,7 +18,7 @@ with all_records AS (
 )
 SELECT
   qscope,
-  COUNT(*)                                         AS total_customers,
+  COUNT(distinct customer_id)                      AS total_customers,
   SUM(account_count)                               AS total_accounts,
   SUM(total_balance)                               AS total_balance,
   SUM(txn_count)                                   AS total_transactions,

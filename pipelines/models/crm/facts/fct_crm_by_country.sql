@@ -13,6 +13,6 @@
 ) }}
 SELECT 
     country,
-    COUNT(*)           AS country_count
+    COUNT(distinct customer_id)           AS country_count
 FROM {{ ref('fct_c360_profile') }}
 GROUP BY country

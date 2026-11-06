@@ -29,6 +29,8 @@ CREATE TABLE IF NOT EXISTS cdc.public.customers (
     customer_since STRING,
     segment       STRING,
     status        STRING,
+    per_capita_income DECIMAL(18, 2),
+    retirement_age    INT,
     created_at    TIMESTAMP_LTZ,
     updated_at    TIMESTAMP_LTZ,
 );

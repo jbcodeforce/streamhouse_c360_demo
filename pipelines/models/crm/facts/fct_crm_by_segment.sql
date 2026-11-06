@@ -12,7 +12,7 @@
     }
 ) }}
 SELECT customer_segment,
-       COUNT(*)           AS customer_count,
+       COUNT(distinct customer_id)           AS customer_count,
        SUM(total_balance) AS total_balance
 FROM {{ ref('fct_c360_profile') }}
 GROUP BY customer_segment

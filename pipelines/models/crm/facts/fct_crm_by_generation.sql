@@ -13,6 +13,6 @@
 ) }}
 SELECT 
     generation_segment,
-    COUNT(*)           AS generation_count
+    COUNT(distinct customer_id)           AS generation_count
 FROM {{ ref('fct_c360_profile') }}
 GROUP BY generation_segment

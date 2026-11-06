@@ -39,3 +39,22 @@ models:
       +compute_pool_id: "{{ env_var('FLINK_COMPUTE_POOL_ID') }}"
     crm:
       +compute_pool_id: "{{ env_var('FLINK_CRM_COMPUTE_POOL_ID') }}"
+
+
+# Reference data (ISO 3166-1 countries, ISO 4217 currencies). `dbt seed` creates
+# one Kafka topic + Flink table per CSV and inserts the rows, so they can be
+# joined with the transaction/customer streams. Numeric ISO codes keep their
+# leading zeros (e.g. 008, 020), so force every column to STRING.
+seeds:
+  streamhouse:
+    country_codes:
+      +column_types:
+        country_code: string
+        country_code_alpha3: string
+        country_code_numeric: string
+        country_name: string
+    currency_codes:
+      +column_types:
+        currency_code: string
+        currency_code_numeric: string
+        currency_name: string

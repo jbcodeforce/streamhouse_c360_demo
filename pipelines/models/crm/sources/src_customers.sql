@@ -33,6 +33,8 @@ WITH mapped AS (
     coalesce(IF(op= 'd', before.state, after.state), 'NULL') as state,
     coalesce(IF(op= 'd', before.postal_code, after.postal_code), 'NULL') as postal_code,
     coalesce(IF(op= 'd', before.country, after.country), 'NULL') as country,
+    IF(op= 'd', before.per_capita_income, after.per_capita_income) as per_capita_income,
+    IF(op= 'd', before.retirement_age, after.retirement_age) as retirement_age,
     `$rowtime` as event_ts
     FROM {{ source('cdc', 'customers') }}
 )
@@ -51,5 +53,7 @@ SELECT
     `state`,
     postal_code,
     country,
+    per_capita_income,
+    retirement_age,
     event_ts
 FROM mapped

@@ -38,6 +38,8 @@ _FIELDNAMES = [
     "status",
     "created_at",
     "updated_at",
+    "per_capita_income",
+    "retirement_age",
 ]
 
 _customers: list[Customer] = []
@@ -70,6 +72,10 @@ def _customer_to_row(customer: Customer) -> dict:
         "status": customer.status,
         "created_at": customer.created_at.isoformat(),
         "updated_at": customer.updated_at.isoformat(),
+        "per_capita_income": (
+            "" if customer.per_capita_income is None else str(customer.per_capita_income)
+        ),
+        "retirement_age": "" if customer.retirement_age is None else customer.retirement_age,
     }
 
 

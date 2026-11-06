@@ -14,6 +14,8 @@ export interface CustomerCreate {
   customer_since?: string | null // ISO date; backend defaults to today
   segment?: string | null
   status?: string | null // backend defaults to "ACTIVE"
+  per_capita_income?: number | string | null // decimal(18,2); API may return a string
+  retirement_age?: number | null
 }
 
 export type CustomerUpdate = Partial<CustomerCreate>

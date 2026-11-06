@@ -47,6 +47,11 @@ output "secrets_manager_secret_arn" {
   value       = aws_secretsmanager_secret.db_credentials.arn
 }
 
+output "kms_key_arn" {
+  description = "ARN of the customer-managed KMS key (RDS storage, secrets; reused by IaC/EC2 for EBS and its secret)"
+  value       = aws_kms_key.rds_key.arn
+}
+
 output "confluent_egress_ips" {
   description = "Confluent Cloud Connect/Kafka egress IP addresses allowlisted in RDS security group"
   value       = [for ip in data.confluent_ip_addresses.connectors.ip_addresses : ip.ip_prefix]

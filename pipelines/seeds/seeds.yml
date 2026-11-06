@@ -1,0 +1,26 @@
+version: 2
+
+seeds:
+  - name: country_codes
+    description: "ISO 3166-1 country codes. Join key: country_code (alpha-2), e.g. customers.country."
+    columns:
+      - name: country_code
+        description: ISO 3166-1 alpha-2 code
+        data_tests: [unique, not_null]
+      - name: country_code_alpha3
+        description: ISO 3166-1 alpha-3 code
+      - name: country_code_numeric
+        description: ISO 3166-1 numeric code (3 digits, zero padded)
+      - name: country_name
+        description: Country short name
+
+  - name: currency_codes
+    description: "ISO 4217 currency codes. Join key: currency_code, e.g. transactions.currency."
+    columns:
+      - name: currency_code
+        description: ISO 4217 alpha-3 code
+        data_tests: [unique, not_null]
+      - name: currency_code_numeric
+        description: ISO 4217 numeric code (3 digits, zero padded)
+      - name: currency_name
+        description: Currency name

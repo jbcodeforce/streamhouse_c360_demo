@@ -34,13 +34,23 @@ models:
     data_type: string
   - name: country
     data_type: string
+  - name: per_capita_income
+    data_type: decimal(18, 2)
+  - name: retirement_age
+    data_type: integer
   - name: event_ts
     data_type: timestamp_ltz
-  - name: age_years
+  - name: birth_year
+    data_type: integer
+  - name: birth_month
     data_type: integer
   - name: days_since_registration
     data_type: integer
   - name: generation_segment
+    data_type: string
+  - name: years_to_retirement
+    data_type: integer
+  - name: income_band
     data_type: string
   - name: missing_email_flag
     data_type: integer

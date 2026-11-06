@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from decimal import Decimal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -20,6 +21,8 @@ class CustomerCreate(BaseModel):
     customer_since: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
     segment: str | None = None
     status: str = "ACTIVE"
+    per_capita_income: Decimal | None = Field(default=None, ge=0)
+    retirement_age: int | None = Field(default=None, ge=0, le=120)
 
 
 class CustomerUpdate(BaseModel):
@@ -38,6 +41,8 @@ class CustomerUpdate(BaseModel):
     customer_since: datetime | None = None
     segment: str | None = None
     status: str | None = None
+    per_capita_income: Decimal | None = Field(default=None, ge=0)
+    retirement_age: int | None = Field(default=None, ge=0, le=120)
 
 
 class Customer(CustomerCreate):

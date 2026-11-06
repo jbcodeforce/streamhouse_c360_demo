@@ -41,9 +41,15 @@ _DDL_STATEMENTS = [
         segment         VARCHAR(50),
         status          VARCHAR(20)     NOT NULL DEFAULT 'ACTIVE',
         created_at      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
-        updated_at      TIMESTAMPTZ     NOT NULL DEFAULT NOW()
+        updated_at      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+        per_capita_income NUMERIC(18, 2),
+        retirement_age  INTEGER
     )
     """,
+
+    # columns added after the first release (existing databases)
+    "ALTER TABLE customers ADD COLUMN IF NOT EXISTS per_capita_income NUMERIC(18, 2)",
+    "ALTER TABLE customers ADD COLUMN IF NOT EXISTS retirement_age INTEGER",
 
     # indexes
     "CREATE INDEX IF NOT EXISTS idx_customers_email ON customers (email)",
@@ -77,9 +83,10 @@ _DDL_STATEMENTS = [
 _INSERT_COLS = (
     "customer_id, first_name, last_name, email, phone, date_of_birth, gender, "
     "address_line1, address_line2, city, state, postal_code, country, "
-    "customer_since, segment, status, created_at, updated_at"
+    "customer_since, segment, status, created_at, updated_at, "
+    "per_capita_income, retirement_age"
 )
-_PLACEHOLDERS = ", ".join(["%s"] * 18)
+_PLACEHOLDERS = ", ".join(["%s"] * 20)
 _SEED_SQL = (
     f"INSERT INTO customers ({_INSERT_COLS}) VALUES ({_PLACEHOLDERS}) "
     f"ON CONFLICT (customer_id) DO NOTHING"
@@ -95,6 +102,7 @@ def _insert_params(c: Customer) -> tuple:
         c.date_of_birth, c.gender, c.address_line1, c.address_line2, c.city,
         c.state, c.postal_code, c.country, c.customer_since, c.segment,
         c.status, c.created_at, c.updated_at,
+        c.per_capita_income, c.retirement_age,
     )
 
 

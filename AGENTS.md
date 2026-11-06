@@ -19,7 +19,9 @@ Terraform is organized under the [`IaC/`](IaC/) directory as **three independent
 - [`IaC/connector/`](IaC/connector/) — **managed Debezium Postgres CDC connector + AWS dependency**: reads the core stack's outputs from `../ccloud/terraform.tfstate` via `terraform_remote_state`, and the RDS credentials from AWS Secrets Manager. Run with [`scripts/tf_connector.sh`](scripts/tf_connector.sh) (needs AWS creds). Optional — in local mode the backend app writes Debezium-shaped events directly to `cdc.public.*` topics instead, or Debezium can run locally against a local Postgres (see section 3).
 - [`IaC/AWS/`](IaC/AWS/) — **AWS stack**: PostgreSQL RDS 17 (CDC-ready), VPC/subnet lookups, security group (allowlists Confluent egress IPs), KMS, and the Secrets Manager secret consumed by `IaC/connector/`. Run with [`scripts/tf_aws.sh`](scripts/tf_aws.sh) (needs AWS creds + `CONFLUENT_CLOUD_API_KEY/SECRET` exported; the security group reads Confluent egress IPs). Files: `provider.tf`, `variables.tf`, `data.tf`, `aws.tf`, `outputs.tf`.
 
-**Apply order:** `IaC/ccloud` (always) → `IaC/AWS` + `IaC/connector` (only for the full CDC-over-AWS path).
+- [`IaC/EC2/`](IaC/EC2/) — **app host**: one Amazon Linux 2023 EC2 instance that builds and runs the backend and frontend containers with `docker compose` ([`deploy/`](deploy/), [`apps/backend/Dockerfile`](apps/backend/Dockerfile), [`apps/frontend/Dockerfile`](apps/frontend/Dockerfile)). Reads `IaC/AWS` state (VPC, RDS secret, KMS key). HTTP/SSH only from `allowed_cidr_blocks` (never `0.0.0.0/0`); backend env comes from a Secrets Manager secret at deploy time. Run with [`scripts/tf_ec2.sh`](scripts/tf_ec2.sh) (needs AWS creds). Container images use free UBI bases from `registry.access.redhat.com`. See [`IaC/EC2/README.md`](IaC/EC2/README.md).
+
+**Apply order:** `IaC/ccloud` (always) → `IaC/AWS` + `IaC/connector` (only for the full CDC-over-AWS path) → `IaC/EC2` (optional, hosts the apps; needs `IaC/AWS`).
 
 ---
 

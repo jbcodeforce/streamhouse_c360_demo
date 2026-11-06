@@ -13,6 +13,6 @@
 ) }}
 SELECT 
     gender,
-    COUNT(*)           AS gender_count
+    COUNT(distinct customer_id)           AS gender_count
 FROM {{ ref('fct_c360_profile') }}
 GROUP BY gender

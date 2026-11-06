@@ -38,6 +38,10 @@ models:
     data_type: string
   - name: country
     data_type: string
+  - name: per_capita_income
+    data_type: decimal(18, 2)
+  - name: retirement_age
+    data_type: integer
   - name: event_ts
     data_type: timestamp_ltz
 

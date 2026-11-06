@@ -21,7 +21,7 @@ FROM {{ ref('dim_customers') }} c
 LEFT JOIN (
   SELECT 
         customer_id, 
-        COUNT(*) AS account_count, 
+        COUNT(distinct account_id) AS account_count, 
         SUM(balance) AS total_balance,
         SUM(txn_count) AS txn_count, 
         SUM(txn_total) AS txn_total, 
