@@ -8,7 +8,7 @@
     gender,
     created_at as registration_date,
     segment as customer_segment,
-    address_line1,
+    address,
     city,
     state,
     postal_code,

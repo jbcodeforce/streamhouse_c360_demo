@@ -31,8 +31,7 @@ _DDL_STATEMENTS = [
         phone           VARCHAR(30),
         date_of_birth   TIMESTAMPTZ,
         gender          VARCHAR(20),
-        address_line1   VARCHAR(255),
-        address_line2   VARCHAR(255),
+        address         VARCHAR(500),
         city            VARCHAR(100),
         state           VARCHAR(100),
         postal_code     VARCHAR(20),
@@ -42,14 +41,32 @@ _DDL_STATEMENTS = [
         status          VARCHAR(20)     NOT NULL DEFAULT 'ACTIVE',
         created_at      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
         updated_at      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
-        per_capita_income NUMERIC(18, 2),
-        retirement_age  INTEGER
+        yearly_income NUMERIC(18, 2),
+        retirement_age  INTEGER,
+        credit_score    INTEGER
     )
     """,
 
     # columns added after the first release (existing databases)
-    "ALTER TABLE customers ADD COLUMN IF NOT EXISTS per_capita_income NUMERIC(18, 2)",
+    "ALTER TABLE customers ADD COLUMN IF NOT EXISTS yearly_income NUMERIC(18, 2)",
     "ALTER TABLE customers ADD COLUMN IF NOT EXISTS retirement_age INTEGER",
+    "ALTER TABLE customers ADD COLUMN IF NOT EXISTS credit_score INTEGER",
+
+    # address_line1 + address_line2 were merged into a single address column
+    "ALTER TABLE customers ADD COLUMN IF NOT EXISTS address VARCHAR(500)",
+    """
+    DO $$ BEGIN
+        IF EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'customers' AND column_name = 'address_line1'
+        ) THEN
+            UPDATE customers
+               SET address = NULLIF(CONCAT_WS(', ', NULLIF(address_line1, ''), NULLIF(address_line2, '')), '')
+             WHERE address IS NULL;
+            ALTER TABLE customers DROP COLUMN address_line1, DROP COLUMN address_line2;
+        END IF;
+    END $$
+    """,
 
     # indexes
     "CREATE INDEX IF NOT EXISTS idx_customers_email ON customers (email)",
@@ -82,9 +99,9 @@ _DDL_STATEMENTS = [
 
 _INSERT_COLS = (
     "customer_id, first_name, last_name, email, phone, date_of_birth, gender, "
-    "address_line1, address_line2, city, state, postal_code, country, "
+    "address, city, state, postal_code, country, "
     "customer_since, segment, status, created_at, updated_at, "
-    "per_capita_income, retirement_age"
+    "yearly_income, retirement_age, credit_score"
 )
 _PLACEHOLDERS = ", ".join(["%s"] * 20)
 _SEED_SQL = (
@@ -99,10 +116,10 @@ _INSERT_RETURNING_SQL = (
 def _insert_params(c: Customer) -> tuple:
     return (
         str(c.customer_id), c.first_name, c.last_name, c.email, c.phone,
-        c.date_of_birth, c.gender, c.address_line1, c.address_line2, c.city,
+        c.date_of_birth, c.gender, c.address, c.city,
         c.state, c.postal_code, c.country, c.customer_since, c.segment,
         c.status, c.created_at, c.updated_at,
-        c.per_capita_income, c.retirement_age,
+        c.yearly_income, c.retirement_age, c.credit_score,
     )
 
 

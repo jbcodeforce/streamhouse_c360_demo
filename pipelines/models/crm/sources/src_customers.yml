@@ -21,7 +21,7 @@ models:
   - name: phone
     data_type: string
   - name: date_of_birth
-    data_type: timestamp_ltz
+    data_type: string
   - name: gender
     data_type: string
   - name: registration_date
@@ -38,9 +38,11 @@ models:
     data_type: string
   - name: country
     data_type: string
-  - name: per_capita_income
+  - name: yearly_income
     data_type: decimal(18, 2)
   - name: retirement_age
+    data_type: integer
+  - name: credit_score
     data_type: integer
   - name: event_ts
     data_type: timestamp_ltz

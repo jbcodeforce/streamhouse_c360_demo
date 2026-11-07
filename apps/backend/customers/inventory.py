@@ -27,8 +27,7 @@ _FIELDNAMES = [
     "phone",
     "date_of_birth",
     "gender",
-    "address_line1",
-    "address_line2",
+    "address",
     "city",
     "state",
     "postal_code",
@@ -38,8 +37,9 @@ _FIELDNAMES = [
     "status",
     "created_at",
     "updated_at",
-    "per_capita_income",
+    "yearly_income",
     "retirement_age",
+    "credit_score",
 ]
 
 _customers: list[Customer] = []
@@ -59,10 +59,9 @@ def _customer_to_row(customer: Customer) -> dict:
         "last_name": customer.last_name,
         "email": customer.email,
         "phone": customer.phone or "",
-        "date_of_birth": customer.date_of_birth.isoformat() if customer.date_of_birth else "",
+        "date_of_birth": customer.date_of_birth.date().isoformat() if customer.date_of_birth else "",
         "gender": customer.gender or "",
-        "address_line1": customer.address_line1 or "",
-        "address_line2": customer.address_line2 or "",
+        "address": customer.address or "",
         "city": customer.city or "",
         "state": customer.state or "",
         "postal_code": customer.postal_code or "",
@@ -72,10 +71,11 @@ def _customer_to_row(customer: Customer) -> dict:
         "status": customer.status,
         "created_at": customer.created_at.isoformat(),
         "updated_at": customer.updated_at.isoformat(),
-        "per_capita_income": (
-            "" if customer.per_capita_income is None else str(customer.per_capita_income)
+        "yearly_income": (
+            "" if customer.yearly_income is None else str(customer.yearly_income)
         ),
         "retirement_age": "" if customer.retirement_age is None else customer.retirement_age,
+        "credit_score": "" if customer.credit_score is None else customer.credit_score,
     }
 
 

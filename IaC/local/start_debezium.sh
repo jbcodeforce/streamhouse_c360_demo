@@ -25,7 +25,7 @@
 #   DEBEZIUM_PORT            Host port for the Connect REST API (default: 8083)
 #   DEBEZIUM_CONTAINER_NAME  Container name (default: c360-debezium)
 #   PG_CONTAINER_NAME        Postgres container name (default: c360-postgres)
-#   LOCAL_PG_USER/PASSWORD/DB/PORT   Postgres connection (see start_local_pg_server.sh)
+#   LOCAL_PG_USER/PASSWORD/DB/PORT   Postgres connection (seepg_local_server.sh)
 #   PG_PUBLICATION           Publication to stream (default: c360_cdc_publication)
 #   PG_SLOT                  Replication slot (default: debezium_slot)
 # ─────────────────────────────────────────────────────────────────────────────
@@ -297,7 +297,7 @@ cfg = {
     "publication.name": e["PG_PUBLICATION"],
     "publication.autocreate.mode": "disabled",
     "slot.name": e["PG_SLOT"],
-    "table.include.list": "public.accounts,public.customers,public.transactions",
+    "table.include.list": "public.accounts,public.cards,public.customers,public.transactions",
     "snapshot.mode": "initial",
     "tombstones.on.delete": "true",
     # Topics become <prefix>.<schema>.<table> = cdc.public.<table>
@@ -355,7 +355,7 @@ echo ""
 echo "  Connect REST API : http://localhost:${DEBEZIUM_PORT}"
 echo "  PostgreSQL       : ${PG_IP}:5432/${LOCAL_PG_DB} (publication ${PG_PUBLICATION}, slot ${PG_SLOT})"
 echo "  Kafka            : ${BOOTSTRAP_SERVERS}"
-echo "  Topics           : cdc.public.customers, cdc.public.accounts, cdc.public.transactions"
+echo "  Topics           : cdc.public.customers, cdc.public.accounts, cdc.public.cards, cdc.public.transactions"
 echo ""
 echo "  Status : curl -s http://localhost:${DEBEZIUM_PORT}/connectors/${CONNECTOR_NAME}/status | jq"
 echo "  Logs   : $0 --logs"

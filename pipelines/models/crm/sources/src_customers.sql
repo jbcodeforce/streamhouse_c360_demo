@@ -24,7 +24,7 @@ WITH mapped AS (
     coalesce(IF(op= 'd', before.last_name, after.last_name), 'NULL') as last_name,
     coalesce(IF(op= 'd', before.email, after.email), 'NULL') as email,
     coalesce(IF(op= 'd', before.phone, after.phone), 'NULL') as phone,
-    TO_TIMESTAMP_LTZ(IF(op= 'd', before.date_of_birth, after.date_of_birth), 'yyyy-MM-dd''T''HH:mm:ss.SSSSSS''Z''') as date_of_birth,
+    SUBSTRING(IF(op= 'd', before.date_of_birth, after.date_of_birth) FROM 1 FOR 10) as date_of_birth, -- 'YYYY-MM-DD' string (source is an ISO-8601 UTC timestamp)
     coalesce(IF(op= 'd', before.gender, after.gender), 'NULL') as gender,
     TO_TIMESTAMP_LTZ(IF(op= 'd', before.created_at, after.created_at), 'yyyy-MM-dd''T''HH:mm:ss.SSSSSS''Z''') as registration_date,
     coalesce(IF(op= 'd', before.segment, after.segment), 'NULL')   as customer_segment,
@@ -33,8 +33,9 @@ WITH mapped AS (
     coalesce(IF(op= 'd', before.state, after.state), 'NULL') as state,
     coalesce(IF(op= 'd', before.postal_code, after.postal_code), 'NULL') as postal_code,
     coalesce(IF(op= 'd', before.country, after.country), 'NULL') as country,
-    IF(op= 'd', before.per_capita_income, after.per_capita_income) as per_capita_income,
+    IF(op= 'd', before.yearly_income, after.yearly_income) as yearly_income,
     IF(op= 'd', before.retirement_age, after.retirement_age) as retirement_age,
+    IF(op= 'd', before.credit_score, after.credit_score) as credit_score,
     `$rowtime` as event_ts
     FROM {{ source('cdc', 'customers') }}
 )
@@ -53,7 +54,8 @@ SELECT
     `state`,
     postal_code,
     country,
-    per_capita_income,
+    yearly_income,
     retirement_age,
+    credit_score,
     event_ts
 FROM mapped

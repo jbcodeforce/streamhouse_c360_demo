@@ -3,71 +3,71 @@
   "groups": {
     "c360_pipeline": [
       {
-        "name": "models-c360-dimensions-pipeline-dim-account-tx-agg",
+        "name": "dbt-streamhouse-dim-account-tx-agg",
         "file": "c360/dimensions/dim_account_tx_agg.sql"
       },
       {
-        "name": "models-c360-dimensions-pipeline-dim-customers",
+        "name": "dbt-streamhouse-dim-customers",
         "file": "c360/dimensions/dim_customers.sql"
       },
       {
-        "name": "models-c360-dimensions-pipeline-dim-transactions",
+        "name": "dbt-streamhouse-dim-transactions",
         "file": "c360/dimensions/dim_transactions.sql"
       },
       {
-        "name": "models-c360-dimensions-pipeline-dim-tx-x-account",
+        "name": "dbt-streamhouse-dim-tx-x-account",
         "file": "c360/dimensions/dim_tx_x_account.sql"
       },
       {
-        "name": "models-c360-facts-pipeline-fct-c360-profile",
+        "name": "dbt-streamhouse-fct-c360-profile",
         "file": "c360/facts/fct_c360_profile.sql"
       },
       {
-        "name": "models-c360-facts-pipeline-fct-merchant-streak",
+        "name": "dbt-streamhouse-fct-merchant-streak",
         "file": "c360/facts/fct_merchant_streak.sql"
       },
       {
-        "name": "models-c360-sources-pipeline-src-accounts",
+        "name": "dbt-streamhouse-src-accounts",
         "file": "c360/sources/src_accounts.sql"
       },
       {
-        "name": "models-c360-sources-pipeline-src-customers",
+        "name": "dbt-streamhouse-src-customers",
         "file": "c360/sources/src_customers.sql"
       },
       {
-        "name": "models-c360-sources-pipeline-src-transactions",
+        "name": "dbt-streamhouse-src-transactions",
         "file": "c360/sources/src_transactions.sql"
       }
     ],
     "crm_pipeline": [
       {
-        "name": "models-crm-facts-pipeline-fct-crm-by-country",
+        "name": "dbt-streamhouse-fct-crm-by-country",
         "file": "crm/facts/fct_crm_by_country.sql"
       },
       {
-        "name": "models-crm-facts-pipeline-fct-crm-by-gender",
+        "name": "dbt-streamhouse-fct-crm-by-gender",
         "file": "crm/facts/fct_crm_by_gender.sql"
       },
       {
-        "name": "models-crm-facts-pipeline-fct-crm-by-generation",
+        "name": "dbt-streamhouse-fct-crm-by-generation",
         "file": "crm/facts/fct_crm_by_generation.sql"
       },
       {
-        "name": "models-crm-facts-pipeline-fct-crm-by-segment",
+        "name": "dbt-streamhouse-fct-crm-by-segment",
         "file": "crm/facts/fct_crm_by_segment.sql"
       },
       {
-        "name": "models-crm-facts-pipeline-fct-crm-summary",
+        "name": "dbt-streamhouse-fct-crm-summary",
         "file": "crm/facts/fct_crm_summary.sql"
       }
     ],
     "fraud_pipeline": [
       {
-        "name": "models-fraud-facts-pipeline-fct-fraud-probe",
+        "name": "dbt-streamhouse-fct-fraud-probe",
         "file": "fraud/facts/fct_fraud_probe.sql"
       },
       {
-        "name": "models-fraud-facts-pipeline-fct-smb-spike",
+        "name": "dbt-streamhouse-fct-smb-spike",
         "file": "fraud/facts/fct_smb_spike.sql"
       }
     ]
@@ -84,10 +84,58 @@
   ],
 
   "drop_tables": {
-    "c360" : ["fct_c360_profile", "dim_account_tx_agg","fct_merchant_streak", "dim_tx_x_account", "dim_transactions", "dim_customers", "dim_account_tx_agg", "src_transactions", "src_customers" ,  "src_accounts"],
-    "crm" : ["fct_crm_summary", "fct_crm_by_segment", "fct_crm_by_generation", "fct_crm_by_gender", "fct_crm_by_country"],
-    "fraud" : ["fct_fraud_probe",  "fct_smb_spike"],
-    "cdc": ["cdc.public.accounts", "cdc.public.customers", "cdc.public.transactions"]
+    "c360" : [
+      { "table": "fct_smb_spike", "materialized": false},
+      { "table": "fct_c360_profile", "materialized": true},
+      { "table": "dim_transactions", "materialized": true},
+      { "table": "dim_account_tx_agg", "materialized": true},
+      { "table": "dim_tx_x_account", "materialized": true},
+      { "table": "src_transactions", "materialized": true},
+      { "table": "fct_merchant_streak","materialized": false}
+    ],
+    "crm" : [ 
+       {
+      "table": "src_customers",
+      "materialized": true
+    },
+    {
+      "table": "dim_customers",
+      "materialized": true
+    },
+    {
+      "table": "src_accounts",
+      "materialized": true
+    },
+    {"table": "fct_crm_by_gender",
+      "materialized": false
+    },
+    {
+      "table": "fct_crm_summary",
+      "materialized": false
+    },
+    {
+      "table": "fct_crm_by_generation",
+      "materialized": false
+    },
+    {
+      "table": "fct_crm_by_segment",
+      "materialized": false
+    },
+    {
+      "table": "fct_crm_by_country",
+      "materialized": false
+    }],
+    "fraud" : [    {
+      "table": "fct_smb_spike",
+      "materialized": false
+    },
+    {
+      "table": "fct_fraud_probe",
+      "materialized": false
+    }],
+    "cdc": ["cdc.public.accounts", "cdc.public.customers", "cdc.public.transactions"],
+    "connect": ["my_connect_configs", "my_connect_offsets","my_connect_status"],
+    "seeds": ["country_codes", "currency_codes"]
   },
   "drop_statement_prefix": "c360-drop"
 }

@@ -13,6 +13,7 @@ nav:
     - CC Console: sre_ccloud.md
     - Flink deploy: flink_deployment.md
   - Demo Script: demo_script.md
+  - Cleaning: cleanup.md
  
 theme: 
   name: material 
@@ -39,7 +40,6 @@ theme:
       - navigation.expand
       - navigation.top
       - navigation.footer
-extra_css: ["extra.css"]
 plugins:
   - search:
       lang: en

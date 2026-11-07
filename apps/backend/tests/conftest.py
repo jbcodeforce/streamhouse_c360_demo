@@ -42,6 +42,7 @@ def isolate_seed_csvs(tmp_path_factory):
     seeds = {
         "CUSTOMERS_CSV_PATH": _BACKEND_DIR / "customers" / "data" / "customers.csv",
         "ACCOUNTS_CSV_PATH": _BACKEND_DIR / "accounts" / "data" / "accounts.csv",
+        "CARDS_CSV_PATH": _BACKEND_DIR / "cards" / "data" / "cards.csv",
         "TRANSACTIONS_CSV_PATH": _BACKEND_DIR / "transactions" / "data" / "transactions.csv",
     }
     previous = {}
@@ -80,7 +81,7 @@ def make_full_payload(**overrides) -> dict:
     base = make_create_payload(
         phone="555-000-1234",
         gender="M",
-        address_line1="1 Test St",
+        address="1 Test St",
         city="Testville",
         state="CA",
         postal_code="90210",

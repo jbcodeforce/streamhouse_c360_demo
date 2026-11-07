@@ -56,7 +56,7 @@ resource "confluent_connector" "debezium_postgres" {
     # ── CDC source configuration ─────────────────────────────────────────────
     # Tables to capture (schema.table format)
     # Order matches the deployed connector config.
-    "table.include.list" = "public.accounts,public.customers,public.transactions"
+    "table.include.list" = "public.accounts,public.cards,public.customers,public.transactions"
 
     # ── Kafka topic routing ──────────────────────────────────────────────────
     # Topics will be: <prefix>.public.accounts, <prefix>.public.customers, etc.

@@ -2,7 +2,7 @@
 
 ## Updates
 
-* 11/02/2026 Change docs in mkdocs. Clean data for scenarios.
+* 11/06/2026 Change docs in mkdocs. Clean data for scenarios.
 * 11/01/2026 Add CEP use cases, user interface, scenarion backend, flink statements.
 * 10/30/2026: Home page, kafka topic to keep chat conversation to kafka for Flink agent processing, design note improvement. Customer to account page navigation.
 * 10/29/2026: Chat to demonstrate RTCE/MCP integration for business data query in plain english. 
@@ -19,4 +19,5 @@
 
 ## Features
 
-[]()
+[See the list of features/capabilities demonstrated in this repository](https://jbcodeforce.github.io/streamhouse_c360_demo/#capabilities-demonstrated).
+

@@ -19,6 +19,10 @@ from accounts import (
     db_sink as accounts_db_sink,
     inventory as accounts_inventory,
 )
+from cards import (
+    db_sink as cards_db_sink,
+    inventory as cards_inventory,
+)
 from customers import (
     db_sink as customers_db_sink,
     inventory as customers_inventory,
@@ -34,7 +38,7 @@ logger = logging.getLogger("c360.bootstrap")
 def init_and_seed() -> None:
     """Create all tables + the CDC publication and seed each table if empty.
 
-    Order matters: customers before accounts before transactions so the
+    Order matters: customers before accounts before cards/transactions so the
     foreign keys resolve during seeding.
     """
     customers_db_sink.init_db()
@@ -44,6 +48,10 @@ def init_and_seed() -> None:
     accounts_db_sink.init_db()
     accounts = accounts_inventory.load()
     accounts_db_sink.seed_from_csv(accounts)
+
+    cards_db_sink.init_db()
+    cards = cards_inventory.load()
+    cards_db_sink.seed_from_csv(cards)
 
     transactions_db_sink.init_db()
     transactions = transactions_inventory.load()

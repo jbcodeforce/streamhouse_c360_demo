@@ -12,8 +12,7 @@ class CustomerCreate(BaseModel):
     phone: str | None = None
     date_of_birth: datetime | None = None
     gender: str | None = None
-    address_line1: str | None = None
-    address_line2: str | None = None
+    address: str | None = None
     city: str | None = None
     state: str | None = None
     postal_code: str | None = None
@@ -21,8 +20,9 @@ class CustomerCreate(BaseModel):
     customer_since: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
     segment: str | None = None
     status: str = "ACTIVE"
-    per_capita_income: Decimal | None = Field(default=None, ge=0)
+    yearly_income: Decimal | None = Field(default=None, ge=0)
     retirement_age: int | None = Field(default=None, ge=0, le=120)
+    credit_score: int | None = Field(default=None, ge=300, le=850)
 
 
 class CustomerUpdate(BaseModel):
@@ -32,8 +32,7 @@ class CustomerUpdate(BaseModel):
     phone: str | None = None
     date_of_birth: datetime | None = None
     gender: str | None = None
-    address_line1: str | None = None
-    address_line2: str | None = None
+    address: str | None = None
     city: str | None = None
     state: str | None = None
     postal_code: str | None = None
@@ -41,8 +40,9 @@ class CustomerUpdate(BaseModel):
     customer_since: datetime | None = None
     segment: str | None = None
     status: str | None = None
-    per_capita_income: Decimal | None = Field(default=None, ge=0)
+    yearly_income: Decimal | None = Field(default=None, ge=0)
     retirement_age: int | None = Field(default=None, ge=0, le=120)
+    credit_score: int | None = Field(default=None, ge=300, le=850)
 
 
 class Customer(CustomerCreate):

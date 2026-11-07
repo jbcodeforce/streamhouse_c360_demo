@@ -57,6 +57,7 @@ class Settings(BaseSettings):
     SCHEMA_REGISTRY_API_SECRET: str | None = None
     KAFKA_TOPIC_CUSTOMERS: str = "cdc.public.customers"
     KAFKA_TOPIC_ACCOUNTS: str = "cdc.public.accounts"
+    KAFKA_TOPIC_CARDS: str = "cdc.public.cards"
     KAFKA_TOPIC_TRANSACTIONS: str = "cdc.public.transactions"
     # Agent-conversations history topic (owned by Terraform, see
     # IaC/ccloud/topics.tf). The chat backend produces request/response events

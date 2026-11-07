@@ -8,7 +8,7 @@ type FormState = Record<keyof CustomerCreate, string>
 
 const EMPTY: FormState = {
   first_name: '', last_name: '', email: '', phone: '', date_of_birth: '', gender: '',
-  address_line1: '', address_line2: '', city: '', state: '', postal_code: '',
+  address: '', city: '', state: '', postal_code: '',
   country: 'US', customer_since: '', segment: '', status: 'ACTIVE',
 }
 
@@ -19,8 +19,7 @@ const TEXT_FIELDS: [keyof CustomerCreate, string, string?][] = [
   ['phone', 'Phone'],
   ['date_of_birth', 'Date of birth', 'date'],
   ['gender', 'Gender'],
-  ['address_line1', 'Address line 1'],
-  ['address_line2', 'Address line 2'],
+  ['address', 'Address'],
   ['city', 'City'],
   ['state', 'State'],
   ['postal_code', 'Postal code'],

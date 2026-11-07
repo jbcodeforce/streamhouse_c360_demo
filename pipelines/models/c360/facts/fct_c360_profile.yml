@@ -32,9 +32,11 @@ models:
     data_type: integer
   - name: generation_segment
     data_type: string
-  - name: per_capita_income
+  - name: yearly_income
     data_type: decimal(18, 2)
   - name: retirement_age
+    data_type: integer
+  - name: credit_score
     data_type: integer
   - name: years_to_retirement
     data_type: integer

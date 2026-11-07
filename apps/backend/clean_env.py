@@ -37,7 +37,7 @@ from config import _mask_dsn, settings
 logger = logging.getLogger("c360.clean_env")
 
 # Child → parent order so FK constraints never block a DROP.
-_TABLES = ("transactions", "accounts", "customers")
+_TABLES = ("transactions", "cards", "accounts", "customers")
 _ADMIN_TIMEOUT_S = 30.0
 
 
@@ -45,6 +45,7 @@ def _topics() -> list[str]:
     return [
         settings.KAFKA_TOPIC_CUSTOMERS,
         settings.KAFKA_TOPIC_ACCOUNTS,
+        settings.KAFKA_TOPIC_CARDS,
         settings.KAFKA_TOPIC_TRANSACTIONS,
     ]
 

@@ -262,15 +262,3 @@ There is a local LLM running in the background listening on http://localhost:799
     \q
     ```
 
-### Cleanup
-
-* Stop webapp
-    ```sh
-      ./scripts/stop_dev.sh
-    ```
-* Stop postgresql local server
-* Undeploy flink statements:
-    ```sh
-
-    ```
-* Destroy cloud resources with terraform, only if you need to clean Confluent cloud resources.

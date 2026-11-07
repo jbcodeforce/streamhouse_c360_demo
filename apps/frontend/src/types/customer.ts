@@ -5,8 +5,7 @@ export interface CustomerCreate {
   phone?: string | null
   date_of_birth?: string | null // ISO date/datetime string
   gender?: string | null
-  address_line1?: string | null
-  address_line2?: string | null
+  address?: string | null
   city?: string | null
   state?: string | null
   postal_code?: string | null
@@ -14,8 +13,9 @@ export interface CustomerCreate {
   customer_since?: string | null // ISO date; backend defaults to today
   segment?: string | null
   status?: string | null // backend defaults to "ACTIVE"
-  per_capita_income?: number | string | null // decimal(18,2); API may return a string
+  yearly_income?: number | string | null // decimal(18,2); API may return a string
   retirement_age?: number | null
+  credit_score?: number | null // 300-850
 }
 
 export type CustomerUpdate = Partial<CustomerCreate>

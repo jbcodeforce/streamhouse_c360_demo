@@ -3,13 +3,14 @@
 
 The purpose of this repository is to implement a Customer 360 streaming data pipeline integrating operational databases (PostgreSQL, DB2,...) with event streaming, Change Data Capture (CDC), and modern lakehouse analytical sinks. 
 
-
 This is one possible demonstration of the [Streamhouse architecture](https://streamhouse.com) with Confluent Cloud products.
 
 <figure markdown='span'>
 ![](./images/app/home_page.png)
 <caption>**The home page of the application to drive the demonstration**</caption>
 </figure>
+
+From a business requirement point of view, **the goal is to demonstrate how to synchronize a change in business state everywhere it is used.**
 
 The user story for the demonstration looks like: 
 
@@ -39,15 +40,9 @@ When applied the architecture to Confluent technology stack, Streamhouse is supp
 1. **Serve** is supported by Flink with snapshot queries, by Kafka Sink connectors and Tableflow to write Iceberg Tables to object storage. Real-time context engine is also a serving layer for AI Agents.
 1. **Governance**: is done by schema registry and other end-to-end governance capabilities.
 
-## Goal of this demonstration
+## Capabilities demonstrated
 
-**The goal is to demonstrate how to synchronize a change in business state everywhere it is used.**
-
-We will mockup transactional application / microservices writing transactions, accounts and customers records to a SQL database. We can use IBM Db2 RDBMS or Postgresql as databasse server. The solution can run the database server locally or remotely deployed on AWS RDS. 
-
-### Capabilities demonstrated
-
-#### Hybrid ingestion
+### Hybrid ingestion
 
 One of the path of the demonstration is to run database and Debezium connector on local servers, (the user laptop to make the demonstration simpler). The CDC can be connected to a Confluent Cloud Kafka cluster, creates the expected topics, and schemas and then process changes from the source database to the kafka topics:
 
@@ -55,14 +50,21 @@ One of the path of the demonstration is to run database and Debezium connector o
 
 [See detail in this note](./local_cdc.md).
 
-#### CDC Managed Connector
+### CDC Managed Connector
 
 The alternate to the previous deployment is to get the database accessible from Confluent Cloud VPC and use managed connector deployment. 
 
 * [See this note for terraform based deployment](./sre_ccloud_tf.md#defining-confluent-cloud-resources-with-the-terraform)
 * [See this note for Confluent Cloud Console driven deployment](./sre_ccloud.md#create-debezium-cdc-v2-kafka-connector)
 
-#### CDC envelop automatic processing to upsert tables
+### Infrastructure as Code
+
+The Confluent cloud resources are created with Terraform, for Kafka cluster, default topics, service accounts, role-bindings, API keys and secrets.
+One important aspects of the deployment is to isolate data products in their own compute pool. As well as the snapshot queries.
+
+[See this note for details](./sre_ccloud_tf.md)
+
+### CDC envelop automatic processing to upsert tables
 
 When created by Debezium connector the created tables have a changelog.mode set to retract if the source table in the SQL database has not primary key.
 
@@ -98,7 +100,7 @@ Still it is possible to alter the default settings so develop can work on the CD
     FROM {{ source('cdc', 'customers') }}
 ```
 
-#### DBT deployment, Materialized and Streaming tables
+### DBT deployment, Materialized and Streaming tables
 
 Confluent has developed two Python modules: [`dbt-confluent`](https://pypi.org/project/dbt-confluent/) (adapt dbt-core to confluent cloud) and [`confluent-sql`](https://pypi.org/project/confluent-sql/) (Python DBAPI V2 Compatible driver to be able to run snapshot, streaming queries with different cursors). 
 
@@ -108,7 +110,7 @@ All the flink statements presented in this repository are deployed using Conflue
 
 [See Confluent dbt product documentation.](https://docs.confluent.io/cloud/current/flink/operate-and-deploy/deploy-flink-dbt.html)
 
-#### Lateral snapshot join on slow moving, seeded data
+### Lateral snapshot join on slow moving, seeded data
 
 One of common pattern within data enrichment is to join streaming record with reference data, which has lower level of change velocity. There are multiple way to support this integration, but in Confluent Cloud is it best to deploy them in Kafka topic and be able to reuse them, for any enrichment. The [new lateral snapshot feature in Flink](https://docs.confluent.io/cloud/current/flink/reference/queries/joins.html#lateral-snapshot-joins) helps in join.
 
@@ -117,17 +119,19 @@ The seeds are defined is pipelines/seeds folder and deployed simply by doing
 dbt seed
 ```
 
-* [seeds/country_codes.csv]() has 249 ISO 3166-1 countries with alpha-2, alpha-3, numeric code and name. The country_code key matches customers.country.
-* [seeds/currency_codes.csv]() has 178 ISO 4217 currencies with code, numeric code and name. The currency_code key matches transactions.currency.
-* [seeds/seeds.yml]() adds descriptions, plus unique and not_null tests on the two key columns
+* [seeds/country_codes.csv](https://github.com/jbcodeforce/streamhouse_c360_demo/blob/main/pipelines/seeds/country_codes.csv) has 249 ISO 3166-1 countries with alpha-2, alpha-3, numeric code and name. The country_code key matches customers.country.
+* [seeds/currency_codes.csv](https://github.com/jbcodeforce/streamhouse_c360_demo/blob/main/pipelines/seeds/currency_codes.csv) has 178 ISO 4217 currencies with code, numeric code and name. The currency_code key matches transactions.currency.
+* [seeds/seeds.yml](https://github.com/jbcodeforce/streamhouse_c360_demo/blob/main/pipelines/seeds/seeds.yml) adds descriptions, plus unique and not_null tests on the two key columns
 
-#### Snapshot query
+The snaphot lateral query is implemented in the [transaction cdc processing]()
+
+### Snapshot query
 
 dbt supports running materialized table and streaming tables. The Confluent REST API exposes a run Flink statement that can also being used for snapshot query. The backend application uses the [confluent sql](https://pypi.org/project/confluent-sql/) module to demonstrate the integration inside of a human dashboard. 
 
 [See this confluent client code](https://github.com/jbcodeforce/streamhouse_c360_demo/blob/main/apps/backend/analytics/confluent_sql_client.py#L51).
 
-#### Lightning query
+### Lightning query
 
 The Confluent Cloud [Real-Time Context Engine]() (RTCE) exposes a Flink-maintained table for current-state point lookups over HTTP: a single synchronous POST returns the
 table's current rows in milliseconds. 
@@ -137,10 +141,10 @@ provisioned by ``IaC/ccloud/lightning.tf``) and a body scoped by ``catalog_name`
 
 See [Code reference](https://github.com/jbcodeforce/streamhouse_c360_demo/blob/main/apps/backend/analytics/lightning_client.py)
 
-#### Complex event processing for fraud detection
-#### Chat with business data leveraging real-time context engine
-#### Flink pipeline lineage
-#### Billing aggregation per pipeline
+### Complex event processing for fraud detection
+### Chat with business data leveraging real-time context engine
+### Flink pipeline lineage
+### Billing aggregation per pipeline
 
 * [ ] Sliding window aggregations over transactions grouped by cardholder (1 minute to 1 day windows). 
 * [ ] How to propagate delete operations to sink bucket

@@ -62,15 +62,7 @@
             },
             {
               "default": null,
-              "name": "address_line1",
-              "type": [
-                "null",
-                "string"
-              ]
-            },
-            {
-              "default": null,
-              "name": "address_line2",
+              "name": "address",
               "type": [
                 "null",
                 "string"
@@ -156,7 +148,7 @@
             },
             {
               "default": null,
-              "name": "per_capita_income",
+              "name": "yearly_income",
               "type": [
                 "null",
                 {
@@ -176,6 +168,14 @@
             {
               "default": null,
               "name": "retirement_age",
+              "type": [
+                "null",
+                "int"
+              ]
+            },
+            {
+              "default": null,
+              "name": "credit_score",
               "type": [
                 "null",
                 "int"
