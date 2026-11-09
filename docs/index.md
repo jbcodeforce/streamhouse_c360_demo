@@ -25,7 +25,7 @@ At the high level, Streamhouse reference architecture looks like in the figure b
 <caption>Streamhouse Capabilities</caption>
 </figure>
 
-The architecture delivers a capture layer to bring data in centralized messaging platform to transport and persist records defined in structured schemas. A layer of tranformation, data enrichment and data analytics construct helps to serve golden records to downstream processing. Those golden records, representing valuable business events or data analytic products can be consumed by AI Agent to build their own, fresh, context.
+The architecture delivers a capture layer to bring data in centralized messaging platform to transport and persist records defined in structured schemas. A layer of tranformation, data enrichment and data analytics construct helps to serve golden records to downstream processing. Those golden records, representing valuable business events or data analytic products can be consumed by AI Agents to build their own, fresh, context.
 
 When applied the architecture to Confluent technology stack, Streamhouse is supported by the following components:
 
@@ -48,7 +48,7 @@ One of the path of the demonstration is to run database and Debezium connector o
 
 ![](./diagrams/hybrid/comp_view.drawio.png)
 
-[See detail in this note](./local_cdc.md).
+[See detail in this note](./local_cdc.md) on how to run this approach.
 
 ### CDC Managed Connector
 
@@ -60,7 +60,10 @@ The alternate to the previous deployment is to get the database accessible from 
 ### Infrastructure as Code
 
 The Confluent cloud resources are created with Terraform, for Kafka cluster, default topics, service accounts, role-bindings, API keys and secrets.
-One important aspects of the deployment is to isolate data products in their own compute pool. As well as the snapshot queries.
+One important aspect of the deployment is to isolate data products in their own compute pool, and to isolate Flink snapshot queries on at least one compute pool:
+
+
+![](./diagrams/flink-cp.drawio.png)
 
 [See this note for details](./sre_ccloud_tf.md)
 
@@ -106,7 +109,9 @@ Confluent has developed two Python modules: [`dbt-confluent`](https://pypi.org/p
 
 ![](./diagrams/dbt_cc.drawio.png)
 
-All the flink statements presented in this repository are deployed using Confluent dbt. The project management is also complemented with other personal CLIs. [See this note](./flink_deployment.md) to review the development approach and deployment pattern using dbt
+All the flink statements presented in this repository are deployed using Confluent dbt. The project management is also complemented with other personal CLIs. 
+
+[See this note](./flink_deployment.md) to review the development approach and deployment pattern using dbt for this solution.
 
 [See Confluent dbt product documentation.](https://docs.confluent.io/cloud/current/flink/operate-and-deploy/deploy-flink-dbt.html)
 
@@ -123,7 +128,7 @@ dbt seed
 * [seeds/currency_codes.csv](https://github.com/jbcodeforce/streamhouse_c360_demo/blob/main/pipelines/seeds/currency_codes.csv) has 178 ISO 4217 currencies with code, numeric code and name. The currency_code key matches transactions.currency.
 * [seeds/seeds.yml](https://github.com/jbcodeforce/streamhouse_c360_demo/blob/main/pipelines/seeds/seeds.yml) adds descriptions, plus unique and not_null tests on the two key columns
 
-The snaphot lateral query is implemented in the [transaction cdc processing]()
+The snaphot lateral join query is implemented in the [transaction cdc processing]()
 
 ### Snapshot query
 
@@ -149,8 +154,8 @@ The Frontend exposes a panel with a chat interface to demonstrate calling local 
 ![](./diagrams/chat_rtce.drawio.png)
 
 ### Flink pipeline lineage
-### Billing aggregation per pipeline
-
+### Billing aggr
+### Others to finalize
 * [ ] Sliding window aggregations over transactions grouped by cardholder (1 minute to 1 day windows). 
 * [ ] How to propagate delete operations to sink bucket
 * [ ] Maintain data order for transactional systems. 
@@ -275,7 +280,7 @@ The following steps are generic and may be supported by different tools:
 
 --- 
 
-## Sources
+## Sources for information
 
 * [My living Flink study book](https://jbcodeforce.github.io/flink-studies/) with best practices, methodology, and code samples.
 * [Confluent Stream Processing with Confluent Cloud for Apache Flink](https://docs.confluent.io/cloud/current/flink/overview.html)

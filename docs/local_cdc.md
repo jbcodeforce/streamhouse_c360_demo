@@ -13,7 +13,7 @@ This guide configures local PostgreSQL with Change Data Capture (CDC) via Debezi
 All the environment variables need to be defined in `apps/backend/.env`, which can be jumpstarted from the terraform output, via the command:
 
 ```sh
-./script
+./scripts/set_env_from_tf.sh
 ```
 
 ### 2. Start Dev Stack with CDC
