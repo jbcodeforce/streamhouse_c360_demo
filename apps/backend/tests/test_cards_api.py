@@ -46,5 +46,8 @@ def test_list_by_account(client, monkeypatch):
     assert captured["aid"] == aid
 
 
-def test_account_id_required(client):
-    assert client.get("/api/v1/cards").status_code == 422
+def test_list_all_when_no_account_id(client, monkeypatch):
+    monkeypatch.setattr(service, "list_all", lambda: [_card(uuid4()), _card(uuid4())])
+    resp = client.get("/api/v1/cards")
+    assert resp.status_code == 200
+    assert len(resp.json()) == 2

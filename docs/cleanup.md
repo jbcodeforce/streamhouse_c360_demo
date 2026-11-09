@@ -22,6 +22,7 @@ There are different cleaning operations to perform depending of the needs.
     ```
 
 ## Cleaning Materialized Tables
+
 Because Flink statements to manage Materialized table are hidden, we need to drop the tables.
 
 ```sh
@@ -30,7 +31,11 @@ uv run flink-sql-deploy --sql-dir ../streamhouse_c360_demo/pipelines/models drop
 uv run flink-sql-deploy --sql-dir ../streamhouse_c360_demo/pipelines/models drop_tables --group c360
 
 uv run flink-sql-deploy --sql-dir ../streamhouse_c360_demo/pipelines/models drop_tables --group fraud
+```
 
+## Cleaning topics
+
+```sh
 uv run flink-sql-deploy --sql-dir ../streamhouse_c360_demo/pipelines/models drop_tables --group cdc
 
 uv run flink-sql-deploy --sql-dir ../streamhouse_c360_demo/pipelines/models drop_tables --group connect

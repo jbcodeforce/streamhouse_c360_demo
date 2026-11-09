@@ -143,6 +143,11 @@ See [Code reference](https://github.com/jbcodeforce/streamhouse_c360_demo/blob/m
 
 ### Complex event processing for fraud detection
 ### Chat with business data leveraging real-time context engine
+
+The Frontend exposes a panel with a chat interface to demonstrate calling local LLM with tool to reference Confluent Real-time context engine to query data exposed with Lightning tables.
+
+![](./diagrams/chat_rtce.drawio.png)
+
 ### Flink pipeline lineage
 ### Billing aggregation per pipeline
 

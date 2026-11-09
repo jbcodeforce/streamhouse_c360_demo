@@ -3,7 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import { ApiError } from '../api/client'
 import { createTransaction } from '../api/transactions'
 import { listAccounts } from '../api/accounts'
+import { listCards } from '../api/cards'
+import { maskCardNumber } from '../lib/format'
 import type { Account } from '../types/account'
+import type { Card } from '../types/card'
 import type { TransactionCreate } from '../types/transaction'
 
 const TYPES = ['CREDIT', 'DEBIT', 'TRANSFER', 'FEE', 'INTEREST']
@@ -13,27 +16,36 @@ const STATUSES = ['COMPLETED', 'PENDING', 'FAILED']
 export default function TransactionFormPage() {
   const navigate = useNavigate()
   const [accounts, setAccounts] = useState<Account[]>([])
+  const [cards, setCards] = useState<Card[]>([])
   const [accountId, setAccountId] = useState('')
+  const [cardId, setCardId] = useState('')
   const [transactionType, setTransactionType] = useState('CREDIT')
   const [amount, setAmount] = useState('')
   const [currency, setCurrency] = useState('USD')
   const [channel, setChannel] = useState('ONLINE')
   const [description, setDescription] = useState('')
+  const [merchantName, setMerchantName] = useState('')
+  const [merchantCategory, setMerchantCategory] = useState('')
+  const [merchantCity, setMerchantCity] = useState('')
+  const [merchantState, setMerchantState] = useState('')
   const [status, setStatus] = useState('COMPLETED')
   const [errors, setErrors] = useState<{ accountId?: string; amount?: string }>({})
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    listAccounts()
-      .then(setAccounts)
+    Promise.all([listAccounts(), listCards()])
+      .then(([accts, crds]) => {
+        setAccounts(accts)
+        setCards(crds)
+      })
       .catch((e) => setSubmitError(e instanceof ApiError ? e.message : 'Failed to load accounts'))
       .finally(() => setLoading(false))
   }, [])
 
   function validate(): boolean {
     const next: typeof errors = {}
-    if (!accountId) next.accountId = 'Account is required'
+    if (!accountId && !cardId) next.accountId = 'An account or a card is required'
     if (amount.trim() === '' || Number.isNaN(Number(amount))) next.amount = 'A valid amount is required'
     setErrors(next)
     return Object.keys(next).length === 0
@@ -43,21 +55,28 @@ export default function TransactionFormPage() {
     e.preventDefault()
     setSubmitError(null)
     if (!validate()) return
-    const account = accounts.find((a) => a.account_id === accountId)
+    const card = cards.find((c) => c.card_id === cardId)
+    // The customer is derived from the selected account, or from the card's account.
+    const account = accounts.find((a) => a.account_id === (accountId || card?.account_id))
     if (!account) {
-      setErrors({ accountId: 'Account is required' })
+      setErrors({ accountId: 'An account or a card is required' })
       return
     }
     const payload: TransactionCreate = {
-      account_id: account.account_id,
-      customer_id: account.customer_id, // derived from the selected account
+      customer_id: account.customer_id,
       transaction_type: transactionType,
       amount: Number(amount),
       currency: currency.trim() || 'USD',
       channel,
       status,
     }
+    if (accountId) payload.account_id = accountId
+    if (cardId) payload.card_id = cardId
     if (description.trim()) payload.description = description.trim()
+    if (merchantName.trim()) payload.merchant_name = merchantName.trim()
+    if (merchantCategory.trim()) payload.merchant_category = merchantCategory.trim()
+    if (merchantCity.trim()) payload.merchant_city = merchantCity.trim()
+    if (merchantState.trim()) payload.merchant_state = merchantState.trim()
     try {
       await createTransaction(payload)
       navigate('/transactions')
@@ -77,7 +96,7 @@ export default function TransactionFormPage() {
         <div className="form__row">
           <label htmlFor="account_id">Account</label>
           <select id="account_id" value={accountId} onChange={(e) => setAccountId(e.target.value)}>
-            <option value="">Select an account…</option>
+            <option value="">No account</option>
             {accounts.map((a) => (
               <option key={a.account_id} value={a.account_id}>
                 {a.account_number} ({a.account_type})
@@ -85,6 +104,18 @@ export default function TransactionFormPage() {
             ))}
           </select>
           {errors.accountId && <span className="field-error">{errors.accountId}</span>}
+        </div>
+
+        <div className="form__row">
+          <label htmlFor="card_id">Card</label>
+          <select id="card_id" value={cardId} onChange={(e) => setCardId(e.target.value)}>
+            <option value="">No card</option>
+            {cards.map((c) => (
+              <option key={c.card_id} value={c.card_id}>
+                {maskCardNumber(c.card_number)} ({c.card_brand} {c.card_type})
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="form__row">
@@ -115,6 +146,26 @@ export default function TransactionFormPage() {
         <div className="form__row">
           <label htmlFor="description">Description</label>
           <input id="description" value={description} onChange={(e) => setDescription(e.target.value)} />
+        </div>
+
+        <div className="form__row">
+          <label htmlFor="merchant_name">Merchant</label>
+          <input id="merchant_name" value={merchantName} onChange={(e) => setMerchantName(e.target.value)} />
+        </div>
+
+        <div className="form__row">
+          <label htmlFor="merchant_category">Merchant category</label>
+          <input id="merchant_category" value={merchantCategory} onChange={(e) => setMerchantCategory(e.target.value)} />
+        </div>
+
+        <div className="form__row">
+          <label htmlFor="merchant_city">Merchant city</label>
+          <input id="merchant_city" value={merchantCity} onChange={(e) => setMerchantCity(e.target.value)} />
+        </div>
+
+        <div className="form__row">
+          <label htmlFor="merchant_state">Merchant state</label>
+          <input id="merchant_state" value={merchantState} onChange={(e) => setMerchantState(e.target.value)} />
         </div>
 
         <div className="form__row">

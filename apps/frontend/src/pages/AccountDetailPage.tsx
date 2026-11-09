@@ -4,11 +4,8 @@ import { ApiError } from '../api/client'
 import { getAccount } from '../api/accounts'
 import { listCards } from '../api/cards'
 import type { Account } from '../types/account'
+import { maskCardNumber } from '../lib/format'
 import type { Card } from '../types/card'
-
-function maskCardNumber(n: string): string {
-  return `•••• ${n.slice(-4)}`
-}
 
 const FIELDS: [keyof Account, string][] = [
   ['account_number', 'Account number'],

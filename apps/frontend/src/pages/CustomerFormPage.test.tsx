@@ -71,4 +71,36 @@ describe('CustomerFormPage', () => {
     await waitFor(() => expect(update).toHaveBeenCalledWith('1', expect.objectContaining({ city: 'London' })))
     expect(create).not.toHaveBeenCalled()
   })
+
+  it('sends the financial fields as numbers and validates their ranges', async () => {
+    const create = vi.spyOn(api, 'createCustomer').mockResolvedValue({} as never)
+    renderAt('/customers/new')
+    await userEvent.type(screen.getByLabelText(/first name/i), 'Ada')
+    await userEvent.type(screen.getByLabelText(/last name/i), 'Lovelace')
+    await userEvent.type(screen.getByLabelText(/email/i), 'ada@x.io')
+    await userEvent.type(screen.getByLabelText(/credit score/i), '900')
+    await userEvent.click(screen.getByRole('button', { name: /save/i }))
+    expect(await screen.findByText(/credit score must be/i)).toBeInTheDocument()
+    expect(create).not.toHaveBeenCalled()
+
+    await userEvent.clear(screen.getByLabelText(/credit score/i))
+    await userEvent.type(screen.getByLabelText(/credit score/i), '742')
+    await userEvent.type(screen.getByLabelText(/yearly income/i), '78500.5')
+    await userEvent.type(screen.getByLabelText(/retirement age/i), '65')
+    await userEvent.click(screen.getByRole('button', { name: /save/i }))
+    await waitFor(() => expect(create).toHaveBeenCalledTimes(1))
+    expect(create.mock.calls[0][0]).toMatchObject({ yearly_income: 78500.5, retirement_age: 65, credit_score: 742 })
+  })
+
+  it('loads financial fields in edit mode', async () => {
+    vi.spyOn(api, 'getCustomer').mockResolvedValue({
+      customer_id: '1', first_name: 'Ada', last_name: 'Lovelace', email: 'ada@x.io',
+      yearly_income: '78500.00', retirement_age: 65, credit_score: 742,
+      country: 'US', customer_since: '2020-01-01', created_at: '', updated_at: '',
+    } as never)
+    renderAt('/customers/1/edit')
+    expect(await screen.findByLabelText(/credit score/i)).toHaveValue(742)
+    expect(screen.getByLabelText(/yearly income/i)).toHaveValue(78500)
+    expect(screen.getByLabelText(/retirement age/i)).toHaveValue(65)
+  })
 })

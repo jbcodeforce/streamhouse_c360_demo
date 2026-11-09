@@ -28,4 +28,9 @@ CREATE TABLE IF NOT EXISTS cdc.public.transactions (
     transacted_at   TIMESTAMP_LTZ,
     posted_at       TIMESTAMP_LTZ,
     created_at      TIMESTAMP_LTZ,
+    card_id         STRING,
+    use_chip        STRING,
+    merchant_city   STRING,
+    merchant_state  STRING,
+    zip             STRING,
 );

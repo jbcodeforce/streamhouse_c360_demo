@@ -13,5 +13,8 @@ router = APIRouter(prefix="/cards", tags=["cards"])
 
 
 @router.get("", response_model=list[Card], status_code=200)
-def list_cards(account_id: UUID) -> list[Card]:
+def list_cards(account_id: UUID | None = None) -> list[Card]:
+    """List all cards, or only those of *account_id* when given."""
+    if account_id is None:
+        return service.list_all()
     return service.list_by_account(account_id)

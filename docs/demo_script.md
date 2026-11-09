@@ -56,7 +56,7 @@ This time the database runs locally and the web app writes to kafka in parallel 
 
 * Start the local Postgresql server
     ```sh
-     ./scripts/local_start_pg.sh 
+     ./IaC/local/start_local_pg_server.sh --seed
     ```
 
     You should get some report like:

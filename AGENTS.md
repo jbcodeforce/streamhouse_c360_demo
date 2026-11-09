@@ -102,18 +102,21 @@ backend as `DATABASE_URL`. The schema's field definitions live in each service's
 
 Scripts for running services locally during development live under [`scripts`](scripts).
 
-- [`scripts/local_start_pg.sh`](scripts/local_start_pg.sh): Starts a PostgreSQL 17 container via the **Apple Container CLI** (`container`) and, with `--seed`, runs the backend bootstrap (schema, `c360_cdc_publication`, seed data) against it.
+- [`IaC/local/start_local_pg_server.sh`](IaC/local/start_local_pg_server.sh): Starts a CDC-ready (`wal_level=logical`) PostgreSQL 17 container via the **Apple Container CLI** (`container`) and, with `--seed`, runs the backend bootstrap (schema, `c360_cdc_publication`, seed data) against it.
 - [`scripts/run_dev.sh`](scripts/run_dev.sh): runs the dev stack; `--cdc` configures local Postgres and starts Debezium via [`IaC/local/`](IaC/local/) (see section 3), `--no-debezium` skips the Debezium step.
 
 ```bash
 # Start container only
-./scripts/local_start_pg.sh
+./IaC/local/start_local_pg_server.sh
 
 # Start + create schema/publication + seed data in one step
-./scripts/local_start_pg.sh --seed
+./IaC/local/start_local_pg_server.sh --seed
+
+# Fresh container (drops existing data), then seed
+./IaC/local/start_local_pg_server.sh --reset --seed
 
 # Tear down when done
-./scripts/local_start_pg.sh --stop
+./IaC/local/start_local_pg_server.sh --stop
 
 # Full dev stack with local Postgres CDC -> Confluent Cloud
 ./scripts/run_dev.sh --cdc

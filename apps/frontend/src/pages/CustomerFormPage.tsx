@@ -10,6 +10,7 @@ const EMPTY: FormState = {
   first_name: '', last_name: '', email: '', phone: '', date_of_birth: '', gender: '',
   address: '', city: '', state: '', postal_code: '',
   country: 'US', customer_since: '', segment: '', status: 'ACTIVE',
+  yearly_income: '', retirement_age: '', credit_score: '',
 }
 
 const TEXT_FIELDS: [keyof CustomerCreate, string, string?][] = [
@@ -27,7 +28,13 @@ const TEXT_FIELDS: [keyof CustomerCreate, string, string?][] = [
   ['customer_since', 'Customer since', 'date'],
   ['segment', 'Segment'],
   ['status', 'Status'],
+  ['yearly_income', 'Yearly income', 'number'],
+  ['retirement_age', 'Retirement age', 'number'],
+  ['credit_score', 'Credit score', 'number'],
 ]
+
+// Numeric fields are sent as JSON numbers (the backend validates their ranges).
+const NUMBER_FIELDS = new Set<keyof CustomerCreate>(['yearly_income', 'retirement_age', 'credit_score'])
 
 // Fields rendered as <input type="date">, which only accepts yyyy-MM-dd.
 // The backend may serialize these as full datetimes (e.g. date_of_birth),
@@ -37,14 +44,14 @@ const DATE_FIELDS = new Set<keyof CustomerCreate>(
 )
 
 function toPayload(form: FormState): CustomerCreate {
-  const out = {} as Record<string, string>
+  const out = {} as Record<string, string | number>
   for (const key of Object.keys(form) as (keyof FormState)[]) {
     const value = form[key].trim()
     // Omit empty fields rather than sending null: the backend's non-optional
     // defaulted fields (country, customer_since, status) reject an explicit
     // null (422) and apply their default only when the key is absent.
     if (value !== '') {
-      out[key] = value
+      out[key] = NUMBER_FIELDS.has(key) ? Number(value) : value
     }
   }
   // Required fields are guaranteed present by validation before this runs.
@@ -86,6 +93,17 @@ export default function CustomerFormPage() {
     if (!form.first_name.trim()) next.first_name = 'First name is required'
     if (!form.last_name.trim()) next.last_name = 'Last name is required'
     if (!form.email.trim()) next.email = 'Email is required'
+
+    const income = form.yearly_income.trim()
+    if (income !== '' && !(Number(income) >= 0)) next.yearly_income = 'Yearly income must be 0 or more'
+    const retirement = form.retirement_age.trim()
+    if (retirement !== '' && !(Number.isInteger(Number(retirement)) && Number(retirement) >= 0 && Number(retirement) <= 120)) {
+      next.retirement_age = 'Retirement age must be a whole number between 0 and 120'
+    }
+    const score = form.credit_score.trim()
+    if (score !== '' && !(Number.isInteger(Number(score)) && Number(score) >= 300 && Number(score) <= 850)) {
+      next.credit_score = 'Credit score must be a whole number between 300 and 850'
+    }
     setErrors(next)
     return Object.keys(next).length === 0
   }

@@ -10,6 +10,10 @@ export function formatCurrency(n: number): string {
   return cf.format(n)
 }
 
+export function maskCardNumber(n: string): string {
+  return `•••• ${n.slice(-4)}`
+}
+
 /** Format a backend-measured query duration (milliseconds) for display. */
 export function formatMs(ms: number): string {
   if (ms >= 1000) return `${(ms / 1000).toFixed(2)} s`

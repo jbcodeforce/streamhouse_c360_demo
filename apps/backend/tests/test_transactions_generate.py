@@ -13,6 +13,7 @@ from fastapi.testclient import TestClient
 
 from accounts.models import Account
 from api.transaction_resource import router
+from cards.models import Card
 from transactions import generator, service
 
 NOW = datetime(2026, 10, 22, 12, 0, 30, 123456, tzinfo=timezone.utc)
@@ -27,6 +28,17 @@ def _account(**over) -> Account:
     )
     base.update(over)
     return Account(**base)
+
+
+def _card(account: Account, **over) -> Card:
+    base = dict(
+        card_id=uuid4(), account_id=account.account_id, card_brand="VISA",
+        card_type="DEBIT", card_number=f"4532{uuid4().int % 10**12:012d}",
+        expires=date(2030, 1, 1), has_chip=True, credit_limit=None,
+        created_at=NOW, updated_at=NOW,
+    )
+    base.update(over)
+    return Card(**base)
 
 
 # ---------------------------------------------------------------------------
@@ -56,6 +68,53 @@ def test_uses_only_existing_active_accounts_and_their_customer():
     assert {(t.account_id, t.customer_id) for t in txns} <= pairs
 
 
+def test_about_70_percent_card_transactions_on_existing_cards():
+    accounts = [_account(), _account(), _account()]
+    cards = [_card(a) for a in accounts]
+    txns = generator.generate(accounts, cards, count=2000, now=NOW, rng=random.Random(4))
+
+    card_txns = [t for t in txns if t.card_id is not None]
+    acct_txns = [t for t in txns if t.card_id is None]
+    assert 0.65 <= len(card_txns) / len(txns) <= 0.75
+    # card transactions carry only the card; account transactions only the account
+    assert all(t.account_id is None for t in card_txns)
+    assert all(t.account_id is not None for t in acct_txns)
+    # customer is the owner of the card's account
+    by_card = {c.card_id: next(a for a in accounts if a.account_id == c.account_id) for c in cards}
+    assert all(t.customer_id == by_card[t.card_id].customer_id for t in card_txns)
+    assert {t.card_id for t in card_txns} <= set(by_card)
+
+
+def test_skips_expired_cards_and_cards_of_ineligible_accounts():
+    good = _account()
+    closed = _account(status="CLOSED")
+    usable = _card(good)
+    expired = _card(good, expires=date(2020, 1, 1))
+    orphan = _card(closed)
+    txns = generator.generate([good, closed], [usable, expired, orphan], count=300, now=NOW, rng=random.Random(5))
+    assert {t.card_id for t in txns if t.card_id} == {usable.card_id}
+
+
+def test_card_transactions_never_get_account_only_credits():
+    a = _account()
+    txns = generator.generate([a], [_card(a)], count=1000, now=NOW, rng=random.Random(6))
+    card_credits = [t for t in txns if t.card_id and t.transaction_type == "CREDIT"]
+    assert card_credits and all(t.description == "Refund" for t in card_credits)
+
+
+def test_prefers_checking_accounts_for_account_transactions():
+    chk = _account(account_type="CHECKING")
+    sav = _account(account_type="SAVINGS")
+    txns = generator.generate([chk, sav], [_card(sav)], count=500, now=NOW, rng=random.Random(7))
+    assert {t.account_id for t in txns if t.card_id is None} == {chk.account_id}
+
+
+def test_without_cards_every_transaction_is_account_based():
+    a = _account()
+    txns = generator.generate([a], [], count=50, now=NOW, rng=random.Random(8))
+    assert all(t.card_id is None and t.account_id == a.account_id for t in txns)
+
+
 def test_raises_without_eligible_accounts():
     with pytest.raises(generator.NoEligibleAccountsError):
         generator.generate([_account(status="CLOSED")], now=NOW)
@@ -69,7 +128,9 @@ def test_raises_without_eligible_accounts():
 
 @pytest.fixture
 def svc(monkeypatch):
-    monkeypatch.setattr(service.accounts_service, "list_all", lambda: [_account()])
+    acct = _account()
+    monkeypatch.setattr(service.accounts_service, "list_all", lambda: [acct])
+    monkeypatch.setattr(service.cards_service, "list_all", lambda: [_card(acct)])
     monkeypatch.setattr(service.db_sink, "create_many", MagicMock(side_effect=lambda t: t))
     return service
 

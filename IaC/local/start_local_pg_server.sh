@@ -1,12 +1,17 @@
 #!/usr/bin/env bash
 # ─────────────────────────────────────────────────────────────────────────────
-# start_pg.sh
-# Starts a local PostgreSQL 17 container using the Apple Container CLI,
+# start_local_pg_server.sh
+# Starts a local PostgreSQL 17 container (CDC-ready: wal_level=logical) using
+# the Apple Container CLI, then (optionally) runs the backend's own schema +
+# seed bootstrap against it.
 #
 # Usage:
-#   ./scripts/local-tests/start_local_pg_server.sh
+#   ./IaC/local/start_local_pg_server.sh [--seed] [--reset] [--stop]
 #
 # Options:
+#   --seed          Run the backend bootstrap (create schema + CDC publication
+#                   and seed from the committed CSVs) once Postgres is ready.
+#                   Idempotent: safe to combine with an already-running container
 #   --stop          Stop and remove the running container, then exit
 #   --reset         Stop + remove any existing container, start a fresh one
 #
@@ -25,15 +30,16 @@ PG_PASSWORD="${PG_PASSWORD:-localdevonly}"
 PG_PORT="${PG_PORT:-5432}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
+BACKEND_DIR="$(cd "${SCRIPT_DIR}/../../apps/backend" && pwd)"
 
 # ── Argument parsing ───────────────────────────────────────────────────────────
+DO_SEED=false
 DO_STOP=false
 DO_RESET=false
 
-
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --seed)       DO_SEED=true; shift ;;
     --stop)       DO_STOP=true; shift ;;
     --reset)      DO_RESET=true; shift ;;
     *)            echo "Unknown option: $1" >&2; exit 1 ;;
@@ -136,6 +142,20 @@ printf "│  Password : %-44s│\n" "${PG_PASSWORD}"
 echo "└─────────────────────────────────────────────────────────┘"
 echo ""
 echo "  Stop / clean up:"
-echo "    ./scripts/local-tests/start_pg.sh --stop"
+echo "    ./IaC/local/start_local_pg_server.sh --stop"
 echo ""
 
+# ── Optionally run the backend bootstrap (schema + CDC publication + seed) ─────
+if [[ "${DO_SEED}" == true ]]; then
+  log "Running backend bootstrap (schema + CDC publication + CSV seed) …"
+  (
+    cd "${BACKEND_DIR}"
+    DATABASE_URL="postgresql://${PG_USER}:${PG_PASSWORD}@localhost:${PG_PORT}/${PG_DB}?sslmode=disable" \
+      uv run python bootstrap.py
+  )
+
+  log "✅ Local database is fully seeded and ready."
+else
+  log "Tip: pass --seed to also create tables and seed the committed CSV dataset."
+  log "  Example: ./IaC/local/start_local_pg_server.sh --seed"
+fi

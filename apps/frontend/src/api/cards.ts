@@ -1,6 +1,8 @@
 import type { Card } from '../types/card'
 import { request } from './client'
 
-export function listCards(accountId: string): Promise<Card[]> {
-  return request<Card[]>(`/cards?account_id=${encodeURIComponent(accountId)}`)
+// Lists the cards of one account, or all cards when no account is given.
+export function listCards(accountId?: string): Promise<Card[]> {
+  const query = accountId ? `?account_id=${encodeURIComponent(accountId)}` : ''
+  return request<Card[]>(`/cards${query}`)
 }

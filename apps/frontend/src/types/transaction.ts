@@ -1,5 +1,6 @@
 export interface TransactionCreate {
-  account_id: string
+  // A transaction has an account, a card, or both.
+  account_id?: string | null
   customer_id: string
   transaction_type: string
   amount: number
@@ -11,6 +12,11 @@ export interface TransactionCreate {
   status?: string | null
   transacted_at?: string | null
   posted_at?: string | null
+  card_id?: string | null
+  use_chip?: string | null
+  merchant_city?: string | null
+  merchant_state?: string | null
+  zip?: string | null
 }
 
 export interface Transaction extends TransactionCreate {

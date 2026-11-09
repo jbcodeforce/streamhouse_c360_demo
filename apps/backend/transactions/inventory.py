@@ -32,6 +32,11 @@ _FIELDNAMES = [
     "transacted_at",
     "posted_at",
     "created_at",
+    "card_id",
+    "use_chip",
+    "merchant_city",
+    "merchant_state",
+    "zip",
 ]
 
 _transactions: list[Transaction] = []
@@ -66,6 +71,8 @@ def _row_to_transaction(row: dict) -> Transaction:
             f"{cleaned.get('transaction_type')}|{cleaned.get('amount')}|"
             f"{cleaned.get('merchant_name')}"
         )
+        if account_number is None:  # card-only row: keep ids distinct per card
+            key += f"|{cleaned.get('card_id')}"
         cleaned["transaction_id"] = str(uuid5(_ACCOUNT_ID_NAMESPACE, key))
     if not cleaned.get("created_at"):
         cleaned["created_at"] = datetime.now(tz=timezone.utc)
@@ -76,7 +83,7 @@ def _transaction_to_row(txn: Transaction) -> dict:
     """Serialise a Transaction to a CSV row dict."""
     return {
         "transaction_id": str(txn.transaction_id),
-        "account_id": str(txn.account_id),
+        "account_id": str(txn.account_id) if txn.account_id else "",
         "customer_id": str(txn.customer_id),
         "transaction_type": txn.transaction_type,
         "amount": txn.amount,
@@ -89,6 +96,11 @@ def _transaction_to_row(txn: Transaction) -> dict:
         "transacted_at": txn.transacted_at.isoformat(),
         "posted_at": txn.posted_at.isoformat() if txn.posted_at else "",
         "created_at": txn.created_at.isoformat(),
+        "card_id": str(txn.card_id) if txn.card_id else "",
+        "use_chip": txn.use_chip or "",
+        "merchant_city": txn.merchant_city or "",
+        "merchant_state": txn.merchant_state or "",
+        "zip": txn.zip or "",
     }
 
 

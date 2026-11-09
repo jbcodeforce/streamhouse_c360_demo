@@ -5,6 +5,7 @@ import ConfirmDialog from '../components/ConfirmDialog'
 import { ApiError } from '../api/client'
 import { getCustomer } from '../api/customers'
 import { listAccounts, updateAccount } from '../api/accounts'
+import { formatCurrency } from '../lib/format'
 import type { Customer } from '../types/customer'
 import type { Account } from '../types/account'
 
@@ -23,7 +24,17 @@ const FIELDS: [keyof Customer, string][] = [
   ['customer_since', 'Customer since'],
   ['segment', 'Segment'],
   ['status', 'Status'],
+  ['yearly_income', 'Yearly income'],
+  ['retirement_age', 'Retirement age'],
+  ['credit_score', 'Credit score'],
 ]
+
+function display(key: keyof Customer, value: Customer[keyof Customer]): string {
+  if (value == null || value === '') return '—'
+  // yearly_income is a decimal(18,2); the API may return it as a string.
+  if (key === 'yearly_income') return formatCurrency(Number(value))
+  return String(value)
+}
 
 export default function CustomerDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -86,7 +97,7 @@ export default function CustomerDetailPage() {
         {FIELDS.map(([key, label]) => (
           <div key={key} style={{ display: 'contents' }}>
             <dt>{label}</dt>
-            <dd>{(customer[key] as string | null) ?? '—'}</dd>
+            <dd>{display(key, customer[key])}</dd>
           </div>
         ))}
       </dl>

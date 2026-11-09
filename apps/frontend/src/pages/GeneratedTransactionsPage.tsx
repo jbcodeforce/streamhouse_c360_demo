@@ -3,7 +3,9 @@ import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { ApiError } from '../api/client'
 import { listAccounts } from '../api/accounts'
+import { listCards } from '../api/cards'
 import { listCustomers } from '../api/customers'
+import { maskCardNumber } from '../lib/format'
 import type { Transaction } from '../types/transaction'
 
 function formatDateTime(value: string | null | undefined): string {
@@ -19,13 +21,15 @@ export default function GeneratedTransactionsPage() {
   const transactions = (location.state as { transactions?: Transaction[] } | null)?.transactions
   const [accountNumbers, setAccountNumbers] = useState<Record<string, string>>({})
   const [customerNames, setCustomerNames] = useState<Record<string, string>>({})
+  const [cardNumbers, setCardNumbers] = useState<Record<string, string>>({})
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!transactions) return
     async function load() {
       try {
-        const [accts, custs] = await Promise.all([listAccounts(), listCustomers()])
+        const [accts, custs, cards] = await Promise.all([listAccounts(), listCustomers(), listCards()])
+        setCardNumbers(Object.fromEntries(cards.map((c) => [c.card_id, maskCardNumber(c.card_number)])))
         setAccountNumbers(Object.fromEntries(accts.map((a) => [a.account_id, a.account_number])))
         setCustomerNames(
           Object.fromEntries(custs.map((c) => [c.customer_id, `${c.first_name} ${c.last_name}`])),
@@ -65,7 +69,7 @@ export default function GeneratedTransactionsPage() {
       <table className="table">
         <thead>
           <tr>
-            <th>Transacted</th><th>Type</th><th>Amount</th><th>Account #</th><th>Customer</th><th>Status</th><th>Actions</th>
+            <th>Transacted</th><th>Type</th><th>Amount</th><th>Account #</th><th>Card</th><th>Customer</th><th>Merchant</th><th>Category</th><th>Status</th><th>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -74,8 +78,11 @@ export default function GeneratedTransactionsPage() {
               <td>{formatDateTime(t.transacted_at)}</td>
               <td>{t.transaction_type}</td>
               <td>{t.amount} {t.currency ?? ''}</td>
-              <td>{accountNumbers[t.account_id] ?? t.account_id}</td>
+              <td>{t.account_id ? (accountNumbers[t.account_id] ?? t.account_id) : '—'}</td>
+              <td>{t.card_id ? (cardNumbers[t.card_id] ?? t.card_id) : '—'}</td>
               <td>{customerNames[t.customer_id] ?? t.customer_id}</td>
+              <td>{t.merchant_name ?? '—'}</td>
+              <td>{t.merchant_category ?? '—'}</td>
               <td>{t.status ?? '—'}</td>
               <td>
                 <div className="row-actions">

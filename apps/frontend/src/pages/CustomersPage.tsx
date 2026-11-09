@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import ConfirmDialog from '../components/ConfirmDialog'
 import { ApiError } from '../api/client'
 import { deleteCustomer, listCustomers } from '../api/customers'
+import { formatCurrency } from '../lib/format'
 import type { Customer } from '../types/customer'
 
 export default function CustomersPage() {
@@ -55,7 +56,8 @@ export default function CustomersPage() {
         <table className="table">
           <thead>
             <tr>
-              <th>Name</th><th>Email</th><th>Phone</th><th>Segment</th><th>Status</th><th>Actions</th>
+              <th>Name</th><th>Email</th><th>Phone</th><th>Segment</th><th>Status</th>
+              <th>Yearly income</th><th>Credit score</th><th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -66,6 +68,8 @@ export default function CustomersPage() {
                 <td>{c.phone ?? '—'}</td>
                 <td>{c.segment ?? '—'}</td>
                 <td>{c.status ?? '—'}</td>
+                <td>{c.yearly_income != null ? formatCurrency(Number(c.yearly_income)) : '—'}</td>
+                <td>{c.credit_score ?? '—'}</td>
                 <td>
                   <div className="row-actions">
                     <button className="icon-btn" aria-label="View" onClick={() => navigate(`/customers/${c.customer_id}`)}><Eye size={18} /></button>
@@ -76,7 +80,7 @@ export default function CustomersPage() {
               </tr>
             ))}
             {customers.length === 0 && (
-              <tr><td colSpan={6} className="status-msg">No customers yet.</td></tr>
+              <tr><td colSpan={8} className="status-msg">No customers yet.</td></tr>
             )}
           </tbody>
         </table>

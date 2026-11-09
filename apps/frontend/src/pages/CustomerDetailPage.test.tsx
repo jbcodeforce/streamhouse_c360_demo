@@ -41,6 +41,17 @@ describe('CustomerDetailPage', () => {
     expect(screen.getByRole('heading', { name: /Ada Lovelace/ })).toBeInTheDocument()
   })
 
+  it('renders yearly income, retirement age and credit score', async () => {
+    vi.spyOn(customersApi, 'getCustomer').mockResolvedValue(
+      { ...customer, yearly_income: '78500.00', retirement_age: 65, credit_score: 742 } as never,
+    )
+    vi.spyOn(accountsApi, 'listAccounts').mockResolvedValue([] as never)
+    renderAt('1')
+    expect(await screen.findByText('$78,500')).toBeInTheDocument()
+    expect(screen.getByText('65')).toBeInTheDocument()
+    expect(screen.getByText('742')).toBeInTheDocument()
+  })
+
   it('shows the error message on 404', async () => {
     vi.spyOn(customersApi, 'getCustomer').mockRejectedValue(new ApiError(404, 'Customer not found'))
     vi.spyOn(accountsApi, 'listAccounts').mockResolvedValue([] as never)

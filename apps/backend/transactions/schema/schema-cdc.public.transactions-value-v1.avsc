@@ -21,12 +21,16 @@
               }
             },
             {
+              "default": null,
               "name": "account_id",
-              "type": {
-                "connect.name": "io.debezium.data.Uuid",
-                "connect.version": 1,
-                "type": "string"
-              }
+              "type": [
+                "null",
+                {
+                  "connect.name": "io.debezium.data.Uuid",
+                  "connect.version": 1,
+                  "type": "string"
+                }
+              ]
             },
             {
               "name": "customer_id",
@@ -134,6 +138,50 @@
                 "connect.version": 1,
                 "type": "string"
               }
+            },
+            {
+              "default": null,
+              "name": "card_id",
+              "type": [
+                "null",
+                {
+                  "connect.name": "io.debezium.data.Uuid",
+                  "connect.version": 1,
+                  "type": "string"
+                }
+              ]
+            },
+            {
+              "default": null,
+              "name": "use_chip",
+              "type": [
+                "null",
+                "string"
+              ]
+            },
+            {
+              "default": null,
+              "name": "merchant_city",
+              "type": [
+                "null",
+                "string"
+              ]
+            },
+            {
+              "default": null,
+              "name": "merchant_state",
+              "type": [
+                "null",
+                "string"
+              ]
+            },
+            {
+              "default": null,
+              "name": "zip",
+              "type": [
+                "null",
+                "string"
+              ]
             }
           ],
           "name": "Value",
