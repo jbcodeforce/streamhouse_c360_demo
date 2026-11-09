@@ -20,7 +20,7 @@ def test_resolve_env_file_default():
 
 def test_resolve_env_file_custom(tmp_path):
     custom_env = tmp_path / "custom.env"
-    custom_env.write_text("GRAPH_DATA_MODE=live\n")
+    custom_env.write_text("FLINK_CRM_COMPUTE_POOL_ID=lfcp-custom\n")
     with patch.dict(os.environ, {"ENV_CONFIG_FILE": str(custom_env)}):
         res = _resolve_env_file()
         assert res == str(custom_env)

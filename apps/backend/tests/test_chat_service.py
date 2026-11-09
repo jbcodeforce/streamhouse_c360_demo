@@ -1,8 +1,8 @@
-"""Unit tests for chat.service mode selection and graceful degradation.
+"""Unit tests for chat.service orchestration and graceful degradation.
 
 These exercise the async orchestrator directly (no TestClient) with config
 patched on the settings singleton and the agno agent monkeypatched — so the
-stub, live, missing-config, and agent-failure paths are all covered with no LLM
+live, missing-config, and agent-failure paths are all covered with no LLM
 or MCP infrastructure.
 """
 
@@ -45,7 +45,6 @@ def _consistent_modules():
 # The MCP URL is derived from the Confluent coordinates, so live config means
 # those five fields plus the LLM and GLOBAL credentials.
 _LIVE_ENV = {
-    "CHAT_DATA_MODE": "live",
     "LLM_BASE_URL": "http://127.0.0.1:7999/v1",
     "LLM_MODEL": "Ornith-1.5-9B-MLX-8bit",
     "CLOUD_REGION": "us-west-2",
@@ -79,18 +78,19 @@ def test_rtce_mcp_url_is_none_when_a_coordinate_is_missing(monkeypatch):
     assert config.settings.rtce_mcp_url() is None
 
 
-def test_stub_mode_echoes_the_question(monkeypatch):
-    monkeypatch.setattr(config.settings, "CHAT_DATA_MODE", "stub")
+def test_unconfigured_chat_returns_error_response(monkeypatch):
+    monkeypatch.setattr(config.settings, "LLM_BASE_URL", None)
     resp = asyncio.run(service.get_reply(ChatRequest(message="Who is customer 42?")))
-    assert resp.source_mode == "stub"
-    assert "Who is customer 42?" in resp.reply
+    assert resp.source_mode == "error"
+    assert "unconfigured" in resp.reply.lower()
 
 
-def test_live_with_missing_config_falls_back_to_stub(monkeypatch):
+def test_missing_coordinate_returns_unconfigured_error(monkeypatch):
     _set_live(monkeypatch)
     monkeypatch.setattr(config.settings, "KAFKA_CLUSTER_ID", None)  # URL can't be derived
     resp = asyncio.run(service.get_reply(ChatRequest(message="hello")))
-    assert resp.source_mode == "stub"
+    assert resp.source_mode == "error"
+    assert "unconfigured" in resp.reply.lower()
 
 
 def test_live_runs_the_agent(monkeypatch):
@@ -176,8 +176,8 @@ def test_live_turn_is_produced_to_agent_conversations(monkeypatch):
     assert kw["source_mode"] == "live"
 
 
-def test_stub_turn_is_not_produced(monkeypatch):
-    monkeypatch.setattr(config.settings, "CHAT_DATA_MODE", "stub")
+def test_unconfigured_turn_is_not_produced(monkeypatch):
+    monkeypatch.setattr(config.settings, "LLM_BASE_URL", None)
 
     from chat import conversation_producer
     calls = []

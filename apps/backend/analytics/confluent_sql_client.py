@@ -57,7 +57,7 @@ class ConfluentSqlClient:
         if missing:
             logger.warning(
                 "ConfluentSqlClient: skipping snapshot query — these settings are "
-                "unset: %s. (Live analytics needs ANALYTICS_DATA_MODE=live AND all "
+                "unset: %s. (Live analytics needs all "
                 "FLINK_*/CLOUD_* settings incl. KAFKA_CLUSTER_ID.)",
                 ", ".join(missing),
             )

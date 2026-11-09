@@ -33,7 +33,7 @@ def test_load_parses_seed_csv():
     assert first.account_number == "CHK-39958838"
     assert first.account_type == "CHECKING"
     assert first.balance == 472.66
-    assert first.credit_limit is None          # empty cell -> None
+    assert first.credit_limit == 2000.0
     assert first.account_id is not None          # server field generated at load
     assert first.created_at is not None
 

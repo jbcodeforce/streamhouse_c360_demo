@@ -36,7 +36,7 @@ class DataQuality(BaseModel):
 class DataAnalytics(BaseModel):
     """Full dashboard payload for one snapshot of ``fct_c360_profile``.
 
-    ``source_mode`` is "mock" or "live" so the UI can label where the snapshot
+    ``source_mode`` is "live" so the UI can label where the snapshot
     came from; ``row_count`` is how many profile rows the snapshot returned
     (0 when a live query is unconfigured or fails — the dashboard then shows an
     empty state rather than erroring).

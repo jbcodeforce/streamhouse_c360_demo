@@ -44,6 +44,21 @@ resource "confluent_flink_compute_pool" "crm_pool" {
   ]
 }
 
+resource "confluent_flink_compute_pool" "sn_pool" {
+  display_name = "${var.prefix}-snapshot-q-pool"
+  cloud        = var.cloud_provider
+  region       = var.aws_region_primary
+  max_cfu      = var.flink_crm_max_cfu
+
+  environment {
+    id = confluent_environment.env.id
+  }
+
+  depends_on = [
+    confluent_kafka_cluster.kcl
+  ]
+}
+
 # ------------------------------------------------------
 # Flink API key (environment + region scoped)
 #

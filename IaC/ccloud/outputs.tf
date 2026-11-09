@@ -69,6 +69,12 @@ output "flink_crm_compute_pool_id" {
   value       = confluent_flink_compute_pool.crm_pool.id
 }
 
+output "flink_sn_compute_pool_id" {
+  description = "ID of the Sanpshot Queries Flink compute pool"
+  value       = confluent_flink_compute_pool.sn_pool.id
+}
+
+
 output "flink_runner_sa_id" {
   description = "Service account ID that owns the Flink API key"
   value       = confluent_service_account.flink_runner.id

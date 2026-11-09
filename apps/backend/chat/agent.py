@@ -16,9 +16,9 @@ Two execution modes:
 Both inject the frontend-supplied ``history`` into the prompt, so conversation
 continuity does not depend on agno's internal memory.
 
-Kept separate from ``chat.service`` so stub mode never imports agno, and so tests
-can monkeypatch the connector without any LLM/MCP infrastructure. The heavy agno
-imports are deferred into the connect helpers for the same reason.
+Kept separate from ``chat.service`` so unconfigured mode never imports agno, and
+so tests can monkeypatch the connector without any LLM/MCP infrastructure. The heavy
+agno imports are deferred into the connect helpers for the same reason.
 
 The MCP server URL is derived from the Confluent coordinates
 (``config.settings.rtce_mcp_url()``) so it can't drift out of sync. Auth is HTTP

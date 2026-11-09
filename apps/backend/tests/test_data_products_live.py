@@ -143,7 +143,7 @@ def test_live_missing_metric_is_none():
 def test_live_unreachable_does_not_raise():
     client = _raising_client(httpx.ConnectError("boom"))
     status = providers.LiveProvider(client=client).get_status(descriptor.get_graph("c360"))
-    assert status.rollup.total == 8
+    assert status.rollup.total == 9
     assert all(s.phase == "UNKNOWN" for s in status.statements)
 
 

@@ -50,10 +50,7 @@ cat > /tmp/backend.json <<'EOF'
   "KAFKA_API_SECRET": "...",
   "SCHEMA_REGISTRY_URL": "https://psrc-xxxxx.us-west-2.aws.confluent.cloud",
   "SCHEMA_REGISTRY_API_KEY": "...",
-  "SCHEMA_REGISTRY_API_SECRET": "...",
-  "GRAPH_DATA_MODE": "mock",
-  "ANALYTICS_DATA_MODE": "mock",
-  "CHAT_DATA_MODE": "stub"
+  "SCHEMA_REGISTRY_API_SECRET": "..."
 }
 EOF
 aws secretsmanager put-secret-value \
@@ -62,7 +59,7 @@ aws secretsmanager put-secret-value \
 shred -u /tmp/backend.json 2>/dev/null || rm -f /tmp/backend.json
 ```
 
-Values must be single-line. Use `live` for the `*_DATA_MODE` settings only after adding the matching Confluent/Flink keys.
+Values must be single-line.
 
 ## Deploy / redeploy
 

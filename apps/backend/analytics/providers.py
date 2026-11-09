@@ -3,18 +3,13 @@
 All live reads go through the ``confluent-sql`` DB-API driver
 (:class:`ConfluentSqlClient`), whose default cursor runs in **snapshot mode** —
 a point-in-time read returning current state (one row per primary key) as a
-finite result set. 
+finite result set.
 
 Two live shapes live here:
 
 * the dashboard aggregates — five ``fct_crm_*`` pre-aggregated products read
   concurrently (``fetch_crm_result_sets``);
 * the by-id customer profile — a single ``WHERE customer_id = …`` snapshot.
-
-``mock`` mode returns deterministic fixtures (the default — the demo runs with
-no infra); ``ANALYTICS_DATA_MODE`` selects the mode, read fresh on every call so
-a reloaded ``config`` (as in tests) takes effect immediately — mirrors
-``data_products.providers.get_provider``.
 """
 
 from __future__ import annotations
@@ -24,7 +19,6 @@ import re
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 
-from analytics import mock_data
 from analytics.confluent_sql_client import ConfluentSqlClient
 from analytics.lightning_client import LightningClient
 
@@ -83,15 +77,6 @@ def _sql_str(value: str) -> str:
     return "'" + value.replace("'", "''") + "'"
 
 
-def _mode() -> str:
-    import config  # noqa: PLC0415 — late import so a reloaded config is picked up
-
-    mode = config.settings.ANALYTICS_DATA_MODE
-    if mode not in ("mock", "live"):
-        raise ValueError(f"Unknown ANALYTICS_DATA_MODE: {mode!r}")
-    return mode
-
-
 # --- CRM aggregates fetch -------------------------------------------------
 
 
@@ -142,36 +127,25 @@ def _profile_sql(customer_id: str) -> str:
 def get_customer_profile(customer_id: str) -> tuple[dict | None, str]:
     """Fetch one customer's profile row via a ``WHERE customer_id = …`` query.
 
-    Returns ``(None, mode)`` when the id is malformed or no row matches.
+    Returns ``(None, "live")`` when the id is malformed or no row matches.
     """
-    mode = _mode()
     cid = (customer_id or "").strip()
     if not _CUSTOMER_ID_RE.match(cid):
-        return None, mode
-    if mode == "mock":
-        return _mock_profile(cid), mode
+        return None, "live"
     rows = ConfluentSqlClient().query(_profile_sql(cid))
-    return (rows[0] if rows else None), mode
+    return (rows[0] if rows else None), "live"
 
 
 # --- RTCE / Lightning Query API variant ----------------------------------
 #
 # Same by-id profile, but served by the Lightning point-lookup API (current
-# state directly — no changelog collapse). Mock mode reuses the same fixture,
-# so both lookup sections behave identically with no infra.
+# state directly — no changelog collapse).
 
 
 def get_customer_profile_rtce(customer_id: str) -> tuple[dict | None, str]:
     """One customer's current-state profile via a Lightning point lookup."""
-    mode = _mode()
     cid = (customer_id or "").strip()
     if not _CUSTOMER_ID_RE.match(cid):
-        return None, mode
-    if mode == "mock":
-        return _mock_profile(cid), mode
+        return None, "live"
     rows = LightningClient().query(_profile_sql(cid), _PROFILE_COLUMNS, max_rows=1)
-    return (rows[0] if rows else None), mode
-
-
-def _mock_profile(cid: str) -> dict | None:
-    return next((r for r in mock_data.PROFILE_SNAPSHOT if r.get("customer_id") == cid), None)
+    return (rows[0] if rows else None), "live"

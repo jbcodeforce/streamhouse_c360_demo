@@ -1,7 +1,8 @@
 """FastAPI router for the /chat endpoints (Assistant).
 
-Step 1 stub — ``GET /chat/welcome`` proves config propagation on first
-connection; ``POST /chat`` returns a canned reply. See ``chat.service``.
+``GET /chat/welcome`` returns the initial greeting; ``POST /chat`` runs the
+agno agent against the local LLM + RTCE context-engine MCP server.
+See ``chat.service``.
 """
 
 from __future__ import annotations
@@ -24,10 +25,10 @@ def get_welcome() -> WelcomeResponse:
 async def post_chat(request: ChatRequest) -> ChatResponse:
     """Answer a user question.
 
-    ``stub`` mode returns canned text; ``live`` mode runs the agno agent against
-    the local LLM + RTCE context-engine MCP server, reusing the session's cached
-    connection when a ``session_id`` is supplied. Always 200 — failures come back
-    as a reply with ``source_mode="error"``.
+    Runs the agno agent against the local LLM + RTCE context-engine MCP server,
+    reusing the session's cached connection when a ``session_id`` is supplied.
+    Always 200 — failures or unconfigured state come back as a reply with
+    ``source_mode="error"``.
     """
     return await service.get_reply(request)
 

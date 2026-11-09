@@ -1,9 +1,7 @@
 """Fold the five ``fct_crm_*`` snapshot result sets into a ``DataAnalytics``.
 
-Pure function, no I/O — the live-path twin of ``aggregate.aggregate`` (which
-stays the mock-path reference). Each ``fct_crm_*`` table is already aggregated in
-Flink, so this only maps/orders the pre-computed rows; it reuses ``aggregate``'s
-numeric coercion and country-cap so mock and live never silently diverge.
+Pure function, no I/O. Each ``fct_crm_*`` table is already aggregated in
+Flink, so this only maps and orders the pre-computed rows.
 """
 
 from __future__ import annotations
@@ -11,13 +9,27 @@ from __future__ import annotations
 from collections import defaultdict
 from datetime import datetime, timezone
 
-from analytics.aggregate import _COUNTRY_TOP_N, _num
 from analytics.models import (
     CategoryCount,
     CategoryValue,
     DataAnalytics,
     DataQuality,
 )
+
+
+# Top-N cap for the geography breakdown so a long tail of countries doesn't
+# overrun the chart; everything past the cap folds into "Other".
+_COUNTRY_TOP_N = 8
+
+
+def _num(value: object) -> float:
+    """Coerce a possibly-None / string-decimal cell to float; blanks → 0.0."""
+    if value is None or value == "":
+        return 0.0
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return 0.0
 
 
 def _avg_age(value: object) -> float | None:

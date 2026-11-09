@@ -65,23 +65,11 @@ class Settings(BaseSettings):
     # registered at runtime (chat/conversation_producer.py); the topic is not.
     KAFKA_TOPIC_AGENT_CONVERSATIONS: str = "agent_conversations"
 
-    # Data Products graph page: selects the status/metrics provider.
-    # "mock" / "mock-lag" use deterministic fixtures; "live" talks to
-    # Confluent Cloud + Flink (Task 3).
-    GRAPH_DATA_MODE: str = "mock"
-
     # Assistant chat page: the greeting shown in the empty state. Served by
     # GET /api/v1/chat/welcome so the frontend can confirm it reaches the
     # backend (config propagation) on first connection.
     CHAT_FIRST_PROMPT: str = "Hi, Jerome"
 
-    # Assistant chat reply provider. "stub" (default) returns canned text with
-    # no LLM — keeps the no-infra test suite and a laptop without the MLX server
-    # working. "live" runs an agno agent backed by a local OpenAI-compatible LLM
-    # (e.g. an MLX server) plus the RTCE context-engine MCP server, which answers
-    # customer questions via the getData point-lookup tool over fct_c360_profile.
-    # A "live" request with missing LLM/MCP config degrades to the stub reply.
-    CHAT_DATA_MODE: str = "stub"
     # When True, each live chat turn is also emitted to the agent_conversations
     # topic (request + response as two linked Avro events) for downstream Flink
     # intent analysis. Best-effort: a Kafka failure never breaks the reply.
@@ -97,20 +85,6 @@ class Settings(BaseSettings):
     # derived from the Confluent coordinates below (see rtce_mcp_url()), so it
     # cannot drift out of sync with them. Auth is the GLOBAL key via HTTP Basic
     # (CONFLUENT_GLOBAL_KEY/SECRET), the same org-wide key the Lightning API uses.
-
-    # C360 analytics dashboard: selects the aggregates provider.
-    # "mock" folds a deterministic fixture; "live" runs five snapshot SELECTs
-    # against the CRM data products (fct_crm_summary / _by_segment / _by_generation
-    # / _by_gender / _by_country) via the confluent-sql driver — see
-    # analytics/providers.py (needs the FLINK_*/CLOUD_* coords incl.
-    # KAFKA_CLUSTER_ID; no FLINK_CATALOG — the environment resolves the catalog).
-    ANALYTICS_DATA_MODE: str = "mock"
-
-    # CEP scenarios page: "mock" returns canned matched-event fixtures without
-    # touching Postgres or Kafka; "live" injects real transactions via the DB/
-    # Kafka path and reads matched events from the Flink MATCH_RECOGNIZE output
-    # tables (fct_fraud_probe, fct_merchant_streak, fct_smb_spike).
-    CEP_DATA_MODE: str = "mock"
 
     # Live-mode credentials (unused until Task 3's LiveProvider).
     CONFLUENT_CLOUD_API_KEY: str | None = None
@@ -180,10 +154,6 @@ class Settings(BaseSettings):
             "DATABASE_URL": _mask_dsn(self.DATABASE_URL),
             "KAFKA_BOOTSTRAP_SERVERS": self.KAFKA_BOOTSTRAP_SERVERS or "None",
             "SCHEMA_REGISTRY_URL": self.SCHEMA_REGISTRY_URL or "None",
-            "GRAPH_DATA_MODE": self.GRAPH_DATA_MODE,
-            "ANALYTICS_DATA_MODE": self.ANALYTICS_DATA_MODE,
-            "CEP_DATA_MODE": self.CEP_DATA_MODE,
-            "CHAT_DATA_MODE": self.CHAT_DATA_MODE,
             "CHAT_PRODUCE_CONVERSATIONS": self.CHAT_PRODUCE_CONVERSATIONS,
             "CHAT_LLM": (f"{self.LLM_MODEL} @ {self.LLM_BASE_URL}" if (self.LLM_BASE_URL and self.LLM_MODEL) else "None"),
             "CHAT_RTCE_MCP": ("derived" if self.rtce_mcp_url() else "None"),

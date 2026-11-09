@@ -1,9 +1,9 @@
 """Pydantic models for the Assistant chat.
 
-The Assistant is a natural-language chat over the C360 data. Step 1 is a stub:
-the welcome prompt comes from config (``CHAT_FIRST_PROMPT``) and replies are
-canned. ``ChatRequest.history`` carries prior turns so step 2's local agent has
-conversation context when it queries ``fct_c360_profile`` via RTCE.
+The Assistant is a natural-language chat over the C360 data. The welcome prompt
+comes from config (``CHAT_FIRST_PROMPT``). ``ChatRequest.history`` carries prior
+turns so the local agent has conversation context when it queries
+``fct_c360_profile`` via RTCE.
 """
 
 from __future__ import annotations
@@ -36,12 +36,12 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     """The assistant's reply.
 
-    ``source_mode`` is "stub" (no LLM), "live" (agent answered), or "error".
+    ``source_mode`` is "live" (agent answered) or "error".
     ``session_id`` echoes the request's session so the UI can display it.
     """
 
     reply: str
-    source_mode: str = "stub"
+    source_mode: str = "live"
     session_id: str | None = None
 
 
@@ -55,4 +55,4 @@ class WelcomeResponse(BaseModel):
     """The greeting shown in the chat's empty state, from ``CHAT_FIRST_PROMPT``."""
 
     prompt: str
-    source_mode: str = "stub"
+    source_mode: str = "live"

@@ -14,8 +14,8 @@ router = APIRouter(prefix="/analytics", tags=["analytics"])
 def get_c360_profile() -> DataAnalytics:
     """Cross-customer analytics for the C360 dashboard.
 
-    Mock mode folds the fixture; live mode reads the five ``fct_crm_*`` data
-    products with concurrent snapshot queries and assembles them. Always 200
+    Reads the five ``fct_crm_*`` data products with concurrent snapshot
+    queries and assembles them. Always 200
     with a well-formed payload: when a live query is unconfigured or fails, the
     payload is simply empty (``row_count == 0``).
     """

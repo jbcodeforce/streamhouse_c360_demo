@@ -117,9 +117,9 @@ All the flink statements presented in this repository are deployed using Conflue
 
 ### Lateral snapshot join on slow moving, seeded data
 
-One of common pattern within data enrichment is to join streaming record with reference data, which has lower level of change velocity. There are multiple way to support this integration, but in Confluent Cloud is it best to deploy them in Kafka topic and be able to reuse them, for any enrichment. The [new lateral snapshot feature in Flink](https://docs.confluent.io/cloud/current/flink/reference/queries/joins.html#lateral-snapshot-joins) helps in join.
+One of common pattern within data enrichment is to join streaming record with reference data, which has lower level of change velocity. There are multiple ways to support this integration, but in Confluent Cloud is it best to deploy them in Kafka topic and be able to reuse them, for any enrichment. The [new lateral snapshot feature in Flink](https://docs.confluent.io/cloud/current/flink/reference/queries/joins.html#lateral-snapshot-joins) helps in those kind of joins.
 
-The seeds are defined is pipelines/seeds folder and deployed simply by doing
+The reference data are defined is [pipelines/seeds](https://github.com/jbcodeforce/streamhouse_c360_demo/blob/main/pipelines/seeds) folder and deployed simply by doing
 ```sh
 dbt seed
 ```
@@ -128,7 +128,12 @@ dbt seed
 * [seeds/currency_codes.csv](https://github.com/jbcodeforce/streamhouse_c360_demo/blob/main/pipelines/seeds/currency_codes.csv) has 178 ISO 4217 currencies with code, numeric code and name. The currency_code key matches transactions.currency.
 * [seeds/seeds.yml](https://github.com/jbcodeforce/streamhouse_c360_demo/blob/main/pipelines/seeds/seeds.yml) adds descriptions, plus unique and not_null tests on the two key columns
 
-The snaphot lateral join query is implemented in the [transaction cdc processing]()
+The snaphot lateral join query is implemented in the [transaction cdc processing]() with the following example:
+
+```sql
+
+```
+
 
 ### Snapshot query
 
@@ -147,6 +152,9 @@ provisioned by ``IaC/ccloud/lightning.tf``) and a body scoped by ``catalog_name`
 See [Code reference](https://github.com/jbcodeforce/streamhouse_c360_demo/blob/main/apps/backend/analytics/lightning_client.py)
 
 ### Complex event processing for fraud detection
+
+As the use case is using transactions it is easy to demonstrate some fraud detection pattern using Flink CEP capabilities.
+
 ### Chat with business data leveraging real-time context engine
 
 The Frontend exposes a panel with a chat interface to demonstrate calling local LLM with tool to reference Confluent Real-time context engine to query data exposed with Lightning tables.
@@ -154,7 +162,19 @@ The Frontend exposes a panel with a chat interface to demonstrate calling local 
 ![](./diagrams/chat_rtce.drawio.png)
 
 ### Flink pipeline lineage
-### Billing aggr
+
+Rest API and dbt manifest help to build a Flink statement pipeline focused lineage, by data analytics product. The illustration of this can be seen in the screenmshot below:
+
+![](./images/statement_graph.png)
+
+The code to support the implementation in []()
+
+### Billing aggregation
+
+The frontend also exposes monthly $ ammount per Flink Pipeline:
+
+![]()
+
 ### Others to finalize
 * [ ] Sliding window aggregations over transactions grouped by cardholder (1 minute to 1 day windows). 
 * [ ] How to propagate delete operations to sink bucket

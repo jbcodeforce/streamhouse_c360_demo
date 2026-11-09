@@ -1,8 +1,7 @@
-"""/api/v1/chat endpoints: the Assistant chat (step 1 stub).
+"""/api/v1/chat endpoints: the Assistant chat.
 
-Postgres bootstrap mocked exactly like test_analytics_api.py.
-CHAT_FIRST_PROMPT is set to a known value so the welcome test
-proves the configured value propagates from backend config to the response.
+Postgres bootstrap mocked; tests welcome prompt, unconfigured degradation,
+and live agent response routing.
 """
 
 from __future__ import annotations
@@ -27,7 +26,6 @@ def client():
     env_patch = patch.dict("os.environ", {
         "CHAT_FIRST_PROMPT": _FIRST_PROMPT,
         # Point at a nonexistent env file so the repo's real .env is never loaded
-        # — this suite must exercise the stub path only.
         "ENV_CONFIG_FILE": "/nonexistent/.env.test-chat",
         "KAFKA_BOOTSTRAP_SERVERS": "mock:9092",
         "SCHEMA_REGISTRY_URL": "http://mock-sr",
@@ -51,27 +49,54 @@ def test_welcome_propagates_configured_prompt(client):
     assert r.status_code == 200
     body = r.json()
     assert body["prompt"] == _FIRST_PROMPT
-    assert body["source_mode"] == "stub"
+    assert body["source_mode"] == "live"
 
 
-def test_chat_returns_stub_reply_echoing_the_question(client):
+def test_chat_unconfigured_returns_error_response(client):
     r = client.post("/api/v1/chat", json={"message": "Who is customer 42?"})
     assert r.status_code == 200
     body = r.json()
-    assert body["source_mode"] == "stub"
-    assert "Who is customer 42?" in body["reply"]
+    assert body["source_mode"] == "error"
+    assert "unconfigured" in body["reply"].lower()
 
 
-def test_chat_accepts_conversation_history(client):
+def test_chat_with_mocked_agent(client, monkeypatch):
+    from chat import agent, service
+
+    monkeypatch.setattr(service, "_live_ready", lambda: True)
+
+    async def fake_run(message, history, session_id=None):
+        return f"Customer 42 info for '{message}'"
+
+    monkeypatch.setattr(agent, "run_agent", fake_run)
+
+    r = client.post("/api/v1/chat", json={"message": "Who is customer 42?"})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["source_mode"] == "live"
+    assert "Customer 42 info" in body["reply"]
+
+
+def test_chat_accepts_conversation_history(client, monkeypatch):
+    from chat import agent, service
+
+    monkeypatch.setattr(service, "_live_ready", lambda: True)
+
+    async def fake_run(message, history, session_id=None):
+        return "Balance is $1000."
+
+    monkeypatch.setattr(agent, "run_agent", fake_run)
+
     r = client.post("/api/v1/chat", json={
         "message": "And their balance?",
         "history": [
             {"role": "user", "content": "Who is customer 42?"},
-            {"role": "assistant", "content": "A stub reply."},
+            {"role": "assistant", "content": "Jane Doe"},
         ],
     })
     assert r.status_code == 200
-    assert r.json()["source_mode"] == "stub"
+    assert r.json()["source_mode"] == "live"
+    assert r.json()["reply"] == "Balance is $1000."
 
 
 def test_chat_requires_a_message(client):

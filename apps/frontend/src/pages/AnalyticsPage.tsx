@@ -135,8 +135,8 @@ export default function AnalyticsPage() {
 
       {!loading && !error && data && data.row_count === 0 && (
         <div className="status-msg">
-          No profile rows in this snapshot. In live mode, confirm the Flink snapshot query is
-          configured (<code>ANALYTICS_DATA_MODE=live</code> with Flink catalog/database credentials).
+          No profile rows in this snapshot. Confirm the Flink snapshot query is
+          configured with Flink catalog/database credentials.
         </div>
       )}
 

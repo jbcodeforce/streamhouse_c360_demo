@@ -1,7 +1,7 @@
 """Orchestration for the C360 analytics dashboard.
 
-Thin layer between the API router and the ``providers``/``aggregate`` modules:
-the aggregate dashboard folds a full snapshot; the customer lookup fetches one
+Thin layer between the API router and the ``providers``/``crm_aggregate`` modules:
+the aggregate dashboard folds CRM snapshots; the customer lookup fetches one
 profile via a ``WHERE customer_id = …`` query. Name-to-id resolution lives in
 the operational customer service (the system of record for identity), not here.
 """
@@ -12,9 +12,8 @@ import time
 from collections.abc import Callable
 from typing import TypeVar
 
-from analytics import crm_aggregate, mock_data, providers
-from analytics.aggregate import mock_aggregate
-from analytics.models import DataAnalytics, CustomerProfile
+from analytics import crm_aggregate, providers
+from analytics.models import CustomerProfile, DataAnalytics
 
 _T = TypeVar("_T")
 
@@ -49,17 +48,11 @@ def _to_float(value: object) -> float:
 
 
 def get_data_analytics() -> DataAnalytics:
-    """Dashboard aggregates: mock folds the fixture; live reads the CRM products.
+    """Dashboard aggregates: reads the CRM data products and assembles the payload.
 
-    Mock mode folds ``PROFILE_SNAPSHOT`` through ``aggregate`` (the behavioural
-    reference, unchanged). Live mode runs the five ``fct_crm_*`` snapshot queries
-    concurrently and assembles the same payload — so only the pre-aggregated
-    summary rows cross the wire instead of every customer row.
+    Runs the five ``fct_crm_*`` snapshot queries concurrently and assembles the
+    payload from pre-aggregated summary rows.
     """
-    mode = providers._mode()
-    if mode == "mock":
-        rows, query_ms = _timed(lambda: list(mock_data.PROFILE_SNAPSHOT))
-        return mock_aggregate(rows, source_mode="mock", query_ms=query_ms)
     result_sets, query_ms = _timed(providers.fetch_crm_result_sets)
     return crm_aggregate.assemble(*result_sets, source_mode="live", query_ms=query_ms)
 
