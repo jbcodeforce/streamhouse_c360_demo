@@ -21,14 +21,14 @@ SUMMARY = {
     "total_balance": Decimal("343671"),
     "total_transactions": 279,
     "total_txn_amount": Decimal("41819"),
-    "avg_age": 41.8,
+    "avg_income": 52000.0,
     "missing_email": 0,
     "missing_phone": 0,
     "complete": 10,
 }
 SEG = [
-    {"customer_segment": "PRIVATE", "customer_count": 6, "total_balance": Decimal("260601")},
-    {"customer_segment": "SMB", "customer_count": 4, "total_balance": Decimal("83070")},
+    {"customer_segment": "PRIVATE", "customer_count": 6, "account_balance": Decimal("260601")},
+    {"customer_segment": "SMB", "customer_count": 4, "account_balance": Decimal("83070")},
 ]
 
 
@@ -40,7 +40,7 @@ def test_scalars_and_derived_average():
     assert r.total_transactions == 279
     assert r.total_balance == pytest.approx(343671.0)
     assert r.total_txn_amount == pytest.approx(41819.0)
-    assert r.avg_age == pytest.approx(41.8)
+    assert r.avg_income == pytest.approx(52000.0)
     assert r.avg_balance_per_customer == pytest.approx(34367.1)
     assert r.source_mode == "live"
     assert r.data_quality.complete == 10
@@ -90,16 +90,16 @@ def test_empty_summary_is_safe():
     assert r.row_count == 0
     assert r.total_customers == 0
     assert r.total_balance == 0
-    assert r.avg_age is None
+    assert r.avg_income is None
     assert r.avg_balance_per_customer is None
     assert r.by_segment == []
     assert r.balance_by_segment == []
     assert r.data_quality.complete == 0
 
 
-def test_non_numeric_avg_age_degrades_to_none_without_raising():
-    # The live path is never wrapped, so a bad avg_age must not raise (→ HTTP 500).
-    bad = {**SUMMARY, "avg_age": "n/a"}
+def test_non_numeric_avg_income_degrades_to_none_without_raising():
+    # The live path is never wrapped, so a bad avg_income must not raise (→ HTTP 500).
+    bad = {**SUMMARY, "avg_income": "n/a"}
     r = assemble(bad, SEG, [], [], [], source_mode="live")
-    assert r.avg_age is None
+    assert r.avg_income is None
     assert r.total_customers == 10  # the rest of the payload still assembles

@@ -57,7 +57,7 @@ class DataAnalytics(BaseModel):
 
     # Averages (None when there are no rows to average)
     avg_balance_per_customer: float | None = None
-    avg_age: float | None = None
+    avg_income: float | None = None
 
     data_quality: DataQuality
 
@@ -81,7 +81,6 @@ class CustomerProfile(BaseModel):
     customer_segment: str | None = None
     generation_segment: str | None = None
     gender: str | None = None
-    age_years: int | None = None
     city: str | None = None
     state: str | None = None
     country: str | None = None

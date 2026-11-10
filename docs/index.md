@@ -123,16 +123,18 @@ All the Flink statements presented in this repository are deployed using Conflue
 
 [See this note](./flink_deployment.md) to review the development approach and deployment pattern using dbt for this solution.
 
-[See Confluent dbt product documentation.](https://docs.confluent.io/cloud/current/flink/operate-and-deploy/deploy-flink-dbt.html)
+[See Confluent dbt product documentation](https://docs.confluent.io/cloud/current/flink/operate-and-deploy/deploy-flink-dbt.html) and for dbt beginners, see my [dbt summary and how-to chapter.](https://jbcodeforce.github.io/flink-studies/coding/dbt/)
 
 ### Lateral snapshot join on slow-moving, seeded data
 
 A common data enrichment pattern is to join streaming records with reference data, which changes less frequently. There are multiple ways to support this integration, but in Confluent Cloud it is best to deploy the reference data in a Kafka topic so it can be reused for any enrichment. The [new lateral snapshot feature in Flink](https://docs.confluent.io/cloud/current/flink/reference/queries/joins.html#lateral-snapshot-joins) helps with these kinds of joins.
 
-The reference data is defined in the [pipelines/seeds](https://github.com/jbcodeforce/streamhouse_c360_demo/blob/main/pipelines/seeds) folder and deployed simply by running:
+The reference data is defined in the [pipelines/seeds](https://github.com/jbcodeforce/streamhouse_c360_demo/blob/main/pipelines/seeds) folder as a set of two csv files, and deployed simply by running:
 ```sh
 dbt seed
 ```
+
+The resulting Kafka topics, and schemas are created in Confluent Cloud.
 
 * [seeds/country_codes.csv](https://github.com/jbcodeforce/streamhouse_c360_demo/blob/main/pipelines/seeds/country_codes.csv) has 249 ISO 3166-1 countries with alpha-2 code, alpha-3 code, numeric code, and name. The `country_code` key matches `customers.country`.
 * [seeds/currency_codes.csv](https://github.com/jbcodeforce/streamhouse_c360_demo/blob/main/pipelines/seeds/currency_codes.csv) has 178 ISO 4217 currencies with code, numeric code, and name. The `currency_code` key matches `transactions.currency`.
@@ -141,7 +143,25 @@ dbt seed
 The snapshot lateral join query is implemented in the [transaction CDC processing]() with the following example:
 
 ```sql
-
+WITH card_account AS (
+  select 
+    a.account_id, 
+    a.customer_id, 
+    a.balance as account_balance, 
+    a.credit_limit as account_credit_limit,
+    c.card_id,
+    c.card_brand, 
+    c.card_type, 
+    c.has_chip, 
+    c.credit_limit as card_credit_limit
+    from {{ ref('src_accounts') }}  as a 
+    JOIN LATERAL SNAPSHOT(
+        input => TABLE  {{ ref('src_cards') }},
+        n_time => DESCRIPTOR($rowtime),
+        load_completed_idle_timeout => INTERVAL '1' MINUTE
+    ) AS c
+    ON a.account_id = c.account_id
+    )
 ```
 
 

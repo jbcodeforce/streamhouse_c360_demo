@@ -1,5 +1,5 @@
 {{ config(
-    materialized = 'streaming_table',
+    materialized = 'materialized_table',
     distributed_by={'columns': ['qscope'], 'buckets': 1},
    
     with= {
@@ -23,7 +23,7 @@ SELECT
   SUM(total_balance)                               AS total_balance,
   SUM(txn_count)                                   AS total_transactions,
   SUM(txn_total)                                   AS total_txn_amount,
-  AVG(CAST(age_years AS DOUBLE))                   AS avg_age,
+  AVG(yearly_income)                   AS avg_income,
   SUM(CASE WHEN missing_email_flag=1 THEN 1 ELSE 0 END) AS missing_email,
   SUM(CASE WHEN missing_phone_flag=1 THEN 1 ELSE 0 END) AS missing_phone,
   SUM(CASE WHEN missing_email_flag=0 AND missing_phone_flag=0 THEN 1 ELSE 0 END) AS complete

@@ -11,8 +11,23 @@ interface CustomerLookupProps {
   /** Short engine label shown as a pill (e.g. "Flink snapshot", "RTCE"). */
   badge?: string
   /** Resolve a name to customers via the operational customer service. */
-  search: (name: string) => Promise<Customer[]>
-  getProfile: (customerId: string) => Promise<CustomerProfile>
+  search?: (name: string) => Promise<Customer[]>
+  getProfile?: (customerId: string) => Promise<CustomerProfile>
+  /**
+   * Single-call alternative to `search` + `getProfile`: the backend resolves the
+   * name in the database and returns the matching profiles directly.
+   */
+  searchProfiles?: (name: string) => Promise<CustomerProfile[]>
+}
+
+/** What the picker needs from a match (a Customer or a CustomerProfile). */
+interface Match {
+  customer_id: string
+  first_name: string | null
+  last_name: string | null
+  segment?: string | null
+  city?: string | null
+  state?: string | null
 }
 
 function fullName(c: { first_name: string | null; last_name: string | null }): string {
@@ -44,7 +59,6 @@ function ProfileCard({ profile }: { profile: CustomerProfile }) {
       </div>
       <dl className="profile-rows">
         <MetricRow label="Generation" value={profile.generation_segment ?? '—'} />
-        <MetricRow label="Age" value={profile.age_years != null ? `${profile.age_years} yrs` : '—'} />
         <MetricRow label="Location" value={location} />
         <MetricRow label="Customer since" value={profile.customer_since ?? '—'} />
         <MetricRow
@@ -62,9 +76,17 @@ function ProfileCard({ profile }: { profile: CustomerProfile }) {
   )
 }
 
-export default function CustomerLookup({ title, subtitle, badge, search, getProfile }: CustomerLookupProps) {
+export default function CustomerLookup({
+  title,
+  subtitle,
+  badge,
+  search,
+  getProfile,
+  searchProfiles,
+}: CustomerLookupProps) {
   const [query, setQuery] = useState('')
-  const [matches, setMatches] = useState<Customer[] | null>(null)
+  const [matches, setMatches] = useState<Match[] | null>(null)
+  const [loadedProfiles, setLoadedProfiles] = useState<CustomerProfile[]>([])
   const [searching, setSearching] = useState(false)
   const [searchError, setSearchError] = useState<string | null>(null)
 
@@ -79,7 +101,9 @@ export default function CustomerLookup({ title, subtitle, badge, search, getProf
     setProfileError(null)
     setProfileLoading(true)
     try {
-      setProfile(await getProfile(id))
+      const preloaded = loadedProfiles.find((p) => p.customer_id === id)
+      if (preloaded) setProfile(preloaded)
+      else if (getProfile) setProfile(await getProfile(id))
     } catch (e) {
       setProfileError(e instanceof ApiError ? e.message : 'Failed to load customer')
     } finally {
@@ -101,11 +125,23 @@ export default function CustomerLookup({ title, subtitle, badge, search, getProf
     setSearching(true)
     setSearchError(null)
     try {
-      const found = await search(name)
-      setMatches(found)
-      // One unambiguous hit → go straight to the WHERE customer_id = … query.
-      if (found.length === 1) {
-        await selectCustomer(found[0].customer_id)
+      if (searchProfiles) {
+        const profiles = await searchProfiles(name)
+        setLoadedProfiles(profiles)
+        setMatches(
+          profiles.map((p) => ({ ...p, segment: p.customer_segment })),
+        )
+        if (profiles.length === 1) {
+          setSelectedId(profiles[0].customer_id)
+          setProfile(profiles[0])
+        }
+      } else if (search) {
+        const found = await search(name)
+        setMatches(found)
+        // One unambiguous hit → go straight to the WHERE customer_id = … query.
+        if (found.length === 1) {
+          await selectCustomer(found[0].customer_id)
+        }
       }
     } catch (err) {
       setMatches(null)

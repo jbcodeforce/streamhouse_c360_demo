@@ -2,44 +2,52 @@
   "user_agent": "cc-sql-tools/0.1",
   "groups": {
     "c360_pipeline": [
-      {
-        "name": "dbt-streamhouse-dim-account-tx-agg",
-        "file": "c360/dimensions/dim_account_tx_agg.sql"
-      },
-      {
-        "name": "dbt-streamhouse-dim-customers",
-        "file": "c360/dimensions/dim_customers.sql"
-      },
-      {
-        "name": "dbt-streamhouse-dim-transactions",
-        "file": "c360/dimensions/dim_transactions.sql"
-      },
-      {
-        "name": "dbt-streamhouse-dim-tx-x-account",
-        "file": "c360/dimensions/dim_tx_x_account.sql"
-      },
-      {
-        "name": "dbt-streamhouse-fct-c360-profile",
-        "file": "c360/facts/fct_c360_profile.sql"
-      },
-      {
-        "name": "dbt-streamhouse-fct-merchant-streak",
-        "file": "c360/facts/fct_merchant_streak.sql"
-      },
+          {
+            "name": "dbt-streamhouse-src-transactions",
+            "file": "c360/sources/src_transactions.sql"
+          },
+          {
+            "name": "dbt-streamhouse-dim-account-tx-agg",
+            "file": "c360/dimensions/dim_account_tx_agg.sql"
+          },
+          {
+            "name": "dbt-streamhouse-dim-transactions",
+            "file": "c360/dimensions/dim_transactions.sql"
+          },
+          {
+            "name": "dbt-streamhouse-dim-tx-x-account",
+            "file": "c360/dimensions/dim_tx_x_account.sql"
+          },
+          {
+            "name": "dbt-streamhouse-fct-c360-profile",
+            "file": "c360/facts/fct_c360_profile.sql"
+          },
+          {
+            "name": "dbt-streamhouse-fct-merchant-streak",
+            "file": "c360/facts/fct_merchant_streak.sql"
+          },
+          {
+            "name": "dbt-streamhouse-fct-crm-summary",
+            "file": "c360/facts/fct_crm_summary.sql"
+          }
+    ],
+    "crm_pipeline": [
       {
         "name": "dbt-streamhouse-src-accounts",
-        "file": "c360/sources/src_accounts.sql"
+        "file": "crm/sources/src_accounts.sql"
       },
       {
         "name": "dbt-streamhouse-src-customers",
-        "file": "c360/sources/src_customers.sql"
+        "file": "crm/sources/src_customers.sql"
       },
       {
-        "name": "dbt-streamhouse-src-transactions",
-        "file": "c360/sources/src_transactions.sql"
-      }
-    ],
-    "crm_pipeline": [
+        "name": "dbt-streamhouse-src-cards",
+        "file": "crm/sources/src_cards.sql"
+      },
+      {
+        "name": "dbt-streamhouse-dim-customers",
+        "file": "crm/dimensions/dim_customers.sql"
+      },
       {
         "name": "dbt-streamhouse-fct-crm-by-country",
         "file": "crm/facts/fct_crm_by_country.sql"
@@ -55,10 +63,6 @@
       {
         "name": "dbt-streamhouse-fct-crm-by-segment",
         "file": "crm/facts/fct_crm_by_segment.sql"
-      },
-      {
-        "name": "dbt-streamhouse-fct-crm-summary",
-        "file": "crm/facts/fct_crm_summary.sql"
       }
     ],
     "fraud_pipeline": [
@@ -95,36 +99,37 @@
     ],
     "crm" : [ 
        {
-      "table": "src_customers",
-      "materialized": true
-    },
-    {
-      "table": "dim_customers",
-      "materialized": true
-    },
-    {
-      "table": "src_accounts",
-      "materialized": true
-    },
-    {"table": "fct_crm_by_gender",
-      "materialized": false
-    },
-    {
-      "table": "fct_crm_summary",
-      "materialized": false
-    },
-    {
-      "table": "fct_crm_by_generation",
-      "materialized": false
-    },
-    {
-      "table": "fct_crm_by_segment",
-      "materialized": false
-    },
-    {
-      "table": "fct_crm_by_country",
-      "materialized": false
-    }],
+          "table": "src_customers",
+          "materialized": true
+        },
+        {
+          "table": "dim_customers",
+          "materialized": true
+        },
+        {
+          "table": "src_accounts",
+          "materialized": true
+        },
+        {"table": "fct_crm_by_gender",
+          "materialized": false
+        },
+        {
+          "table": "fct_crm_summary",
+          "materialized": false
+        },
+        {
+          "table": "fct_crm_by_generation",
+          "materialized": false
+        },
+        {
+          "table": "fct_crm_by_segment",
+          "materialized": false
+        },
+        {
+          "table": "fct_crm_by_country",
+          "materialized": false
+        }
+    ],
     "fraud" : [    {
       "table": "fct_smb_spike",
       "materialized": false

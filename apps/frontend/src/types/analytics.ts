@@ -27,7 +27,7 @@ export interface DataAnalytics {
   total_txn_amount: number
 
   avg_balance_per_customer: number | null
-  avg_age: number | null
+  avg_income: number | null
 
   data_quality: DataQuality
 
@@ -47,7 +47,6 @@ export interface CustomerProfile {
   customer_segment: string | null
   generation_segment: string | null
   gender: string | null
-  age_years: number | null
   city: string | null
   state: string | null
   country: string | null

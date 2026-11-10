@@ -19,14 +19,14 @@ _SUMMARY = {
     "total_balance": Decimal("343671"),
     "total_transactions": 279,
     "total_txn_amount": Decimal("41819"),
-    "avg_age": 41.8,
+    "avg_income": 52000.0,
     "missing_email": 0,
     "missing_phone": 0,
     "complete": 10,
 }
 _SEG = [
-    {"customer_segment": "PRIVATE", "customer_count": 6, "total_balance": Decimal("260601")},
-    {"customer_segment": "SMB", "customer_count": 4, "total_balance": Decimal("83070")},
+    {"customer_segment": "PRIVATE", "customer_count": 6, "account_balance": Decimal("260601")},
+    {"customer_segment": "SMB", "customer_count": 4, "account_balance": Decimal("83070")},
 ]
 
 

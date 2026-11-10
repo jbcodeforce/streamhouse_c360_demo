@@ -19,8 +19,12 @@ models:
   - name: account_type
     data_type: string
   - name: balance
-    data_type: DECIMAL
+    data_type: DECIMAL(18,2)
+  - name: credit_limit
+    data_type: DECIMAL(18,2)
   - name: opened_date
     data_type: timestamp_ltz
   - name: status
+    data_type: string
+  - name: op 
     data_type: string

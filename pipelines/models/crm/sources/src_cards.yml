@@ -1,0 +1,21 @@
+models:
+- name: src_cards
+  description: "Cleaned customers"
+  columns:
+  - name: card_id
+    data_type: string
+    constraints:
+      - type: not_null
+      - type: primary_key
+        expression: "not enforced"
+  - name: account_id
+    data_type: string
+  - name: card_brand
+    data_type: string
+  - name: card_type
+    data_type: string
+  - name: has_chip
+    data_type: boolean
+  - name: credit_limit
+    data_type: decimal(18, 2)
+

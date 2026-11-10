@@ -1,5 +1,5 @@
 {{ config(
-    materialized = 'streaming_table',
+    materialized = 'materialized_table',
     distributed_by={'columns': ['generation_segment'], 'buckets': 1},
    
     with= {
@@ -12,7 +12,7 @@
     }
 ) }}
 SELECT 
-    generation_segment,
+    COALESCE(generation_segment, 'Millennial') as generation_segment,
     COUNT(distinct customer_id)           AS generation_count
-FROM {{ ref('fct_c360_profile') }}
+FROM {{ ref('dim_customers') }}
 GROUP BY generation_segment

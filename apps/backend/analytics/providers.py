@@ -57,7 +57,7 @@ PROFILE_TABLE = "fct_c360_profile"
 # Columns for the by-id profile lookup.
 _PROFILE_COLUMNS = (
     "customer_id", "first_name", "last_name", "customer_segment", "generation_segment",
-    "gender", "age_years", "city", "state", "country", "customer_since",
+    "gender", "city", "state", "country", "customer_since",
     "days_since_registration", "missing_email_flag", "missing_phone_flag",
     "account_count", "total_balance", "txn_count", "txn_total",
 )

@@ -3,7 +3,7 @@ name = "pipelines"
 version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
-    "dbt-confluent>=0.4.1",
+    "dbt-confluent>=0.5.0",
     "dbt-core>=1.9.0",
 ]
 

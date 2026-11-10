@@ -32,8 +32,8 @@ def _num(value: object) -> float:
         return 0.0
 
 
-def _avg_age(value: object) -> float | None:
-    """Coerce the summary's ``avg_age`` to a rounded float.
+def _avg_income(value: object) -> float | None:
+    """Coerce the summary's ``avg_income`` to a rounded float.
 
     ``None`` when absent/blank or non-numeric — never raises, so a bad cell can't
     turn the (unwrapped) live assemble path into an HTTP 500.
@@ -41,7 +41,7 @@ def _avg_age(value: object) -> float | None:
     if value in (None, ""):
         return None
     try:
-        return round(float(value), 1)
+        return round(float(value), 2)
     except (TypeError, ValueError):
         return None
 
@@ -77,13 +77,13 @@ def assemble(
     total_customers = int(_num(s.get("total_customers")))
     total_balance = round(_num(s.get("total_balance")), 2)
 
-    avg_age = _avg_age(s.get("avg_age"))
+    avg_income = _avg_income(s.get("avg_income"))
     avg_balance = round(total_balance / total_customers, 2) if total_customers else None
 
     # Segment table feeds both the count series and the balance series.
     balance_map: dict[str, float] = defaultdict(float)
     for r in by_segment:
-        balance_map[str(r.get("customer_segment") or "Unknown")] += _num(r.get("total_balance"))
+        balance_map[str(r.get("customer_segment") or "Unknown")] += _num(r.get("account_balance"))
     balance_by_segment = [
         CategoryValue(label=label, value=round(value, 2))
         for label, value in sorted(balance_map.items(), key=lambda kv: (-kv[1], kv[0]))
@@ -107,7 +107,7 @@ def assemble(
         total_transactions=int(_num(s.get("total_transactions"))),
         total_txn_amount=round(_num(s.get("total_txn_amount")), 2),
         avg_balance_per_customer=avg_balance,
-        avg_age=avg_age,
+        avg_income=avg_income,
         data_quality=DataQuality(
             complete=int(_num(s.get("complete"))),
             missing_email=int(_num(s.get("missing_email"))),

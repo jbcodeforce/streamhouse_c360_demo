@@ -10,4 +10,7 @@ sources:
     description: accounts information for a customer    
   - name: transactions
     identifier: cdc.public.transactions
-    description: Topic 'cdc.public.transactions' — registered via sl-dbt get-schema-existing-topic-to-dbt.
+    description: Topic 'cdc.public.transactions'.
+  - name: cards
+    identifier: cdc.public.cards
+    description: Topic 'cdc.public.cards'.

@@ -68,14 +68,14 @@ def test_uses_only_existing_active_accounts_and_their_customer():
     assert {(t.account_id, t.customer_id) for t in txns} <= pairs
 
 
-def test_about_70_percent_card_transactions_on_existing_cards():
+def test_about_90_percent_card_transactions_on_existing_cards():
     accounts = [_account(), _account(), _account()]
     cards = [_card(a) for a in accounts]
     txns = generator.generate(accounts, cards, count=2000, now=NOW, rng=random.Random(4))
 
     card_txns = [t for t in txns if t.card_id is not None]
     acct_txns = [t for t in txns if t.card_id is None]
-    assert 0.65 <= len(card_txns) / len(txns) <= 0.75
+    assert 0.85 <= len(card_txns) / len(txns) <= 0.95
     # card transactions carry only the card; account transactions only the account
     assert all(t.account_id is None for t in card_txns)
     assert all(t.account_id is not None for t in acct_txns)
@@ -102,6 +102,17 @@ def test_card_transactions_never_get_account_only_credits():
     assert card_credits and all(t.description == "Refund" for t in card_credits)
 
 
+def test_direct_transactions_are_online_or_transfers_and_cards_are_pos_or_online():
+    a = _account()
+    txns = generator.generate([a], [_card(a)], count=2000, now=NOW, rng=random.Random(10))
+    direct = [t for t in txns if t.card_id is None]
+    card = [t for t in txns if t.card_id is not None]
+    assert direct and {t.channel for t in direct} <= {"ONLINE", "MOBILE"}
+    assert any(t.merchant_category == "TRANSFER" for t in direct)
+    assert all(t.currency == "USD" for t in direct)  # no foreign direct transactions
+    assert {t.channel for t in card} <= {"POS", "ONLINE"}
+
+
 def test_prefers_checking_accounts_for_account_transactions():
     chk = _account(account_type="CHECKING")
     sav = _account(account_type="SAVINGS")
@@ -113,6 +124,20 @@ def test_without_cards_every_transaction_is_account_based():
     a = _account()
     txns = generator.generate([a], [], count=50, now=NOW, rng=random.Random(8))
     assert all(t.card_id is None and t.account_id == a.account_id for t in txns)
+
+
+def test_populates_merchant_location_and_includes_foreign_currencies():
+    a = _account(currency="USD")
+    txns = generator.generate([a], [_card(a)], count=1000, now=NOW, rng=random.Random(9))
+
+    assert all(t.merchant_city and t.merchant_state and t.zip for t in txns)
+    foreign = [t for t in txns if t.currency != "USD"]
+    assert 0.1 <= len(foreign) / len(txns) <= 0.25
+    assert {t.currency for t in foreign} >= {"EUR", "GBP", "JPY"}
+    # foreign currency always comes with a foreign merchant location
+    foreign_cities = {loc[0] for loc in generator._FOREIGN_LOCATIONS}
+    assert all(t.merchant_city in foreign_cities for t in foreign)
+    assert all(t.currency == "USD" for t in txns if t.merchant_city not in foreign_cities)
 
 
 def test_raises_without_eligible_accounts():

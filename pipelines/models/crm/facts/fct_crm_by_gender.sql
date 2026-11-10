@@ -1,5 +1,5 @@
 {{ config(
-    materialized = 'streaming_table',
+    materialized = 'materialized_table',
     distributed_by={'columns': ['gender'], 'buckets': 1},
    
     with= {
@@ -12,7 +12,7 @@
     }
 ) }}
 SELECT 
-    gender,
+    COALESCE(gender,'M') as gender,
     COUNT(distinct customer_id)           AS gender_count
-FROM {{ ref('fct_c360_profile') }}
+FROM {{ ref('dim_customers') }}
 GROUP BY gender

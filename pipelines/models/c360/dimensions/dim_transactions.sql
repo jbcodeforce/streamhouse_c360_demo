@@ -15,17 +15,7 @@
 ) }}
 WITH relevant_tx AS (
     SELECT
-        transaction_id, 
-        account_id, 
-        customer_id, 
-        transaction_type, 
-        amount, 
-        currency,
-        comments, 
-        merchant_name,
-        merchant_category,
-        `status`, 
-        transacted_at,
+        *,
         CAST(transacted_at AS DATE) as transaction_date
     FROM {{ ref('src_transactions') }}
 )
@@ -33,12 +23,18 @@ SELECT
   transaction_id, 
   account_id, 
   customer_id, 
+  card_id,
   transaction_type, 
   amount, 
   currency,
   comments, 
   merchant_name,
   merchant_category,
+  use_chip,
+  merchant_city,
+  merchant_state,
+  merchant_zip,
+  channel, 
   `status`, 
   transacted_at,
   CAST(transaction_date AS DATE) as transaction_date_only,

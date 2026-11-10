@@ -1,6 +1,6 @@
 
 {{ config(
-    materialized='materialized_table',
+    materialized='streaming_table',
     distributed_by= {'columns': ['customer_id'], 'buckets': 2},
     with={
         'changelog.mode': 'upsert',
@@ -33,9 +33,9 @@ WITH mapped AS (
     coalesce(IF(op= 'd', before.state, after.state), 'NULL') as state,
     coalesce(IF(op= 'd', before.postal_code, after.postal_code), 'NULL') as postal_code,
     coalesce(IF(op= 'd', before.country, after.country), 'NULL') as country,
-    IF(op= 'd', before.yearly_income, after.yearly_income) as yearly_income,
-    IF(op= 'd', before.retirement_age, after.retirement_age) as retirement_age,
-    IF(op= 'd', before.credit_score, after.credit_score) as credit_score,
+    coalesce(IF(op= 'd', before.yearly_income, after.yearly_income), -1) as yearly_income,
+    coalesce(IF(op= 'd', before.retirement_age, after.retirement_age), 67) as retirement_age,
+    coalesce(IF(op= 'd', before.credit_score, after.credit_score), 350) as credit_score,
     `$rowtime` as event_ts
     FROM {{ source('cdc', 'customers') }}
 )

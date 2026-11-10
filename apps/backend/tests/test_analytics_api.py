@@ -23,14 +23,14 @@ _SAMPLE_SUMMARY = {
     "total_balance": Decimal("343671.00"),
     "total_transactions": 512,
     "total_txn_amount": Decimal("41819.00"),
-    "avg_age": 41.8,
+    "avg_income": 52000.0,
     "missing_email": 1,
     "missing_phone": 2,
     "complete": 7,
 }
 _SAMPLE_BY_SEGMENT = [
-    {"customer_segment": "PRIVATE", "customer_count": 6, "total_balance": Decimal("260601")},
-    {"customer_segment": "SMB", "customer_count": 4, "total_balance": Decimal("83070")},
+    {"customer_segment": "PRIVATE", "customer_count": 6, "account_balance": Decimal("260601")},
+    {"customer_segment": "SMB", "customer_count": 4, "account_balance": Decimal("83070")},
 ]
 _SAMPLE_BY_GENERATION = [
     {"generation_segment": "GEN_Z", "customer_count": 3, "total_balance": Decimal("50000")},
@@ -49,7 +49,6 @@ _SAMPLE_CUSTOMER_ROW = {
     "customer_segment": "SMB",
     "generation_segment": "MILLENNIAL",
     "gender": "MALE",
-    "age_years": 42,
     "city": "Austin",
     "state": "TX",
     "country": "US",
@@ -188,3 +187,34 @@ def test_rtce_customer_profile_by_id_with_mocked_provider(client, monkeypatch):
 def test_rtce_customer_profile_unknown_id_404(client):
     r = client.get("/api/v1/analytics/c360-profile/rtce/customer/00000000-0000-0000-0000-000000000000")
     assert r.status_code == 404
+
+
+def test_rtce_search_by_name_resolves_ids_from_db_then_queries_lightning(client, monkeypatch):
+    from types import SimpleNamespace
+
+    from analytics import service
+
+    db_calls, lightning_calls = [], []
+
+    def fake_db(name):
+        db_calls.append(name)
+        return [SimpleNamespace(customer_id=_THOMAS_ID), SimpleNamespace(customer_id="no-profile-yet")]
+
+    def fake_lightning(cid):
+        lightning_calls.append(cid)
+        return (_SAMPLE_CUSTOMER_ROW, "live") if cid == _THOMAS_ID else (None, "live")
+
+    monkeypatch.setattr(service.customer_service, "get_by_name", fake_db)
+    monkeypatch.setattr(service.providers, "get_customer_profile_rtce", fake_lightning)
+
+    r = client.get("/api/v1/analytics/c360-profile/rtce/customers", params={"name": "Brennan"})
+    assert r.status_code == 200
+    body = r.json()
+    assert db_calls == ["Brennan"]
+    assert lightning_calls == [_THOMAS_ID, "no-profile-yet"]  # ids came from the database
+    assert [p["customer_id"] for p in body] == [_THOMAS_ID]  # profile-less match is skipped
+    assert body[0]["txn_count"] == 512
+
+
+def test_rtce_search_by_name_requires_name(client):
+    assert client.get("/api/v1/analytics/c360-profile/rtce/customers").status_code == 422

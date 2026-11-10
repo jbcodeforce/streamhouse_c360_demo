@@ -18,7 +18,7 @@ models:
     data_type: BIGINT
   - name: total_txn_amount
     data_type: decimal
-  - name: avg_age
+  - name: avg_income
     data_type: double
   - name: missing_email
     data_type: INTEGER

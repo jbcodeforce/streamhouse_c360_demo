@@ -14,6 +14,7 @@ from typing import TypeVar
 
 from analytics import crm_aggregate, providers
 from analytics.models import CustomerProfile, DataAnalytics
+from customers import service as customer_service
 
 _T = TypeVar("_T")
 
@@ -67,6 +68,23 @@ def get_customer_profile_rtce(customer_id: str) -> CustomerProfile | None:
     return _to_profile(row, source_mode, query_ms)
 
 
+# Upper bound on Lightning point lookups per name search (one call per match).
+_RTCE_MAX_MATCHES = 10
+
+
+def get_customer_profiles_rtce_by_name(name: str) -> list[CustomerProfile]:
+    """Resolve ``name`` in the operational database, then read each match's profile
+    from the ``fct_c360_profile`` Lightning table.
+
+    The database is the system of record for identity; Lightning only serves the
+    derived profile by ``customer_id``. Matches with no profile row yet (e.g. CDC
+    lag) are skipped. Each profile's ``query_ms`` is its own Lightning lookup time.
+    """
+    customers = customer_service.get_by_name(name)[:_RTCE_MAX_MATCHES]
+    profiles = (get_customer_profile_rtce(str(c.customer_id)) for c in customers)
+    return [p for p in profiles if p is not None]
+
+
 def _to_profile(row: dict | None, source_mode: str, query_ms: float) -> CustomerProfile | None:
     if row is None:
         return None
@@ -79,7 +97,6 @@ def _to_profile(row: dict | None, source_mode: str, query_ms: float) -> Customer
         customer_segment=row.get("customer_segment"),
         generation_segment=row.get("generation_segment"),
         gender=row.get("gender"),
-        age_years=_to_int(row.get("age_years")),
         city=row.get("city"),
         state=row.get("state"),
         country=row.get("country"),

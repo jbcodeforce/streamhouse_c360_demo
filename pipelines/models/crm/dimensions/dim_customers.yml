@@ -18,6 +18,10 @@ models:
     data_type: string
   - name: date_of_birth
     data_type: string
+  - name: birth_year
+    data_type: BIGINT
+  - name: birth_month
+    data_type: BIGINT
   - name: gender
     data_type: string
   - name: registration_date
@@ -42,10 +46,6 @@ models:
     data_type: integer
   - name: event_ts
     data_type: timestamp_ltz
-  - name: birth_year
-    data_type: integer
-  - name: birth_month
-    data_type: integer
   - name: days_since_registration
     data_type: integer
   - name: generation_segment
@@ -58,3 +58,19 @@ models:
     data_type: integer
   - name: missing_phone_flag
     data_type: integer
+  - name: account_id
+    data_type: string
+  - name: account_balance
+    data_type: DECIMAL(18,2)
+  - name: account_credit_limit
+    data_type: DECIMAL(18,2)
+  - name: card_id
+    data_type: string
+  - name: card_brand
+    data_type: string
+  - name: card_type
+    data_type: string
+  - name: has_chip
+    data_type: boolean
+  - name: card_credit_limit
+    data_type: decimal(18, 2)

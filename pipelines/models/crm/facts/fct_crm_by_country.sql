@@ -1,5 +1,5 @@
 {{ config(
-    materialized = 'streaming_table',
+    materialized = 'materialized_table',
     distributed_by={'columns': ['country'], 'buckets': 1},
    
     with= {
@@ -12,7 +12,7 @@
     }
 ) }}
 SELECT 
-    country,
+    COALESCE(country,'US') as country,
     COUNT(distinct customer_id)           AS country_count
-FROM {{ ref('fct_c360_profile') }}
+FROM {{ ref('dim_customers') }}
 GROUP BY country

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { RefreshCw } from 'lucide-react'
 import { ApiError } from '../api/client'
-import { getC360Analytics, getCustomerProfile, getCustomerProfileRtce } from '../api/analytics'
+import { getC360Analytics, getCustomerProfile, searchCustomerProfilesRtce } from '../api/analytics'
 import { searchCustomersByName } from '../api/customers'
 import { formatCurrency, formatMs, nf } from '../lib/format'
 import CustomerLookup from '../components/CustomerLookup'
@@ -115,7 +115,7 @@ export default function AnalyticsPage() {
 
       <section className="profile-dashboard">
         <h2 className="profile-dashboard__title">
-          <code>fct_c360_profile</code> — profile overview
+          <code>fct_c360_profile & crm_summary</code> — profile overview
         </h2>
 
         {data && (
@@ -145,13 +145,13 @@ export default function AnalyticsPage() {
           <div className="stat-grid">
             <StatTile label="Customers" value={nf.format(data.total_customers)} />
             <StatTile label="Accounts" value={nf.format(data.total_accounts)} />
-            <StatTile label="Total balance" value={formatCurrency(data.total_balance)} />
+            <StatTile label="Total Tx AMOUNT" value={formatCurrency(data.total_balance)} />
             <StatTile label="Transactions" value={nf.format(data.total_transactions)} />
             <StatTile
               label="Avg balance / customer"
               value={data.avg_balance_per_customer != null ? formatCurrency(data.avg_balance_per_customer) : '—'}
             />
-            <StatTile label="Avg age" value={data.avg_age != null ? `${data.avg_age} yrs` : '—'} />
+            <StatTile label="Avg income" value={data.avg_income != null ? formatCurrency(data.avg_income) : '—'} />
           </div>
 
           <div className="chart-grid">
@@ -188,13 +188,13 @@ export default function AnalyticsPage() {
         badge="Lightning Query API"
         subtitle={
           <>
-            Same name resolution via the customer service, but the profile is served by the
-            Real-Time Context Engine over the <code>fct_c360_profile</code> lightning table — a
-            millisecond point lookup that returns current state directly (no changelog to collapse).
+            One backend call: the name is resolved to <code>customer_id</code>s in the operational
+            database, then each profile is read from the Real-Time Context Engine{' '}
+            <code>fct_c360_profile</code> lightning table — a millisecond point lookup that returns
+            current state directly (no changelog to collapse).
           </>
         }
-        search={searchCustomersByName}
-        getProfile={getCustomerProfileRtce}
+        searchProfiles={searchCustomerProfilesRtce}
       />
     </div>
   )

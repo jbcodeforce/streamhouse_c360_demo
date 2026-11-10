@@ -18,7 +18,7 @@ const sample: DataAnalytics = {
   total_transactions: 2146,
   total_txn_amount: 3124240,
   avg_balance_per_customer: 93200.15,
-  avg_age: 40.8,
+  avg_income: 52000,
   data_quality: { complete: 8, missing_email: 0, missing_phone: 2 },
   by_segment: [
     { label: 'RETAIL', count: 6 },
@@ -49,7 +49,7 @@ describe('AnalyticsPage', () => {
     // KPI tiles with unambiguous values.
     expect(screen.getByText('Customers')).toBeInTheDocument()
     expect(screen.getByText('31')).toBeInTheDocument() // total accounts
-    expect(screen.getByText('40.8 yrs')).toBeInTheDocument() // avg age
+    expect(screen.getByText('$52,000')).toBeInTheDocument() // avg income
     // Segment distribution bars (SMB also appears in the balance chart).
     expect(screen.getByText('RETAIL')).toBeInTheDocument()
     expect(screen.getAllByText('SMB').length).toBeGreaterThan(0)

@@ -3,9 +3,9 @@
 -- Schema-drift detection only checks columns, types, and WITH options — query logic
 -- changes are not detected and will be silently skipped on a normal `dbt run`.
 {{ config(
-    materialized = 'materialized_table',
+    materialized = 'streaming_table',
     with= {
-        'changelog.mode': 'upsert',
+        'changelog.mode': 'append',
         'connector': 'confluent',
         'kafka.cleanup-policy': 'delete',
         'scan.bounded.mode': 'unbounded',
@@ -14,16 +14,20 @@
     }
    ) 
 }}
-
+with active_accounts as (
 select 
     account_id,
     customer_id,
     account_number, 
     account_type, 
     balance,
+    credit_limit,
     to_timestamp_ltz(`opened_date`) as opened_date,
-    status    
+    `status`    
 from {{ source('cdc', 'accounts')}}
-
-where status <> 'SUSPENDED'
-
+where `status` <> 'SUSPENDED'
+)
+SELECT * FROM 
+    TO_CHANGELOG(
+         input      => TABLE active_accounts
+    )

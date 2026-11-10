@@ -25,7 +25,6 @@ const thomas: CustomerProfile = {
   customer_segment: 'SMB',
   generation_segment: 'Boomer+',
   gender: 'M',
-  age_years: 56,
   city: 'Seattle',
   state: 'WA',
   country: 'US',
@@ -106,5 +105,20 @@ describe('CustomerLookup', () => {
     await userEvent.type(screen.getByLabelText(/customer name/i), 'x')
     await userEvent.click(screen.getByRole('button', { name: /search/i }))
     expect(await screen.findByText(/search boom/)).toBeInTheDocument()
+  })
+
+  it('searchProfiles: one call resolves name to profiles without a second by-id call', async () => {
+    const searchProfiles = vi.fn().mockResolvedValue([thomas])
+    const getProfile = vi.fn()
+    render(
+      <CustomerLookup title="Customer lookup" subtitle="sub" searchProfiles={searchProfiles} getProfile={getProfile} />,
+    )
+    await userEvent.type(screen.getByLabelText(/customer name/i), 'brennan')
+    await userEvent.click(screen.getByRole('button', { name: /search/i }))
+
+    expect(await screen.findByText('Thomas Brennan')).toBeInTheDocument()
+    expect(screen.getByText('$318,400')).toBeInTheDocument()
+    expect(searchProfiles).toHaveBeenCalledWith('brennan')
+    expect(getProfile).not.toHaveBeenCalled()
   })
 })

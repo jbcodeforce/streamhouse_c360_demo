@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 
 from analytics import service
 from analytics.models import DataAnalytics, CustomerProfile
@@ -32,6 +32,18 @@ def get_customer_profile(customer_id: str) -> CustomerProfile:
 
 
 # --- RTCE / Lightning Query API variants (current-state point lookups) ----
+
+
+@router.get("/c360-profile/rtce/customers", response_model=list[CustomerProfile], status_code=200)
+def search_customer_profiles_rtce(
+    name: str = Query(..., min_length=1, max_length=100, description="Customer name substring"),
+) -> list[CustomerProfile]:
+    """Name → profile(s) in one call: resolve ``customer_id``s from the operational
+    database, then read each from the ``fct_c360_profile`` Lightning table.
+
+    Empty list when nothing matches (or no match has a profile row yet).
+    """
+    return service.get_customer_profiles_rtce_by_name(name)
 
 
 @router.get("/c360-profile/rtce/customer/{customer_id}", response_model=CustomerProfile, status_code=200)

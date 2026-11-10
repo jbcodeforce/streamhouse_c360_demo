@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import * as client from './client'
-import { getC360Analytics, getCustomerProfile, getCustomerProfileRtce } from './analytics'
+import { getC360Analytics, getCustomerProfile, getCustomerProfileRtce, searchCustomerProfilesRtce } from './analytics'
 
 afterEach(() => vi.restoreAllMocks())
 
@@ -21,5 +21,11 @@ describe('analytics api', () => {
     const spy = vi.spyOn(client, 'request').mockResolvedValue({})
     await getCustomerProfileRtce('abc-123')
     expect(spy).toHaveBeenCalledWith('/analytics/c360-profile/rtce/customer/abc-123')
+  })
+
+  it('searchCustomerProfilesRtce GETs the RTCE name-search endpoint with an encoded name', async () => {
+    const spy = vi.spyOn(client, 'request').mockResolvedValue([])
+    await searchCustomerProfilesRtce('José Díaz')
+    expect(spy).toHaveBeenCalledWith('/analytics/c360-profile/rtce/customers?name=Jos%C3%A9%20D%C3%ADaz')
   })
 })

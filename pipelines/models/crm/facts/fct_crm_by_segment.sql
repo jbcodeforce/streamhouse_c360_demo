@@ -1,5 +1,5 @@
 {{ config(
-    materialized = 'streaming_table',
+    materialized = 'materialized_table',
     distributed_by={'columns': ['customer_segment'], 'buckets': 1},
    
     with= {
@@ -11,8 +11,9 @@
         'value.format': 'avro-registry'
     }
 ) }}
-SELECT customer_segment,
+SELECT 
+        COALESCE(customer_segment, 'PRIVATE') as  customer_segment,
        COUNT(distinct customer_id)           AS customer_count,
-       SUM(total_balance) AS total_balance
-FROM {{ ref('fct_c360_profile') }}
+       SUM(account_balance) AS account_balance
+FROM {{ ref('dim_customers') }}
 GROUP BY customer_segment

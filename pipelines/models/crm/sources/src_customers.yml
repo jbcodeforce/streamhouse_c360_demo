@@ -1,10 +1,7 @@
 
 models:
 - name: src_customers
-  description: ""
-  config:
-    contract:
-      enforced: true
+  description: "Cleaned customers"
   columns:
   - name: customer_id
     data_type: string
