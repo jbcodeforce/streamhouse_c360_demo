@@ -2,27 +2,31 @@
 
 We may demonstrate the Streamhouse architecture in different ways, using one of the approaches implemented in this repository:
 
-1. Local database, writing directly to Kafka topics defined within Confluent Cloud Kafka Cluster
-2. Run Database on AWS, with Kafka Connector defined to get data from the database to Kafka topics. This approach has cost for the services on AWS.
+1. **Hybrid cloud:**: Local database, local kafka connect Debezium, to write database change directly to Kafka topics defined within Confluent Cloud Kafka Cluster. [Read this section below](#run-with-local-database-get-started-locally)
+2. **Cloud deployment VPC to VPC**: Run Database on AWS, with Kafka Connector in Confluent Cloud as managed connector, defined to get data from the database to Kafka topics. This approach has cost for the services on AWS.
 
-For each the following activities are common:
+For each approach the following activities are common:
 
-1.  Deploy Confluent Cloud components: This step is to create Environment, Kafka cluster, schema registry, service accounts, api keys and secrets, and compute pools. We propose two approches to define the environment and components of this demonstration, one using the Confluent Console or one using Terraform:
+1.  Deploy Confluent Cloud components: This step is to create Confluent Cloud Environment, Kafka cluster, schema registry, service accounts, api keys and secrets, and then compute pools. We propose two approches to define the environment and components of this demonstration, one using the Confluent Console or one using Terraform as Infrastructure as code:
     * [using Terraform](./sre_ccloud_tf.md).
     * [or using the Confluent cloud console](./sre_ccloud.md)
-1. Optional: Deploy Database in AWS RDS with the needed [AWS components](./sre_aws.md) also using terraform. It includes the terraform definition to deploy Debezium CDC source connector on Confluent Cloud managed connector. This step is optional as the application can emulates CDC connector and use local database.
+
 * [Deploying the Flink pipeline](./flink_deployment.md) to build the customer 360 analytics profile using Confluent dbt.
 * [See dedicated 'demo script' note](./demo_script.md) to run the application with local components.
 
 ## Run with a remote database server
 
+The goal is to deploy Postgresql instancd in AWS RDS with the needed [AWS components](./sre_aws.md) using terraform. 
+
 The architecture of the demonstration at the high-level looks like:
 
-![](./diagrams/rds_execution.drawio.png)
+<figure markdown='span'>
+![](./diagrams/app/rds_execution.drawio.png)
+</figure>
 
-Once the Confluent Cloud and AWS resources are created by Terraform, the user starts the local web application that connect to remote database server. To do this deployment see the [SRE doc](./sre_ccloud_tf.md)
+Once the Confluent Cloud and AWS resources are created by Terraform, you start the local web application that connects to remote database server. To do this deployment see the [SRE doc](./sre_ccloud_tf.md) to create resources in AWS using Terraform.
 
-* Set environment variables to access Confluent Cloud resources, like Kafka, schema Key/secret and bootstrap address:
+* Once resources are deployed, set environment variables to access Confluent Cloud resources, like Kafka, schema Key/secret and bootstrap address:
     ```sh
     source ./scripts/set_env_from_tf.sh
     ```
@@ -33,11 +37,10 @@ Once the Confluent Cloud and AWS resources are created by Terraform, the user st
     source apps/backend/.env
     set +a
     ```
-* Set environment variables to the .env file
+* Set the ENV_CONFIG_FILE environment variable to the .env file so the application can load the other environment. This method may help top have different `.env` file for different environment.
     ```sh
     export ENV_CONFIG_FILE=./apps/backend/.env
     ```
-
 
 * Start the local webapp with remote RDS database
     ```sh
@@ -48,15 +51,20 @@ Once the Confluent Cloud and AWS resources are created by Terraform, the user st
 
 ## Run with Local Database Get started locally
 
-This time the database runs locally and the web app writes to kafka in parallel to write to database.
+This approach uses the database and the Kafka connector locally and the web app runs to access data locally:
 
-![](./diagrams/local_execution.drawio.png)
+<figure markdown='span'>
+![](./diagrams/app/local_execution.drawio.png)
+</figure>
 
 * Be sure to have the Confluent Cloud resources created with Terraform. To do this deployment see the [SRE doc](./sre_ccloud_tf.md)
 
 * Start the local Postgresql server
     ```sh
-     ./IaC/local/start_local_pg_server.sh --seed
+    # With creation of tables and creates some records
+    ./IaC/local/start_local_pg_server.sh --seed
+    # restarting an existing instance
+    ./IaC/local/start_local_pg_server.sh 
     ```
 
     You should get some report like:
@@ -79,27 +87,74 @@ This time the database runs locally and the web app writes to kafka in parallel 
 
     or using your own scripts to get environment variables preset, to an existing Confluent Cloud environment.
 
-* Set environment variables to the .env file
-    ```sh
-    export ENV_CONFIG_FILE=./apps/backend/.env
-    ```
-
-## Demonstration Scenarios
-
-### Prepare backend environment
-
 * Set where to find the specific `.env` file. You can use different .env file and reference it via environment variable:
     ```sh
     export ENV_CONFIG_FILE=$PWD/apps/backend/.env
     ```
-
-* Start the local webapp
+* Start Debezium Server
     ```sh
-    ./scripts/run_dev.sh 
+    ./IaC/local/start_debezium.sh 
     ```
 
+    You should get:
+    ```sh
+    Ensuring Connect metadata topics exist …
+    Pulling Debezium image (if not cached) …
+    Starting Debezium worker on port 8083 …
+    Waiting for the Connect REST API …
+    Connect REST API is ready (4s).
+    Applying connector 'postgres-cdc' …
+    ✅ Connector 'postgres-cdc' is RUNNING.
 
-Changes written by the backend to PostgreSQL are published to the `cdc.public.*` topics by Debezium (see [Local CDC](local_cdc.md)); the backend does not produce to Kafka itself.
+    Connect REST API : http://localhost:8083
+    PostgreSQL       : ......:5432/c360db (publication c360_cdc_publication, slot debezium_slot)
+    Kafka            : pkc......us-west-2.aws.confluent.cloud:9092
+    Topics           : cdc.public.customers, cdc.public.accounts, cdc.public.cards, cdc.public.transactions
+
+    Status : curl -s http://localhost:8083/connectors/postgres-cdc/status | jq
+    ```
+
+    The last curl command returns
+
+    ```json
+    {
+        "name": "postgres-cdc",
+        "connector": {
+            "state": "RUNNING",
+            "worker_id": "192.168.64.63:8083"
+        },
+        "tasks": [
+            {
+            "id": 0,
+            "state": "RUNNING",
+            "worker_id": "192.168.64.63:8083"
+            }
+        ],
+        "type": "source"
+    }
+    ```
+
+## Demonstration Scenarios
+
+* **[Optional]** to demonstrate the integration with Real-time context engine using local LLM. 
+    * Download [omlx](https://omlx.ai/) or ollama
+    * Download one of the models from Huggingface: `Ornith-1.5-9B-MLX-8bit`
+
+    ![](./images/hf_download.png)
+    * Start the server
+        ```sh
+        omlx start
+        ```
+
+
+### Start the Web App and Backend
+
+
+```sh
+./scripts/run_dev.sh 
+```
+
+[Web page is http://localhost:5173/](http://localhost:5173/)
 
 ### Deploy the Flink Statements / Materialized Tables
 
@@ -107,10 +162,12 @@ Changes written by the backend to PostgreSQL are published to the `cdc.public.*`
     ```sh
     cd pipelines
     source .venv/bin/activate
-    # verify the version, if need to update, change in pyproject.yaml in pipelines folder
+    # verify the Confluent dbt version, if needed, update, change in pyproject.yaml in pipelines folder
     dbt version
-    # Deploy the c360 data product from the fact table to the parents
-    dbt run --select +c360.facts.fct_c360_profile
+    # Deploy the c360 data product from the fact tables to the parents
+    dbt run --select +c360.facts
+    # Individual table
+    dbt run --select +c360.facts
     ```
 
 * Once all materialized tables are deployed, we need to enable RTCE on the fact table. There is a separate terraform to do so.
@@ -132,9 +189,10 @@ Changes written by the backend to PostgreSQL are published to the `cdc.public.*`
     ```
 
     Verify in the console that the `fct_c360_profile` topic is enabled:
+
     ![](./images/LT_in_topic.png)
 
-* Update environment variables to be able to get the Global key and secret
+* Update environment variables to be able to get the Global key and secret needed to run lightning queries and real-time context engine:
     ```sh
     CONFLUENT_GLOBAL_KEY=$(terraform output -raw rtce_lightning_api_key_id)
     CONFLUENT_GLOBAL_SECRET=$(terraform output -raw rtce_lightning_api_key_secret)
@@ -146,21 +204,23 @@ Changes written by the backend to PostgreSQL are published to the `cdc.public.*`
     ```
 
 
-### Use the Web App
-
-[http://localhost:5173/](http://localhost:5173/)
-
 #### Customers Management
 
 The customers page presents a list of existing customers loaded from the database:
 
+<figure markdown='span'>
 ![](./images/customers_page.png)
+</figure>
+
+
 
 It is possible to add a new customer, with the Add customer button, or view, update, delete an existing customer using the action icon.
 
 For example selecting the eye icon on James Carter brings this view:
 
+<figure markdown='span'>
 ![](./images/james_carter.png)
+</figure>
 
 #### Accounts Management
 

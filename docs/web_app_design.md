@@ -1,18 +1,20 @@
 # Web App and Backend Design
 
-This note is to explain the backend design and implementation, for code maintenance and also explaining some integration to Confluent Cloud Streamhouse capabilities
+This note presents the backend design and implementation, as weel as other tools to support the demonstration. This is for code maintenance and also explaining some integration to Confluent Cloud Streamhouse capabilities.
 
 ## Requirements addressed
  
 * [x] Web App to present customers page and be able to add new customer, read the detail of one customer, update one, or delete one
 * [x] Pages for accounts CRUD operations
 * [x] Pages for transactions CR operations
+* [x] Pages and backend to manage cards CRUD defined within an account
 * [x] Local persistence with Postgresql database running in container
-* [x] Change events published to Kafka by Debezium CDC (no backend Kafka producer)
+* [x] Change events published to Kafka by Debezium CDC running locally, or as managed confluent cloud connector.
 * [x] TDD for backend and frontend
 * [x] Run snapshot queries from UI to backend to Confluent cloud on top of fact tables
 * [x] Execute lightning query from a backend and display result to Frontend
-* [x] Chat interface to demonstrate querying business data using Real-time context engine.
+* [x] Chat interface to demonstrate querying business data using Real-time context engine. 
+* [x] Persist chat conversation into Kafka topics
 
 ## Design
 
@@ -303,3 +305,7 @@ npm test            # vitest run (CI mode)
 npm run test:watch  # watch mode
 ```
 
+
+## Tools 
+
+[Kaggle Transaction dataset](https://www.kaggle.com/datasets/computingvictor/transactions-fraud-datasets?resource=download)

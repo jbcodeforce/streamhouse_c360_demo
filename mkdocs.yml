@@ -7,6 +7,7 @@ nav:
   - Design: 
     - WebAPP: web_app_design.md
     - Flink DSP: build_flink_dsp.md
+    - Fit for purpose: fit_for_purpose.md
   - Deployments:
     - AWS RDS: sre_aws.md
     - Confluent Cloud: sre_ccloud_tf.md
