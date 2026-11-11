@@ -185,6 +185,52 @@ def test_source_node_has_no_pool_or_external():
     assert "compute_pool_id" not in src and "external" not in src
 
 
+def test_transitive_external_dependencies_and_sources():
+    """Verify that upstream sources and intermediate models for external nodes
+    are fully resolved and connected in the dependent product's graph."""
+    manifest = {
+        "metadata": {"project_name": "streamhouse"},
+        "nodes": {
+            "model.streamhouse.src_accounts": {
+                "resource_type": "model", "name": "src_accounts",
+                "path": "crm/sources/src_accounts.sql",
+                "config": {"materialized": "streaming_table"},
+                "depends_on": {"nodes": ["source.streamhouse.cdc.accounts"]},
+            },
+            "model.streamhouse.dim_customers": {
+                "resource_type": "model", "name": "dim_customers",
+                "path": "crm/dimensions/dim_customers.sql",
+                "config": {"materialized": "streaming_table"},
+                "depends_on": {"nodes": ["model.streamhouse.src_accounts"]},
+            },
+            "model.streamhouse.fct_c360_profile": {
+                "resource_type": "model", "name": "fct_c360_profile",
+                "path": "c360/facts/fct_c360_profile.sql",
+                "config": {"materialized": "materialized_table"},
+                "depends_on": {"nodes": ["model.streamhouse.dim_customers"]},
+            },
+        },
+        "sources": {
+            "source.streamhouse.cdc.accounts": {
+                "resource_type": "source", "name": "accounts",
+                "identifier": "cdc.public.accounts",
+            },
+        },
+    }
+    c360 = descriptor_builder.build_descriptors(manifest, lambda n: f"dbt-{n}")["c360"]
+    byid = _nodes_by_id(c360)
+    assert "topic_accounts" in byid
+    assert byid["topic_accounts"]["type"] == "source"
+    assert byid["src_accounts"]["external"] is True
+    assert byid["dim_customers"]["external"] is True
+    assert byid["fct_c360_profile"]["is_product"] is True
+
+    edges = {(e["source"], e["target"]) for e in c360["edges"]}
+    assert ("topic_accounts", "src_accounts") in edges
+    assert ("src_accounts", "dim_customers") in edges
+    assert ("dim_customers", "fct_c360_profile") in edges
+
+
 def test_output_validates_against_backend_graph_model():
     # The builder must emit nodes/edges the backend's Graph model accepts, so a
     # regenerated descriptor is guaranteed loadable by descriptor.get_graph.

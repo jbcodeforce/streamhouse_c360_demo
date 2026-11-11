@@ -10,6 +10,12 @@
       "topic": "cdc.public.accounts"
     },
     {
+      "id": "topic_cards",
+      "type": "source",
+      "label": "cdc.public.cards",
+      "topic": "cdc.public.cards"
+    },
+    {
       "id": "topic_customers",
       "type": "source",
       "label": "cdc.public.customers",
@@ -27,15 +33,6 @@
       "label": "dim_account_tx_agg",
       "statement_name": "dbt-streamhouse-dim-account-tx-agg-70cc66",
       "topic": "dim_account_tx_agg",
-      "table_type": "materialized_table",
-      "compute_pool_id": "lfcp-mv6kkvw"
-    },
-    {
-      "id": "dim_customers",
-      "type": "statement",
-      "label": "dim_customers",
-      "statement_name": "dbt-streamhouse-dim-customers-008df3",
-      "topic": "dim_customers",
       "table_type": "materialized_table",
       "compute_pool_id": "lfcp-mv6kkvw"
     },
@@ -68,6 +65,16 @@
       "compute_pool_id": "lfcp-mv6kkvw"
     },
     {
+      "id": "fct_crm_summary",
+      "type": "statement",
+      "label": "fct_crm_summary",
+      "statement_name": "dbt-streamhouse-fct-crm-summary-0ca81f",
+      "topic": "fct_crm_summary",
+      "is_product": true,
+      "table_type": "materialized_table",
+      "compute_pool_id": "lfcp-mv6kkvw"
+    },
+    {
       "id": "fct_merchant_streak",
       "type": "statement",
       "label": "fct_merchant_streak",
@@ -78,13 +85,43 @@
       "compute_pool_id": "lfcp-mv6kkvw"
     },
     {
+      "id": "src_transactions",
+      "type": "statement",
+      "label": "src_transactions",
+      "statement_name": "dbt-streamhouse-src-transactions-ef9e60",
+      "topic": "src_transactions",
+      "table_type": "streaming_table",
+      "compute_pool_id": "lfcp-mv6kkvw"
+    },
+    {
+      "id": "dim_customers",
+      "type": "statement",
+      "label": "dim_customers",
+      "statement_name": "dbt-streamhouse-dim-customers-008df3",
+      "topic": "dim_customers",
+      "table_type": "streaming_table",
+      "compute_pool_id": "lfcp-zmkkjw3",
+      "external": true
+    },
+    {
       "id": "src_accounts",
       "type": "statement",
       "label": "src_accounts",
       "statement_name": "dbt-streamhouse-src-accounts-c81842",
       "topic": "src_accounts",
-      "table_type": "materialized_table",
-      "compute_pool_id": "lfcp-mv6kkvw"
+      "table_type": "streaming_table",
+      "compute_pool_id": "lfcp-zmkkjw3",
+      "external": true
+    },
+    {
+      "id": "src_cards",
+      "type": "statement",
+      "label": "src_cards",
+      "statement_name": "dbt-streamhouse-src-cards-b14fd1",
+      "topic": "src_cards",
+      "table_type": "streaming_table",
+      "compute_pool_id": "lfcp-zmkkjw3",
+      "external": true
     },
     {
       "id": "src_customers",
@@ -92,51 +129,59 @@
       "label": "src_customers",
       "statement_name": "dbt-streamhouse-src-customers-35926e",
       "topic": "src_customers",
-      "table_type": "materialized_table",
-      "compute_pool_id": "lfcp-mv6kkvw"
-    },
-    {
-      "id": "src_transactions",
-      "type": "statement",
-      "label": "src_transactions",
-      "statement_name": "dbt-streamhouse-src-transactions-ef9e60",
-      "topic": "src_transactions",
-      "table_type": "materialized_table",
-      "compute_pool_id": "lfcp-mv6kkvw"
+      "table_type": "streaming_table",
+      "compute_pool_id": "lfcp-zmkkjw3",
+      "external": true
     }
   ],
   "edges": [
-    {
-      "source": "src_accounts",
-      "target": "dim_account_tx_agg"
-    },
-    {
-      "source": "dim_transactions",
-      "target": "dim_account_tx_agg"
-    },
-    {
-      "source": "src_customers",
-      "target": "dim_customers"
-    },
-    {
-      "source": "src_transactions",
-      "target": "dim_transactions"
-    },
-    {
-      "source": "dim_customers",
-      "target": "dim_tx_x_account"
-    },
     {
       "source": "dim_account_tx_agg",
       "target": "dim_tx_x_account"
     },
     {
       "source": "dim_customers",
+      "target": "dim_tx_x_account"
+    },
+    {
+      "source": "dim_customers",
       "target": "fct_c360_profile"
+    },
+    {
+      "source": "dim_transactions",
+      "target": "dim_account_tx_agg"
     },
     {
       "source": "dim_tx_x_account",
       "target": "fct_c360_profile"
+    },
+    {
+      "source": "fct_c360_profile",
+      "target": "fct_crm_summary"
+    },
+    {
+      "source": "src_accounts",
+      "target": "dim_account_tx_agg"
+    },
+    {
+      "source": "src_accounts",
+      "target": "dim_customers"
+    },
+    {
+      "source": "src_cards",
+      "target": "dim_customers"
+    },
+    {
+      "source": "src_customers",
+      "target": "dim_customers"
+    },
+    {
+      "source": "src_customers",
+      "target": "dim_transactions"
+    },
+    {
+      "source": "src_transactions",
+      "target": "dim_transactions"
     },
     {
       "source": "src_transactions",
@@ -145,6 +190,10 @@
     {
       "source": "topic_accounts",
       "target": "src_accounts"
+    },
+    {
+      "source": "topic_cards",
+      "target": "src_cards"
     },
     {
       "source": "topic_customers",

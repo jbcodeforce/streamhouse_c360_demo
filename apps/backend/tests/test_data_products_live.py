@@ -130,20 +130,20 @@ def test_live_unknown_phase_becomes_UNKNOWN():
 
 
 def test_live_missing_metric_is_none():
-    # src_customers is a materialized table, so metrics come from the MT path;
+    # fct_c360_profile is a materialized table, so metrics come from the MT path;
     # fields the MT API doesn't return (the rate counters) stay None.
     client = _fake_client(
-        mt_tables={"src_customers": {"phase": "RUNNING", "uid": "mt-1"}},
+        mt_tables={"fct_c360_profile": {"phase": "RUNNING", "uid": "mt-1"}},
         mt_metrics={"compute_pool_cfu": 3.0},  # no rate fields
     )
-    m = providers.LiveProvider(client=client).get_metrics(descriptor.get_graph("c360"), "src_customers")
+    m = providers.LiveProvider(client=client).get_metrics(descriptor.get_graph("c360"), "fct_c360_profile")
     assert m.compute_pool_cfu == 3.0 and m.messages_in_per_sec is None
 
 
 def test_live_unreachable_does_not_raise():
     client = _raising_client(httpx.ConnectError("boom"))
     status = providers.LiveProvider(client=client).get_status(descriptor.get_graph("c360"))
-    assert status.rollup.total == 9
+    assert status.rollup.total == 11
     assert all(s.phase == "UNKNOWN" for s in status.statements)
 
 
@@ -151,20 +151,20 @@ def test_live_status_from_materialized_tables():
     # Materialized tables are keyed by table name (= graph node id/label), not
     # the dbt statement name — the MT API is their source of truth.
     client = _fake_client(mt_tables={
-        "src_customers": {"phase": "RUNNING", "uid": "mt-1"},
+        "dim_transactions": {"phase": "RUNNING", "uid": "mt-1"},
         "fct_c360_profile": {"phase": "FAILED", "uid": "mt-2"},
     })
     status = providers.LiveProvider(client=client).get_status(descriptor.get_graph("c360"))
     byid = {s.node_id: s.phase for s in status.statements}
-    assert byid["src_customers"] == "RUNNING" and byid["fct_c360_profile"] == "FAILED"
+    assert byid["dim_transactions"] == "RUNNING" and byid["fct_c360_profile"] == "FAILED"
 
 
 def test_live_mt_metrics_populate_cfu():
     client = _fake_client(
-        mt_tables={"src_customers": {"phase": "RUNNING", "uid": "mt-1"}},
+        mt_tables={"fct_c360_profile": {"phase": "RUNNING", "uid": "mt-1"}},
         mt_metrics={"compute_pool_cfu": 3.0},
     )
-    m = providers.LiveProvider(client=client).get_metrics(descriptor.get_graph("c360"), "src_customers")
+    m = providers.LiveProvider(client=client).get_metrics(descriptor.get_graph("c360"), "fct_c360_profile")
     assert m.phase == "RUNNING" and m.compute_pool_cfu == 3.0
 
 
@@ -172,9 +172,9 @@ def test_live_mt_node_sql_comes_from_materialized_table_spec():
     # A materialized table's defining SQL is read from the MT list (spec.query),
     # since its DDL statement isn't in the Statements list.
     client = _fake_client(
-        mt_tables={"src_customers": {"phase": "RUNNING", "uid": "mt-1", "sql": "SELECT 1 FROM src"}},
+        mt_tables={"fct_c360_profile": {"phase": "RUNNING", "uid": "mt-1", "sql": "SELECT 1 FROM src"}},
     )
-    m = providers.LiveProvider(client=client).get_metrics(descriptor.get_graph("c360"), "src_customers")
+    m = providers.LiveProvider(client=client).get_metrics(descriptor.get_graph("c360"), "fct_c360_profile")
     assert m.sql == "SELECT 1 FROM src"
 
 

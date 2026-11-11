@@ -264,9 +264,12 @@ The frontend also exposes the monthly dollar amount per Flink pipeline:
 
 
 <figure markdown='span'>
-![]()
+![](./images/app/crm_billing_graph.png)
 <caption></caption>
 </figure>
+
+The code that supports the implementation is in [backend/data_products/confluent_client.py](https://github.com/jbcodeforce/streamhouse_c360_demo/blob/main/apps/backend/data_products/confluent_client.py), and uses the REST API for billing combined with compute pool and statement name information. 
+
 
 ### Others to finalize
 * [ ] Sliding window aggregations over transactions grouped by cardholder (1-minute to 1-day windows).

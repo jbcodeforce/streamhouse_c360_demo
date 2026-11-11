@@ -86,32 +86,34 @@ def build_descriptors(
     dbt ``config.compute_pool_id``); ``default_pool`` is the fallback when a model
     pins no pool (the connection-default pool, e.g. ``FLINK_COMPUTE_POOL_ID``).
     """
-    models = [
-        node
-        for node in manifest.get("nodes", {}).values()
-        if node.get("resource_type") == "model"
-    ]
-    sources = manifest.get("sources", {})
-
-    # Group model unique_ids by product so edges can tell a same-product model
-    # dependency from a source (or a cross-product) dependency.
     models_by_uid = {
         uid: node
         for uid, node in manifest.get("nodes", {}).items()
         if node.get("resource_type") == "model"
     }
+    sources = manifest.get("sources", {})
 
     products: dict[str, dict] = {}
-    for product_id in sorted({_product_of(m["path"]) for m in models}):
-        product_models = sorted(
-            (m for m in models if _product_of(m["path"]) == product_id),
-            key=lambda m: m["path"],
-        )
+    for product_id in sorted({_product_of(m["path"]) for m in models_by_uid.values()}):
+        owned_models = [m for m in models_by_uid.values() if _product_of(m["path"]) == product_id]
 
-        statement_nodes: list[GraphNode] = []
-        source_nodes: dict[str, GraphNode] = {}
-        external_nodes: dict[str, GraphNode] = {}
-        edges: list[GraphEdge] = []
+        # Traverse upstream dependencies to build the full lineage closure.
+        visited_model_uids: set[str] = set()
+        needed_source_uids: set[str] = set()
+        queue = [m.get("unique_id", uid) for uid, m in models_by_uid.items() if _product_of(m["path"]) == product_id]
+
+        while queue:
+            uid = queue.pop(0)
+            if uid in visited_model_uids:
+                continue
+            visited_model_uids.add(uid)
+            model = models_by_uid[uid]
+            for dep_uid in model.get("depends_on", {}).get("nodes", []):
+                if dep_uid in models_by_uid:
+                    if dep_uid not in visited_model_uids:
+                        queue.append(dep_uid)
+                elif dep_uid in sources:
+                    needed_source_uids.add(dep_uid)
 
         def _stmt_node(model: dict, *, external: bool) -> GraphNode:
             name = model["name"]
@@ -128,41 +130,58 @@ def build_descriptors(
                 external=external,
             )
 
-        for model in product_models:
-            name = model["name"]
-            statement_nodes.append(_stmt_node(model, external=False))
+        source_nodes: list[GraphNode] = []
+        for src_uid in sorted(needed_source_uids, key=lambda u: f"topic_{sources[u]['name']}"):
+            src = sources[src_uid]
+            src_id = f"topic_{src['name']}"
+            source_nodes.append(
+                GraphNode(
+                    id=src_id,
+                    type="source",
+                    label=src["identifier"],
+                    topic=src["identifier"],
+                )
+            )
 
+        owned_statement_nodes: list[GraphNode] = []
+        for uid in sorted(
+            [u for u in visited_model_uids if _product_of(models_by_uid[u]["path"]) == product_id],
+            key=lambda u: models_by_uid[u]["path"],
+        ):
+            owned_statement_nodes.append(_stmt_node(models_by_uid[uid], external=False))
+
+        external_statement_nodes: list[GraphNode] = []
+        for uid in sorted(
+            [u for u in visited_model_uids if _product_of(models_by_uid[u]["path"]) != product_id],
+            key=lambda u: models_by_uid[u]["path"],
+        ):
+            external_statement_nodes.append(_stmt_node(models_by_uid[uid], external=True))
+
+        edges: list[GraphEdge] = []
+        seen_edges: set[tuple[str, str]] = set()
+
+        for uid in visited_model_uids:
+            model = models_by_uid[uid]
+            target_name = model["name"]
             for dep_uid in model.get("depends_on", {}).get("nodes", []):
-                if dep_uid in models_by_uid and _product_of(
-                    models_by_uid[dep_uid]["path"]
-                ) == product_id:
-                    edges.append(GraphEdge(source=models_by_uid[dep_uid]["name"], target=name))
+                if dep_uid in visited_model_uids:
+                    src_name = models_by_uid[dep_uid]["name"]
+                    if (src_name, target_name) not in seen_edges:
+                        seen_edges.add((src_name, target_name))
+                        edges.append(GraphEdge(source=src_name, target=target_name))
                 elif dep_uid in sources:
-                    src = sources[dep_uid]
-                    src_id = f"topic_{src['name']}"
-                    source_nodes.setdefault(
-                        src_id,
-                        GraphNode(
-                            id=src_id,
-                            type="source",
-                            label=src["identifier"],
-                            topic=src["identifier"],
-                        ),
-                    )
-                    edges.append(GraphEdge(source=src_id, target=name))
-                elif dep_uid in models_by_uid:
-                    # Cross-product dependency: the upstream model belongs to
-                    # another data product. Emit it as an external node (keeping
-                    # the graph connected) carrying the OWNING product's pool, so
-                    # this product's cost consolidation excludes it.
-                    dep = models_by_uid[dep_uid]
-                    external_nodes.setdefault(dep["name"], _stmt_node(dep, external=True))
-                    edges.append(GraphEdge(source=dep["name"], target=name))
+                    src_id = f"topic_{sources[dep_uid]['name']}"
+                    if (src_id, target_name) not in seen_edges:
+                        seen_edges.add((src_id, target_name))
+                        edges.append(GraphEdge(source=src_id, target=target_name))
 
-        ordered_sources = [source_nodes[k] for k in sorted(source_nodes)]
-        ordered_external = [external_nodes[k] for k in sorted(external_nodes)]
+        edges.sort(key=lambda e: (e.source, e.target))
+
         # Validate the whole graph as the backend would load it.
-        graph = Graph(nodes=[*ordered_sources, *statement_nodes, *ordered_external], edges=edges)
+        graph = Graph(
+            nodes=[*source_nodes, *owned_statement_nodes, *external_statement_nodes],
+            edges=edges,
+        )
 
         name = _humanize(product_id)
         products[product_id] = {

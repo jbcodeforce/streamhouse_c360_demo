@@ -68,14 +68,14 @@ def test_list_products(client):
 def test_graph_endpoint_shape(client):
     r = client.get("/api/v1/data-products/c360/graph")
     body = r.json()
-    assert r.status_code == 200 and len(body["nodes"]) == 12 and len(body["edges"]) == 12
+    assert r.status_code == 200 and len(body["nodes"]) == 15 and len(body["edges"]) == 17
 
 
 def test_status_rollup_degrades_gracefully(client):
     r = client.get("/api/v1/data-products/c360/status")
     assert r.status_code == 200
     data = r.json()
-    assert data["rollup"] == {"running": 0, "total": 9, "lagging": 0}
+    assert data["rollup"] == {"running": 0, "total": 11, "lagging": 0}
     assert all(s["phase"] == "UNKNOWN" for s in data["statements"])
 
 
@@ -88,7 +88,7 @@ def test_status_rollup_with_live_client_data(client, monkeypatch):
             return {"src_customers": "RUNNING"}
 
         def list_materialized_tables(self):
-            return {"dim_customers": {"phase": "RUNNING", "uid": "uid-1"}}
+            return {"fct_c360_profile": {"phase": "RUNNING", "uid": "uid-1"}}
 
         def list_statements(self):
             return {}
@@ -122,10 +122,10 @@ def test_node_metrics_with_live_client_data(client, monkeypatch):
 
     class _MockClient:
         def list_statement_phases(self):
-            return {"src_customers": "RUNNING"}
+            return {"fct_c360_profile": "RUNNING"}
 
         def list_materialized_tables(self):
-            return {"src_customers": {"phase": "RUNNING", "uid": "uid-src", "sql": "SELECT 1", "created_at": "2026-01-01T00:00:00Z"}}
+            return {"fct_c360_profile": {"phase": "RUNNING", "uid": "uid-src", "sql": "SELECT 1", "created_at": "2026-01-01T00:00:00Z"}}
 
         def list_statements(self):
             return {}
@@ -143,7 +143,7 @@ def test_node_metrics_with_live_client_data(client, monkeypatch):
             return None
 
     monkeypatch.setattr(providers, "get_provider", lambda: LiveProvider(client=_MockClient()))
-    r = client.get("/api/v1/data-products/c360/nodes/src_customers/metrics")
+    r = client.get("/api/v1/data-products/c360/nodes/fct_c360_profile/metrics")
     assert r.status_code == 200
     body = r.json()
     assert body["phase"] == "RUNNING"

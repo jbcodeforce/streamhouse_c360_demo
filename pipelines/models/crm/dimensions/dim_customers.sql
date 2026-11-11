@@ -35,7 +35,7 @@ WITH card_account AS (
 ),
 customers AS (
    SELECT *, TO_TIMESTAMP_LTZ(date_of_birth, 'yyyy-MM-dd') AS dob_ts
-    FROM src_customers 
+    FROM {{ ref('src_customers') }}
 )
 SELECT 
     u.customer_id,
