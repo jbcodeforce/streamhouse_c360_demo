@@ -17,7 +17,13 @@ output "rtce_lightning_api_key_secret" {
   sensitive   = true
 }
 
-output "rtce_topic_name" {
+output "rtce_c360_profile_topic_name" {
   description = "Topic registered with the Real-Time Context Engine"
   value       = confluent_rtce_topic.fct_c360_profile.topic_name
 }
+
+output "rtce_crm_summary_topic_name" {
+  description = "Topic registered with the Real-Time Context Engine"
+  value       = confluent_rtce_topic.fct_crm_summary.topic_name
+}
+

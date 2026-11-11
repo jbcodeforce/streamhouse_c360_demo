@@ -1,4 +1,4 @@
-site_name: Streamhouse demonstrations 0.0.3
+site_name: Streamhouse demonstrations 0.0.5
 repo_url: https://github.com/jbcodeforce/streamhouse_c360_demo.git
 site_url: https://jbcodeforce.github.io/streamhouse_c360_demo
 copyright: Copyright &copy; 2018 - 2026 Jerome Boyer
@@ -10,6 +10,7 @@ nav:
     - Fit for purpose: fit_for_purpose.md
   - Deployments:
     - AWS RDS: sre_aws.md
+    - Local CDC: local_cdc.md
     - Confluent Cloud: sre_ccloud_tf.md
     - CC Console: sre_ccloud.md
     - Flink deploy: flink_deployment.md

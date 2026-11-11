@@ -33,7 +33,7 @@ describe('TransactionFormPage', () => {
     renderPage()
     await screen.findByRole('button', { name: /save/i })
     await userEvent.click(screen.getByRole('button', { name: /save/i }))
-    expect(await screen.findByText(/account or a card is required/i)).toBeInTheDocument()
+    expect(await screen.findByText(/an account is required/i)).toBeInTheDocument()
     expect(create).not.toHaveBeenCalled()
   })
 
@@ -47,7 +47,39 @@ describe('TransactionFormPage', () => {
     await userEvent.click(screen.getByRole('button', { name: /save/i }))
     await waitFor(() => expect(create).toHaveBeenCalledTimes(1))
     const payload = create.mock.calls[0][0]
-    expect(payload).toMatchObject({ account_id: 'a1', customer_id: 'c1', amount: 42.5, transaction_type: 'CREDIT' })
+    expect(payload).toMatchObject({ account_id: 'a1', customer_id: 'c1', amount: 42.5, transaction_type: 'CREDIT', currency: 'USD' })
+  })
+
+  it('loads cards for the selected account and allows card selection', async () => {
+    vi.spyOn(acctApi, 'listAccounts').mockResolvedValue([acct] as never)
+    const listCardsSpy = vi.spyOn(cardsApi, 'listCards').mockResolvedValue([card] as never)
+    const create = vi.spyOn(txnApi, 'createTransaction').mockResolvedValue({} as never)
+    renderPage()
+    await screen.findByRole('button', { name: /save/i })
+    expect(screen.getByLabelText(/^card$/i)).toBeDisabled()
+    await userEvent.selectOptions(screen.getByLabelText(/^account$/i), 'a1')
+    await waitFor(() => expect(listCardsSpy).toHaveBeenCalledWith('a1'))
+    expect(screen.getByLabelText(/^card$/i)).toBeEnabled()
+    await userEvent.selectOptions(screen.getByLabelText(/^card$/i), 'k1')
+    await userEvent.type(screen.getByLabelText(/amount/i), '9')
+    await userEvent.click(screen.getByRole('button', { name: /save/i }))
+    await waitFor(() => expect(create).toHaveBeenCalledTimes(1))
+    const payload = create.mock.calls[0][0]
+    expect(payload).toMatchObject({ account_id: 'a1', card_id: 'k1', customer_id: 'c1', amount: 9 })
+  })
+
+  it('allows selecting a different currency from the list', async () => {
+    vi.spyOn(acctApi, 'listAccounts').mockResolvedValue([acct] as never)
+    const create = vi.spyOn(txnApi, 'createTransaction').mockResolvedValue({} as never)
+    renderPage()
+    await screen.findByRole('button', { name: /save/i })
+    await userEvent.selectOptions(screen.getByLabelText(/^account$/i), 'a1')
+    await userEvent.selectOptions(screen.getByLabelText(/^currency$/i), 'EUR')
+    await userEvent.type(screen.getByLabelText(/amount/i), '15.00')
+    await userEvent.click(screen.getByRole('button', { name: /save/i }))
+    await waitFor(() => expect(create).toHaveBeenCalledTimes(1))
+    const payload = create.mock.calls[0][0]
+    expect(payload).toMatchObject({ account_id: 'a1', customer_id: 'c1', amount: 15, currency: 'EUR' })
   })
 
   it('sends the merchant fields when provided', async () => {
@@ -66,19 +98,5 @@ describe('TransactionFormPage', () => {
     expect(create.mock.calls[0][0]).toMatchObject({
       merchant_name: 'Starbucks', merchant_category: 'FOOD', merchant_city: 'Austin', merchant_state: 'TX',
     })
-  })
-
-  it('creates a card-only transaction without an account_id', async () => {
-    vi.spyOn(acctApi, 'listAccounts').mockResolvedValue([acct] as never)
-    const create = vi.spyOn(txnApi, 'createTransaction').mockResolvedValue({} as never)
-    renderPage()
-    await screen.findByRole('button', { name: /save/i })
-    await userEvent.selectOptions(screen.getByLabelText(/^card$/i), 'k1')
-    await userEvent.type(screen.getByLabelText(/amount/i), '9')
-    await userEvent.click(screen.getByRole('button', { name: /save/i }))
-    await waitFor(() => expect(create).toHaveBeenCalledTimes(1))
-    const payload = create.mock.calls[0][0]
-    expect(payload).toMatchObject({ card_id: 'k1', customer_id: 'c1', amount: 9 })
-    expect(payload.account_id).toBeUndefined()
   })
 })

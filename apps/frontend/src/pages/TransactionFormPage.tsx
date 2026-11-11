@@ -12,6 +12,20 @@ import type { TransactionCreate } from '../types/transaction'
 const TYPES = ['CREDIT', 'DEBIT', 'TRANSFER', 'FEE', 'INTEREST']
 const CHANNELS = ['ONLINE', 'ATM', 'POS', 'MOBILE', 'BRANCH']
 const STATUSES = ['COMPLETED', 'PENDING', 'FAILED']
+const CURRENCIES = [
+  'USD',
+  'EUR',
+  'GBP',
+  'JPY',
+  'CAD',
+  'AUD',
+  'CHF',
+  'CNY',
+  'HKD',
+  'NZD',
+  'SGD',
+  'SEK',
+]
 
 export default function TransactionFormPage() {
   const navigate = useNavigate()
@@ -34,18 +48,38 @@ export default function TransactionFormPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    Promise.all([listAccounts(), listCards()])
-      .then(([accts, crds]) => {
-        setAccounts(accts)
-        setCards(crds)
-      })
+    listAccounts()
+      .then(setAccounts)
       .catch((e) => setSubmitError(e instanceof ApiError ? e.message : 'Failed to load accounts'))
       .finally(() => setLoading(false))
   }, [])
 
+  useEffect(() => {
+    if (!accountId) return
+    listCards(accountId)
+      .then((crds) => {
+        setCards(crds)
+        setCardId((prev) => (crds.some((c) => c.card_id === prev) ? prev : ''))
+      })
+      .catch((e) => setSubmitError(e instanceof ApiError ? e.message : 'Failed to load cards'))
+  }, [accountId])
+
+  function handleAccountChange(id: string) {
+    setAccountId(id)
+    setCardId('')
+    if (!id) {
+      setCards([])
+      return
+    }
+    const acct = accounts.find((a) => a.account_id === id)
+    if (acct?.currency) {
+      setCurrency(acct.currency)
+    }
+  }
+
   function validate(): boolean {
     const next: typeof errors = {}
-    if (!accountId && !cardId) next.accountId = 'An account or a card is required'
+    if (!accountId) next.accountId = 'An account is required'
     if (amount.trim() === '' || Number.isNaN(Number(amount))) next.amount = 'A valid amount is required'
     setErrors(next)
     return Object.keys(next).length === 0
@@ -55,14 +89,13 @@ export default function TransactionFormPage() {
     e.preventDefault()
     setSubmitError(null)
     if (!validate()) return
-    const card = cards.find((c) => c.card_id === cardId)
-    // The customer is derived from the selected account, or from the card's account.
-    const account = accounts.find((a) => a.account_id === (accountId || card?.account_id))
+    const account = accounts.find((a) => a.account_id === accountId)
     if (!account) {
-      setErrors({ accountId: 'An account or a card is required' })
+      setErrors({ accountId: 'An account is required' })
       return
     }
     const payload: TransactionCreate = {
+      account_id: accountId,
       customer_id: account.customer_id,
       transaction_type: transactionType,
       amount: Number(amount),
@@ -70,7 +103,6 @@ export default function TransactionFormPage() {
       channel,
       status,
     }
-    if (accountId) payload.account_id = accountId
     if (cardId) payload.card_id = cardId
     if (description.trim()) payload.description = description.trim()
     if (merchantName.trim()) payload.merchant_name = merchantName.trim()
@@ -95,8 +127,8 @@ export default function TransactionFormPage() {
       <form className="form" onSubmit={onSubmit} noValidate>
         <div className="form__row">
           <label htmlFor="account_id">Account</label>
-          <select id="account_id" value={accountId} onChange={(e) => setAccountId(e.target.value)}>
-            <option value="">No account</option>
+          <select id="account_id" value={accountId} onChange={(e) => handleAccountChange(e.target.value)}>
+            <option value="">Select an account…</option>
             {accounts.map((a) => (
               <option key={a.account_id} value={a.account_id}>
                 {a.account_number} ({a.account_type})
@@ -108,7 +140,12 @@ export default function TransactionFormPage() {
 
         <div className="form__row">
           <label htmlFor="card_id">Card</label>
-          <select id="card_id" value={cardId} onChange={(e) => setCardId(e.target.value)}>
+          <select
+            id="card_id"
+            value={cardId}
+            onChange={(e) => setCardId(e.target.value)}
+            disabled={!accountId}
+          >
             <option value="">No card</option>
             {cards.map((c) => (
               <option key={c.card_id} value={c.card_id}>
@@ -133,7 +170,13 @@ export default function TransactionFormPage() {
 
         <div className="form__row">
           <label htmlFor="currency">Currency</label>
-          <input id="currency" value={currency} onChange={(e) => setCurrency(e.target.value)} />
+          <select id="currency" value={currency} onChange={(e) => setCurrency(e.target.value)}>
+            {CURRENCIES.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="form__row">

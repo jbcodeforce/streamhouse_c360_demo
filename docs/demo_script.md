@@ -136,27 +136,24 @@ This approach uses the database and the Kafka connector locally and the web app 
 
 ## Demonstration Scenarios
 
-* **[Optional]** to demonstrate the integration with Real-time context engine using local LLM. 
-    * Download [omlx](https://omlx.ai/) or ollama
-    * Download one of the models from Huggingface: `Ornith-1.5-9B-MLX-8bit`
+**[Optional]** to demonstrate the integration with Real-time context engine using local LLM. 
+
+* Download [omlx](https://omlx.ai/) or ollama
+* Download one of the models from Huggingface: `Ornith-1.5-9B-MLX-8bit`
 
     ![](./images/hf_download.png)
-    * Start the server
-        ```sh
-        omlx start
-        ```
+
+* Start the server
+    ```sh
+    omlx start
+    ```
 
 
-### Start the Web App and Backend
-
-
-```sh
-./scripts/run_dev.sh 
-```
+### 1. Go to the web app
 
 [Web page is http://localhost:5173/](http://localhost:5173/)
 
-### Deploy the Flink Statements / Materialized Tables
+### 2. Deploy the Flink Statements / Materialized Tables
 
 * Deploy the Flink statements using dbt
     ```sh
@@ -166,8 +163,12 @@ This approach uses the database and the Kafka connector locally and the web app 
     dbt version
     # Deploy the c360 data product from the fact tables to the parents
     dbt run --select +c360.facts
-    # Individual table
-    dbt run --select +c360.facts
+    # Deploy crm
+    dbt run --select +crm.facts
+    # Deploy fraud
+    dbt run --select +fraud.facts
+    # Individual table can be deployed too
+    dbt run --select c360.dimensions.dim_transactions
     ```
 
 * Once all materialized tables are deployed, we need to enable RTCE on the fact table. There is a separate terraform to do so.
@@ -185,12 +186,16 @@ This approach uses the database and the Kafka connector locally and the web app 
     rtce_lightning_api_key_id = "IOGMHHDUI22T7GPE"
     rtce_lightning_api_key_secret = <sensitive>
     rtce_lightning_sa_id = "sa-r2z9987"
-    rtce_topic_name = "fct_c360_profile"
+    rtce_c360_profile_topic_name = "fct_c360_profile"
+    rtce_crm_summary_topic_name = "fct_crm_summary"
+
     ```
 
-    Verify in the console that the `fct_c360_profile` topic is enabled:
+    Verify in the console that the `fct_c360_profile` and `fct_crm_summary` topics are enabled:
 
+    <figure markdown='span'>
     ![](./images/LT_in_topic.png)
+    </figure>
 
 * Update environment variables to be able to get the Global key and secret needed to run lightning queries and real-time context engine:
     ```sh
@@ -212,81 +217,130 @@ The customers page presents a list of existing customers loaded from the databas
 ![](./images/customers_page.png)
 </figure>
 
-
-
+Each 
 It is possible to add a new customer, with the Add customer button, or view, update, delete an existing customer using the action icon.
 
 For example selecting the eye icon on James Carter brings this view:
 
 <figure markdown='span'>
-![](./images/james_carter.png)
+![](./images/app/james_carter.png)
 </figure>
+
+A customer may have 0 to n accounts.
 
 #### Accounts Management
 
-The accounts page presents a list of accounts per customer loaded from the database:
+The accounts are managed from a customer edit, by adding new accounts. 
 
-![](./images/web_accounts.png)
+#### Use Assistant to query an existing customer
 
-This view is only for demonstration purpose. It is possible to add an account, but the real use case will be to add an account from the customer view. 
+1. Go to Assistant page and enter in the chat:
+    ```
+    what is the profile of jennifer walsh?
+    ```
+
+2. Here is the current state:
+    ![](./images/app/walsh_profile.png)
+
+We will add a transaction to see the change propagated to the fact tables.
+
+***This part is showing a dedicated AI agent, defined with tools to query the Confluent Real-time context engine, exposed as MCP server, and querying the Lightning table of the fct_c360_profile topic***
 
 #### Transaction Management
 
 The transactions page presents a list of current transactions in the database:
 
-![](./images/web_tx.png)
+![](./images/app/web_tx.png)
 
 Again this is for demonstration purpose.
 
-To simulate a week of activity, click **Generate 200 transactions**. The backend creates 200 transactions on existing accounts, timestamped from 7 days ago in 15-minute increments, inserts them in Postgres, and Debezium publishes them to the `cdc.public.transactions` topic. The page then shows the newly created transactions (the list is not kept after a browser refresh).
+* It is possible to create a transaction manually to test the updates to the fact tables. Here are some valuable data for demonstration:
+
+    * Account: CHK-31429110 (of Jennifer,Walsh with id 345678901235)
+    * Select the credit card
+    * Enter POS transaction for a RETAIL.
+
+    ![](./images/app/new_tx_walsh.png)
+
+    * Running the following snapshot query in Confluent cloud workspace:
+    ```sql
+    select * from `cdc.public.transactions` where `customer_id` = '00000000-0000-0000-0000-345678901235'
+    ```
+
+    will display all Walsh's transactions.
+
+    * Finally using the Analytics page, and the top dashboard to do the snapshot query on the c360 profile fact table we get the new balance ($1533) and the new transaction count (4):
+
+    ![](./images/app/walsh_profile_from_dash.png) 
+
+* To simulate a week of activity, click **Generate 200 transactions**. The backend creates 200 transactions on existing accounts, timestamped from 7 days ago in 15-minute increments, inserts them in Postgres, and Debezium publishes them to the `cdc.public.transactions` topic. The page then shows the newly created transactions.
 
 ### Data products view
 
 This page demonstrates the presentation of Flink statement lineage and metrics per data analytics product. 
 
 * First select the analytics product
-    ![](./images/select-data-product.png)
+    ![](./images/app/select_data_products.png)
 
 * See the pipeline graph for one of the fact table:
-    ![](./images/statement_graph.png)
+    ![](./images/app/statement_graph.png)
 
 * User can drill down to see real-time metrics for on of the statement, and the deployed SQL query:
-    ![](./images/statement_metrics.png)
+    ![](./imagesapp/statement_metrics.png)
 
     The message in and out should be greater than 0 when there is record flowing into the topics.
 
-*Recall:* the architecture to support this use case is presented in the figure below:
-![]()
 
 ### Analytics Dashboard
 
 The Analytics page is an illustration of what can be done by directly accessing data in kafka
 
-1. Get the aggregation cross customers. Rather than pulling every customer row and folding it in the backend, the cross-customer aggregates are built in Flink as a **CRM analytic data product** — five small materialized tables (`fct_crm_summary`, `fct_crm_by_segment`, `fct_crm_by_generation`, `fct_crm_by_gender`, `fct_crm_by_country`) derived from `fct_c360_profile`. The backend reads them with five simple `SELECT *` **snapshot queries** run concurrently through the `confluent-sql` driver — the aggregation work stays in Flink and only the summary rows cross the wire. This is the Streamhouse pattern: build analytics products in Flink, expose them through a plain query.
+1. Get the aggregation cross customers. Rather than pulling every customer row and folding it in the backend, the cross-customer aggregates are built in Flink as a **CRM analytic data product** — four small materialized tables ( `fct_crm_by_segment`, `fct_crm_by_generation`, `fct_crm_by_gender`, `fct_crm_by_country`) derived from `dim_customers`, plus the fact tables `fct_crm_summary`, and `fct_c360_profile`. The backend reads them with six simple `SELECT *` **snapshot queries** run concurrently through the `confluent-sql` driver — the aggregation work stays in Flink and only the summary rows cross the wire. This is the Streamhouse pattern: build analytics products in Flink, expose them through a plain query.
+
     ![](./images/fct_c360_profile_db.png)
 
     The backend also returns the elapsed time from a client point of view. A snapshot query spins up a Flink statement, so each runs in roughly 5–8s; the five run concurrently so the dashboard load is bounded by the slowest, not their sum.
 
 1. Use the snapshot query, which creates a Flink Statement, to get a data for a user:
+
     ![](./images/snap_query_carter.png)
+
     Same as above the query now has where condition on the customer name.
 
 1. We can do the same query with the new Real-time context engine, lightning query:
     ![](./images/LT_execution_carter.png)
 
-    We can see that it gets results in 605ms.
+    We can see that it gets results in 227ms.
 
 ### Demonstrate Real-time Context Engine
 
 There is a local LLM running in the background listening on http://localhost:7999/v1, so a OpenAPI compatible protocol. The backend is running an Agent with MCP tool defined in code, and the user interface support chatting with the customer 360 profile topic:
 
-![](./images/querying_with_chat_rtce.png)
+![](./images/app/querying_with_chat_rtce.png)
 
 * Examples of query to ask:
     - What is the profile of Mr Carter?
     - what about Mrs Walsh profile?
     - What is the current CRM metrics?
 
+
+### Complex Event Processing
+
+There are few Flink statements with sink as materialized table that are using the MATCH_RECOGNIZE function. To demonstrate those logics, we need controlled data. The CEP Patterns page offers 3 different scenarios:
+
+* **Fraud Probe:** Card-cloning telltale: a $2.99 verification charge on Carter's CHECKING account is immediately followed by two large charges ($899 + $749). Carter's SAVINGS account gets a benign $45 grocery charge that must NOT trigger the pattern — demonstrating per-account isolation.
+
+    ![](./images/app/cep_fraud.png)
+
+* **Loyalty signal:** Maria Gonzalez makes 3 consecutive FOOD transactions within 10 minutes — coffee, team lunch, client dinner — triggering the merchant-streak pattern. Useful for personalised offers.
+
+    ![](./images/app/cep_merchant_streak.png)
+
+* **SMB Spike:** Business expense anomaly: David Okafor (SMB) makes three large charges ($420 office supplies, $380 cloud software, $610 hardware) followed by a $1,200 expense reversal — all within 15 minutes. Flags the account for relationship-manager review.
+
+    ![](./images/app/cep_spike.png)
+
+TBC
 
 ### Verify data are in Postgresql tables. 
 

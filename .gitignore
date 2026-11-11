@@ -10,7 +10,7 @@
 
 # Superpowers SDD scratch workspace
 .superpowers/
-
+docs/superpowers/ 
 **/__pycache__/
 __pycache__/
 **/.env.j9r

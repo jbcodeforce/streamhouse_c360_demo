@@ -1,0 +1,126 @@
+# Local CDC stack: PostgreSQL 17 (wal_level=logical) + Debezium (Kafka Connect)
+# publishing Avro change events to Confluent Cloud (cdc.public.*).
+# Compose equivalent of start_local_pg_server.sh + start_debezium.sh.
+#
+# Usage (from IaC/local):
+#   docker compose --env-file ../../apps/backend/.env up -d --build
+#   # create tables + c360_cdc_publication + seed (once Postgres is healthy):
+#   (cd ../../apps/backend && DATABASE_URL="postgresql://dbadmin:localdevonly@localhost:5432/c360db?sslmode=disable" uv run python bootstrap.py)
+#   docker compose --env-file ../../apps/backend/.env logs -f debezium-connector
+#   docker compose --env-file ../../apps/backend/.env down
+#
+# The connector registration job retries until the publication exists, so it is
+# fine to run the bootstrap after `up`.
+#
+# Required (apps/backend/.env or exported): KAFKA_BOOTSTRAP_SERVERS, KAFKA_CLUSTER_ID,
+# KAFKA_API_KEY, KAFKA_API_SECRET, SCHEMA_REGISTRY_URL, SCHEMA_REGISTRY_API_KEY,
+# SCHEMA_REGISTRY_API_SECRET.
+# Optional: PG_PASSWORD (localdevonly), PG_PORT (5432), DEBEZIUM_PORT (8083),
+# PG_PUBLICATION (c360_cdc_publication), PG_SLOT (debezium_slot).
+
+name: c360-cdc
+
+x-kafka-creds: &kafka-creds
+  KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:?set KAFKA_BOOTSTRAP_SERVERS}
+  KAFKA_API_KEY: ${KAFKA_API_KEY:?set KAFKA_API_KEY}
+  KAFKA_API_SECRET: ${KAFKA_API_SECRET:?set KAFKA_API_SECRET}
+
+services:
+  postgres:
+    image: docker.io/library/postgres:17
+    container_name: c360-postgres
+    command: >
+      postgres
+      -c wal_level=logical
+      -c max_wal_senders=4
+      -c max_replication_slots=4
+    environment:
+      POSTGRES_DB: c360db
+      POSTGRES_USER: dbadmin
+      POSTGRES_PASSWORD: ${PG_PASSWORD:-localdevonly}
+    ports:
+      - "127.0.0.1:${PG_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dbadmin -d c360db -q"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  # One-shot: create the Kafka Connect storage topics (RF=3 required on Confluent Cloud).
+  debezium-topics:
+    image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+    user: "1001"
+    restart: "no"
+    environment:
+      <<: *kafka-creds
+      KAFKA_CLUSTER_ID: ${KAFKA_CLUSTER_ID:?set KAFKA_CLUSTER_ID}
+    volumes:
+      - ./create_debezium_topics.sh:/scripts/create_debezium_topics.sh:ro
+    entrypoint: ["/bin/bash", "/scripts/create_debezium_topics.sh"]
+
+  debezium:
+    build:
+      context: ./debezium
+    image: c360-debezium-connect:3.0.0.Final
+    container_name: c360-debezium
+    depends_on:
+      postgres:
+        condition: service_healthy
+      debezium-topics:
+        condition: service_completed_successfully
+    mem_limit: 2g
+    ports:
+      - "127.0.0.1:${DEBEZIUM_PORT:-8083}:8083"
+    environment:
+      <<: *kafka-creds
+      HEAP_OPTS: "-Xms256M -Xmx1G"
+      GROUP_ID: c360-debezium
+      CONFIG_STORAGE_TOPIC: my_connect_configs
+      OFFSET_STORAGE_TOPIC: my_connect_offsets
+      STATUS_STORAGE_TOPIC: my_connect_status
+      # Names must keep the CONNECT_ prefix or the image ignores them.
+      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: "3"
+      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: "3"
+      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: "3"
+      CONNECT_OFFSET_STORAGE_PARTITIONS: "25"
+      CONNECT_STATUS_STORAGE_PARTITIONS: "5"
+      CONNECT_SECURITY_PROTOCOL: SASL_SSL
+      CONNECT_SASL_MECHANISM: PLAIN
+      CONNECT_SASL_JAAS_CONFIG: &jaas "org.apache.kafka.common.security.plain.PlainLoginModule required username='${KAFKA_API_KEY}' password='${KAFKA_API_SECRET}';"
+      CONNECT_PRODUCER_SECURITY_PROTOCOL: SASL_SSL
+      CONNECT_PRODUCER_SASL_MECHANISM: PLAIN
+      CONNECT_PRODUCER_SASL_JAAS_CONFIG: *jaas
+      CONNECT_ADMIN_SECURITY_PROTOCOL: SASL_SSL
+      CONNECT_ADMIN_SASL_MECHANISM: PLAIN
+      CONNECT_ADMIN_SASL_JAAS_CONFIG: *jaas
+      CONNECT_CONSUMER_SECURITY_PROTOCOL: SASL_SSL
+      CONNECT_CONSUMER_SASL_MECHANISM: PLAIN
+      CONNECT_CONSUMER_SASL_JAAS_CONFIG: *jaas
+    # KAFKA_BOOTSTRAP_SERVERS may carry a "SASL_SSL://" prefix; strip it for BOOTSTRAP_SERVERS.
+    entrypoint:
+      - /bin/bash
+      - -c
+      - export BOOTSTRAP_SERVERS="$${KAFKA_BOOTSTRAP_SERVERS#*://}" && exec /docker-entrypoint.sh start
+
+  # One-shot: PUT the postgres-cdc connector config and wait for RUNNING.
+  # Retries (e.g. while the backend bootstrap has not yet created the publication).
+  debezium-connector:
+    image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+    user: "1001"
+    depends_on:
+      - debezium
+    restart: on-failure
+    environment:
+      CONNECT_URL: http://debezium:8083
+      PG_HOST: postgres
+      PG_USER: dbadmin
+      PG_PASSWORD: ${PG_PASSWORD:-localdevonly}
+      PG_DB: c360db
+      PG_PUBLICATION: ${PG_PUBLICATION:-c360_cdc_publication}
+      PG_SLOT: ${PG_SLOT:-debezium_slot}
+      SCHEMA_REGISTRY_URL: ${SCHEMA_REGISTRY_URL:?set SCHEMA_REGISTRY_URL}
+      SCHEMA_REGISTRY_API_KEY: ${SCHEMA_REGISTRY_API_KEY:?set SCHEMA_REGISTRY_API_KEY}
+      SCHEMA_REGISTRY_API_SECRET: ${SCHEMA_REGISTRY_API_SECRET:?set SCHEMA_REGISTRY_API_SECRET}
+    volumes:
+      - ./debezium/register_connector.sh:/scripts/register_connector.sh:ro
+    entrypoint: ["/bin/bash", "/scripts/register_connector.sh"]
