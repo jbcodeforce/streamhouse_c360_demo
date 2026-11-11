@@ -55,6 +55,8 @@ export KAFKA_BOOTSTRAP_SERVERS="${KAFKA_BOOTSTRAP_SERVERS#SASL_PLAINTEXT://}"
 
 export FLINK_COMPUTE_POOL_ID=$(terraform -chdir="${CCLOUD_DIR}" output -raw flink_compute_pool_id 2>/dev/null || true)
 export FLINK_CRM_COMPUTE_POOL_ID=$(terraform -chdir="${CCLOUD_DIR}" output -raw flink_crm_compute_pool_id 2>/dev/null || true)
+# Dedicated snapshot-q-pool: every backend snapshot query runs here.
+export FLINK_SNAPSHOT_COMPUTE_POOL_ID=$(terraform -chdir="${CCLOUD_DIR}" output -raw flink_sn_compute_pool_id 2>/dev/null || true)
 # Flink API key/secret are scoped to (environment, region); sourcing them here
 # keeps them matched to FLINK_ENV_ID instead of drifting to a stale environment.
 export FLINK_API_KEY=$(terraform -chdir="${CCLOUD_DIR}" output -raw flink_api_key_id 2>/dev/null || true)
@@ -130,6 +132,7 @@ env_vars = {
     "KAFKA_API_SECRET": os.environ.get("KAFKA_API_SECRET") or None,
     "FLINK_COMPUTE_POOL_ID": os.environ.get("FLINK_COMPUTE_POOL_ID") or None,
     "FLINK_CRM_COMPUTE_POOL_ID": os.environ.get("FLINK_CRM_COMPUTE_POOL_ID") or None,
+    "FLINK_SNAPSHOT_COMPUTE_POOL_ID": os.environ.get("FLINK_SNAPSHOT_COMPUTE_POOL_ID") or None,
     "FLINK_API_KEY": os.environ.get("FLINK_API_KEY") or None,
     "FLINK_API_SECRET": os.environ.get("FLINK_API_SECRET") or None,
     "FLINK_REST_ENDPOINT": os.environ.get("FLINK_REST_ENDPOINT") or None,

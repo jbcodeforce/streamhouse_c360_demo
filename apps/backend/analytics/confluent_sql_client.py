@@ -22,15 +22,17 @@ import config
 
 logger = logging.getLogger(__name__)
 
-# Settings `confluent_sql.connect()` needs. The environment resolves the Flink
-# catalog, so no FLINK_CATALOG; the cluster display name (FLINK_DATABASE) plus
+# Settings `confluent_sql.connect()` needs. Snapshot queries run on the dedicated
+# snapshot-q-pool (FLINK_SNAPSHOT_COMPUTE_POOL_ID, Terraform `sn_pool`) — never
+# on the pipeline pools, and with no fallback to them. The environment resolves
+# the Flink catalog, so no FLINK_CATALOG; the cluster display name (FLINK_DATABASE) plus
 # its id (KAFKA_CLUSTER_ID) resolve the database without a CMK lookup.
 _CONFIG_FIELDS = (
     "FLINK_ORG_ID",
     "FLINK_ENV_ID",
     "CLOUD_PROVIDER",
     "CLOUD_REGION",
-    "FLINK_COMPUTE_POOL_ID",
+    "FLINK_SNAPSHOT_COMPUTE_POOL_ID",
     "FLINK_API_KEY",
     "FLINK_API_SECRET",
     "FLINK_DATABASE",
@@ -70,7 +72,7 @@ class ConfluentSqlClient:
                 environment_id=s.FLINK_ENV_ID,
                 cloud_provider=s.CLOUD_PROVIDER,
                 cloud_region=s.CLOUD_REGION,
-                compute_pool_id=s.FLINK_COMPUTE_POOL_ID,
+                compute_pool_id=s.FLINK_SNAPSHOT_COMPUTE_POOL_ID,
                 flink_api_key=s.FLINK_API_KEY,
                 flink_api_secret=s.FLINK_API_SECRET,
                 database=s.FLINK_DATABASE,

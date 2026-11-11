@@ -18,7 +18,7 @@ _SETTINGS = SimpleNamespace(
     FLINK_ENV_ID="env",
     CLOUD_PROVIDER="aws",
     CLOUD_REGION="us-west-2",
-    FLINK_COMPUTE_POOL_ID="pool",
+    FLINK_SNAPSHOT_COMPUTE_POOL_ID="lfcp-snapshot",
     FLINK_API_KEY="k",
     FLINK_API_SECRET="s",
     FLINK_DATABASE="db",
@@ -88,3 +88,28 @@ def test_query_closes_cursor_and_connection(monkeypatch):
     ConfluentSqlClient(_SETTINGS).query("SELECT a FROM t")
     assert cursor.closed is True
     assert conn.closed is True
+
+
+def test_query_runs_on_the_snapshot_compute_pool(monkeypatch):
+    captured = {}
+
+    def fake_connect(**kw):
+        captured.update(kw)
+        return _FakeConn(_FakeCursor(description=[("a",)], rows=[(1,)]))
+
+    monkeypatch.setattr(confluent_sql_client.confluent_sql, "connect", fake_connect)
+    # A pipeline pool is also configured; it must never be used for snapshot queries.
+    settings = SimpleNamespace(**{**_SETTINGS.__dict__, "FLINK_COMPUTE_POOL_ID": "lfcp-c360"})
+    ConfluentSqlClient(settings).query("SELECT a FROM t")
+    assert captured["compute_pool_id"] == "lfcp-snapshot"
+
+
+def test_query_does_not_fall_back_to_the_pipeline_pool(monkeypatch):
+    def boom(**kw):  # pragma: no cover - must not be called
+        raise AssertionError("connect must not be called without the snapshot pool")
+
+    monkeypatch.setattr(confluent_sql_client.confluent_sql, "connect", boom)
+    settings = SimpleNamespace(
+        **{**_SETTINGS.__dict__, "FLINK_SNAPSHOT_COMPUTE_POOL_ID": None, "FLINK_COMPUTE_POOL_ID": "lfcp-c360"}
+    )
+    assert ConfluentSqlClient(settings).query("SELECT a FROM t") == []

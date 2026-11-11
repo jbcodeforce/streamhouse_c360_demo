@@ -24,3 +24,8 @@ This project is under heavy development. Still a little bit fragile.
 
 [See the list of features/capabilities demonstrated in this repository](https://jbcodeforce.github.io/streamhouse_c360_demo/#capabilities-demonstrated).
 
+## 🙏 Support my work
+
+Love it? Give it a ⭐️ by clicking below:
+
+<a href="https://github.com/jbcodeforce/streamhouse_c360_demo/stargazers"><img src="https://img.shields.io/github/stars/jbcodeforce/streamhouse_c360_demo/?style=social" style="margin-left:0;box-shadow:none;border-radius:0;height:24px"></a>

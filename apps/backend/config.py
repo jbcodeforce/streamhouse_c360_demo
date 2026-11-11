@@ -99,6 +99,12 @@ class Settings(BaseSettings):
     # billed CFUs per pool. Wired from Terraform output flink_crm_compute_pool_id
     # by scripts/set_env_from_tf.sh.
     FLINK_CRM_COMPUTE_POOL_ID: str | None = None
+    # Dedicated pool (`<prefix>-snapshot-q-pool`) that ALL Flink SQL snapshot
+    # queries run on (analytics dashboard + by-id profile lookups), kept apart
+    # from the pipeline pools so interactive reads never compete with the streaming
+    # statements. Wired from Terraform output flink_sn_compute_pool_id by
+    # scripts/set_env_from_tf.sh. No fallback to FLINK_COMPUTE_POOL_ID.
+    FLINK_SNAPSHOT_COMPUTE_POOL_ID: str | None = None
     FLINK_REST_ENDPOINT: str | None = None
     # Catalog/database for Flink SQL snapshot queries — the Confluent Cloud
     # environment and Kafka cluster *display names* (not their IDs).
@@ -160,6 +166,7 @@ class Settings(BaseSettings):
             "FLINK_REST_ENDPOINT": self.FLINK_REST_ENDPOINT or "None",
             "FLINK_COMPUTE_POOL_ID": self.FLINK_COMPUTE_POOL_ID or "None",
             "FLINK_CRM_COMPUTE_POOL_ID": self.FLINK_CRM_COMPUTE_POOL_ID or "None",
+            "FLINK_SNAPSHOT_COMPUTE_POOL_ID": self.FLINK_SNAPSHOT_COMPUTE_POOL_ID or "None",
             "RTCE_LIGHTNING": (
                 "configured"
                 if (self.CLOUD_REGION and self.KAFKA_CLUSTER_ID and self.CONFLUENT_GLOBAL_KEY)

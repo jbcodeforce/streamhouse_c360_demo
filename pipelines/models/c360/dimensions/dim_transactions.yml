@@ -24,6 +24,16 @@ models:
     data_type: DECIMAL
   - name: currency
     data_type: string
+  - name: currency_code_numeric
+    data_type: string
+  - name: currency_name
+    data_type: string
+  - name: customer_country
+    data_type: string
+  - name: customer_country_alpha3
+    data_type: string
+  - name: customer_country_name
+    data_type: string
   - name: comments
     data_type: string
   - name: merchant_name

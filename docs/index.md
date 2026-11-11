@@ -115,7 +115,7 @@ Confluent has developed two Python modules: [`dbt-confluent`](https://pypi.org/p
 
 
 <figure markdown='span'>
-![](./diagrams/dbt_cc.drawio.png)
+![](./diagrams/dbt_cc.drawio.png){ width=600 }
 <caption>dbt confluent plugin to deploy Flink streaming queries</caption>
 </figure>
 
@@ -164,22 +164,62 @@ WITH card_account AS (
     )
 ```
 
+Another example to get join from seed reference data:
+
+```sql
+    SELECT
+        t.*,
+        cur.currency_code_numeric,
+        cur.currency_name
+    FROM relevant_tx AS t
+    LEFT JOIN LATERAL SNAPSHOT(
+        input => TABLE {{ ref('currency_codes') }},
+        on_time => DESCRIPTOR($rowtime),
+        load_completed_idle_timeout => INTERVAL '30' SECONDS
+    ) AS cur
+    ON t.currency = cur.currency_code
+```
+
 
 ### Snapshot query
 
 dbt supports running materialized tables and streaming tables. The Confluent REST API exposes a "run Flink statement" operation that can also be used for snapshot queries. The backend application uses the [confluent-sql](https://pypi.org/project/confluent-sql/) module to demonstrate the integration inside a human-facing dashboard.
 
-[See this Confluent client code](https://github.com/jbcodeforce/streamhouse_c360_demo/blob/main/apps/backend/analytics/confluent_sql_client.py#L51).
+[See this Confluent client code](https://github.com/jbcodeforce/streamhouse_c360_demo/blob/main/apps/backend/analytics/confluent_sql_client.py#L51), which can be summarized as getting a connection using environment variables like the compute pool dedicated for snapshot queries:
+
+```python
+s = self._settings
+try:
+    conn = confluent_sql.connect(
+        organization_id=s.FLINK_ORG_ID,
+        environment_id=s.FLINK_ENV_ID,
+        cloud_provider=s.CLOUD_PROVIDER,
+        cloud_region=s.CLOUD_REGION,
+        compute_pool_id=s.FLINK_SNAPSHOT_COMPUTE_POOL_ID,
+        flink_api_key=s.FLINK_API_KEY,
+        flink_api_secret=s.FLINK_API_SECRET,
+        database=s.FLINK_DATABASE,
+        database_kafka_cluster_id=s.KAFKA_CLUSTER_ID,
+    )
+    ...
+    cur = conn.cursor()  # snapshot mode is the default
+    cur.execute(sql)
+    columns = [d[0] for d in (cur.description or [])]
+```
 
 ### Lightning query
 
 The Confluent Cloud [Real-Time Context Engine]() (RTCE) exposes a Flink-maintained table for current-state point lookups over HTTP: a single synchronous POST returns the
 table's current rows in milliseconds.
 
-The request uses HTTP Basic auth with a dedicated *Global* resource API key (``CONFLUENT_GLOBAL_KEY``/``SECRET``,
-provisioned by ``IaC/ccloud/lightning.tf``) and a body scoped by ``catalog_name`` = environment *ID* and ``database_name`` = Kafka cluster *ID* (IDs, not the display names that the Flink SQL Statements API uses).
+The request uses HTTP Basic auth with a dedicated *Global* resource API key (``CONFLUENT_GLOBAL_KEY``/``SECRET``, provisioned by ``IaC/ccloud/lightning.tf``) and a body scoped by ``catalog_name`` = environment *ID* and ``database_name`` = Kafka cluster *ID* (IDs, not the display names that the Flink SQL Statements API uses).
 
-See the [code reference](https://github.com/jbcodeforce/streamhouse_c360_demo/blob/main/apps/backend/analytics/lightning_client.py).
+See the [HTTP client code reference](https://github.com/jbcodeforce/streamhouse_c360_demo/blob/main/apps/backend/analytics/lightning_client.py).
+
+<figure markdown='span'>
+![](./diagrams/app/LT_app_flow.drawio.png){ width=600 }
+<caption>Chat with the Real-Time Context Engine</caption>
+</figure>
 
 ### Complex event processing for fraud detection
 
@@ -188,24 +228,35 @@ Because the use case is based on transactions, it is easy to demonstrate fraud d
 ### Chat with business data leveraging the Real-Time Context Engine
 
 The frontend exposes a panel with a chat interface that demonstrates a local LLM calling a tool to query the Confluent Real-Time Context Engine for data exposed with Lightning tables.
-
-
 <figure markdown='span'>
-![](./diagrams/chat_rtce.drawio.png)
+![](./images/app/querying_with_chat_rtce.png){ width=500 }
 <caption>Chat with the Real-Time Context Engine</caption>
 </figure>
 
+The architecture looks like in the figure below:
+
+<figure markdown='span'>
+![](./diagrams/app/chat_rtce.drawio.png){ width=600 }
+<caption>Chat with the Real-Time Context Engine</caption>
+</figure>
+
+
 ### Flink pipeline lineage
 
-The REST API and the dbt manifest help build a Flink statement pipeline lineage, by data analytics product. An illustration can be seen in the screenshot below:
+The REST API and the dbt manifest help to build a Flink statement pipeline lineage, by data analytics product. The web interface lists the current data analytics products:
 
+<figure markdown='span'>
+![](./images/app/select_data_products.png)
+</figure>
+
+Once one is selected we can see the Flink statements lineage:
 
 <figure markdown='span'>
 ![](./images/statement_graph.png)
 <caption>Flink Statement Graph</caption>
 </figure>
 
-The code that supports the implementation is in []()
+The code that supports the implementation is in [backend/data_products/confluent_client.py](https://github.com/jbcodeforce/streamhouse_c360_demo/blob/main/apps/backend/data_products/confluent_client.py). 
 
 ### Billing aggregation
 
@@ -220,11 +271,9 @@ The frontend also exposes the monthly dollar amount per Flink pipeline:
 ### Others to finalize
 * [ ] Sliding window aggregations over transactions grouped by cardholder (1-minute to 1-day windows).
 * [ ] How to propagate delete operations to the sink bucket.
-* [ ] Maintain data order for transactional systems.
 * [ ] Iceberg table and Tableflow enabled in dbt.
 * [ ] Tableflow catalog in sync with the AWS Glue Catalog.
 * [ ] AWS Athena integrated with the AWS Glue Catalog for the defined Kafka cluster, so the Iceberg tables can be seen and queried.
-* [ ] What monitoring and observability requirements exist?
 * [ ] Add a page after *Assistant*: take the matches of `fct_fraud_probe`, call an agent whose only tool is the RTCE MCP server over `fct_c360_profile`, and write its verdict to a `fraud_decisions` topic that the UI polls. It reuses everything already in place (the scripted CEP scenarios, the Lightning Table) and shows the three modes cooperating instead of competing. 
 
 ### Architecture
