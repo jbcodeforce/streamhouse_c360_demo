@@ -24,8 +24,8 @@ models:
   - name: tx_count
     data_type: bigint
   - name: spike_total
-    data_type: decimal
+    data_type: decimal(10,0)
   - name: reversal_amount
-    data_type: decimal
+    data_type: decimal(10,0)
   - name: reversal_time
     data_type: timestamp_ltz

@@ -28,6 +28,8 @@ With self-managed platform some streamhouse capabilities need to be stiched toge
 * Confluent Private Cloud
 * Confluent Gateway
 
+### Others
+* K-serve platform designed to standardize, scale, and manage machine learning (ML) model inference in production, on kubernetes. It uses the `InferenceService` Custom Resource to specify your model, runtime, and scaling options
 
 ### Self managing activities
 
