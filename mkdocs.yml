@@ -14,6 +14,7 @@ nav:
     - Confluent Cloud: sre_ccloud_tf.md
     - CC Console: sre_ccloud.md
     - Flink deploy: flink_deployment.md
+    - Confluent Platform: cp_sh.md
   - Demo Script: demo_script.md
   - Cleaning: cleanup.md
  
@@ -35,10 +36,10 @@ theme:
       - search.highlight
       - navigation.instant
       - navigation.instant.progress
-      - navigation.tabs
+      #- navigation.tabs
       - navigation.tabs.sticky
       - navigation.tracking
-      - navigation.sections
+      #- navigation.sections
       - navigation.expand
       - navigation.top
       - navigation.footer
