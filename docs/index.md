@@ -40,6 +40,19 @@ When the architecture is applied to the Confluent technology stack, Streamhouse 
 1. **Serve** is supported by Flink snapshot queries, Kafka sink connectors, and Tableflow, which writes Iceberg tables to object storage. The Real-Time Context Engine is also a serving layer for AI agents.
 1. **Governance** is done by Schema Registry and other end-to-end governance capabilities.
 
+
+### Shifting to real-time processing
+
+Preparing medallion layers is possible by using data already in Kafka. The classical batch processing can be shifted to the left of the architecture, by doing transformation, filtering, deduplication to build the silver layer in Kafka Topic using Flink processing. 
+
+<figure markdown='span'>
+![](./diagrams/raw-to-sink.drawio.png)
+</figure>
+
+The business logic that applies to data in Kafka topics so in Flink tables can be built in Flink to create gold records. Those gold records, representing dimensions and facts, can be persisted for long term in object storages, in Iceberg Tables. An external query engines, and federated catalog can be used on top of those Iceberg Tables.  Most of the logic done in batch should be easily ported to real-time processing. Still some consideration like state size, running all time streaming processing, time and watermark add to the semantic complexity.
+
+Adopting an event-driven architecture, silver and gold topics/ business events are reusable and not just usable for analytic query engines.
+
 ## Capabilities demonstrated
 
 ### Hybrid ingestion
