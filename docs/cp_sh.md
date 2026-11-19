@@ -30,6 +30,7 @@ With self-managed platform some streamhouse capabilities need to be stiched toge
 
 ### Others
 * K-serve platform designed to standardize, scale, and manage machine learning (ML) model inference in production, on kubernetes. It uses the `InferenceService` Custom Resource to specify your model, runtime, and scaling options
+* KubeRay
 
 ### Self managing activities
 

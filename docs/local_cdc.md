@@ -1,216 +1,191 @@
-# Debezium CDC Setup: PostgreSQL → Confluent Cloud Kafka
+# Local CDC: PostgreSQL → Debezium → Confluent Cloud
 
-This guide configures local PostgreSQL with Change Data Capture (CDC) via Debezium, streaming database changes to Confluent Cloud Kafka.
+Run the CDC path entirely on your workstation: a local PostgreSQL 17 container and a Debezium (Kafka Connect) container publish Avro change events to Confluent Cloud Kafka. This replaces the managed connector in `IaC/connector/` and the RDS instance in `IaC/AWS/`.
 
 ## Architecture
 
-
 ![](./diagrams/local/local_cdc.drawio.png)
 
+## Prerequisites
+
+- macOS with the Apple [`container`](https://github.com/apple/container) CLI.
+- [`uv`](https://docs.astral.sh/uv/) (used by the backend bootstrap).
+- A Confluent Cloud environment (see `IaC/ccloud/`).
 
 ## Getting Started
-### 1. Set Confluent Cloud Credentials
 
-All the environment variables need to be defined in `apps/backend/.env`, which can be jumpstarted from the terraform output, via the command:
+### 1. Set Confluent Cloud credentials
+
+All variables live in `apps/backend/.env` (gitignored). Generate it from the Terraform outputs:
 
 ```sh
 ./scripts/set_env_from_tf.sh
 ```
 
-### 2. Start Dev Stack with CDC
+Debezium needs `KAFKA_BOOTSTRAP_SERVERS`, `KAFKA_API_KEY`, `KAFKA_API_SECRET`, `SCHEMA_REGISTRY_URL`, `SCHEMA_REGISTRY_API_KEY` and `SCHEMA_REGISTRY_API_SECRET`. Variables already exported in your shell take precedence over the file.
 
-The following commands work with MacOS `container` cli. 
+### 2. Start the stack
 
-* Start the Apple container runtime:
-   ```sh
-   container system start 
-   ```
+```sh
+# Start the Apple container runtime
+container system start
 
-* Start Postgresql
-   ```sh
-   cd IaC/local
-    ./start_local_pg_server.sh
-   ```
-* Configure PostgreSQL for logical replication
-   ```sh
-   cd IaC/local
-   ./configure_pg_cdc.sh
-   ```
+cd IaC/local
 
-* Start the Connector
-   ```bash
-   cd IaC/local
-   ./start_debezium.sh
-   # View logs
-   ./start_debezium.sh --logs
-   ```
+# PostgreSQL 17 with wal_level=logical, plus schema, publication and seed data
+./start_local_pg_server.sh --seed
 
-   This configuration matches the managed connector defined in `IaC/connector/connector.tf`.
+# Debezium worker + connector (waits until the connector is RUNNING)
+./start_debezium.sh
+```
 
-* Verify running containers:
-   ```sh
-   container ls
-   ```
+`--seed` runs `apps/backend/bootstrap.py`, which creates the tables, the `c360_cdc_publication` publication and the seed data. The Postgres container is already started with `wal_level=logical`, so no extra CDC configuration step is needed.
 
-   you should get:
+Or run both through the dev script: `./scripts/run_dev.sh --cdc`.
 
-   ```sh
-   ID             IMAGE                                                OS     ARCH   STATE    IP                CPUS  MEMORY   STARTED
-   c360-debezium  quay.io/debezium/connect:3.0.0.Final                 linux  arm64  running  192.168.64.66/24  4     2048 MB  2026-11-10T18:10:56Z
-   c360-postgres  docker.io/library/postgres:17                        linux  arm64  running  192.168.64.64/24  4     1024 MB  2026-11-10T17:58:24Z
-   ```
+Verify the containers:
 
+```sh
+container ls
+```
 
-* Apple's native container CLI does not natively support docker-compose.yml files. For other platform the IaC/local folder includes a docker-compose file. NOT TESTED YET
-   ```sh
-   cd IaC/local
-   docker compose --env-file ../../apps/backend/.env up -d --build
-   # once Postgres is healthy: create tables, the publication and seed data
-   (cd ../../apps/backend && DATABASE_URL="postgresql://dbadmin:localdevonly@localhost:5432/c360db?sslmode=disable" uv run python bootstrap.py)
-   docker compose --env-file ../../apps/backend/.env logs -f debezium-connector
-   ```
+```text
+ID              IMAGE                                  OS     ARCH   STATE    IP                CPUS  MEMORY   STARTED
+c360-debezium   quay.io/debezium/connect:3.0.0.Final   linux  arm64  running  192.168.64.66/24  4     2048 MB  2026-11-10T18:10:56Z
+c360-postgres   docker.io/library/postgres:17          linux  arm64  running  192.168.64.64/24  4     1024 MB  2026-11-10T17:58:24Z
+```
 
-### 3.1 Verify Pipeline
+#### Other platforms (docker compose, untested)
 
-Once running, CDC captures tables in `public` schema. Check Confluent Cloud console for topics:
+The Apple `container` CLI does not support `docker-compose.yml`. On other platforms, `IaC/local/` includes a compose file. It has **not been tested yet**.
+
+```sh
+cd IaC/local
+docker compose --env-file ../../apps/backend/.env up -d --build
+
+# Once Postgres is healthy: create tables, publication and seed data
+(cd ../../apps/backend && \
+  DATABASE_URL="postgresql://dbadmin:localdevonly@localhost:5432/c360db?sslmode=disable" \
+  uv run python bootstrap.py)
+
+docker compose --env-file ../../apps/backend/.env logs -f debezium-connector
+```
+
+### 3. Verify the pipeline
+
+**Kafka topics.** Debezium captures the `public` schema tables listed below. In the Confluent Cloud console, check for the topics:
 
 - `cdc.public.accounts`
+- `cdc.public.cards`
 - `cdc.public.customers`
 - `cdc.public.transactions`
-- `cdc.public.cards`
 
-### 3.2 Verify Data in Postgresql
+**Connector status:**
 
-Bob, VScode, Cursor have postgresql plugin to access local server.
+```sh
+curl -s http://localhost:8083/connectors/postgres-cdc/status | jq
+```
+
+**PostgreSQL data.** Use any PostgreSQL client or IDE plugin (Bob, VS Code, Cursor) on `localhost:5432`:
 
 <figure markdown='span'>
 ![](./images/postgresql-tables-vscode.png)
 </figure>
 
-### 4. Stopping Everything
+### 4. Stop and reset
 
-* Debeziun
-   ```bash
-   # Stop Debezium
-   (cd IaC/local && ./start_debezium.sh --stop)
+```sh
+cd IaC/local
 
-   # Reset (fresh start)
-   (cd IaC/local && ./start_debezium.sh --reset)
-   ```
+# Debezium
+./start_debezium.sh --stop         # stop and remove the worker
+./start_debezium.sh --reset        # recreate the worker (Kafka state kept)
+./start_debezium.sh --full-reset   # also wipe Connect topics and drop the replication slot (forces a re-snapshot)
 
-* Postgreql Server
-   ```bash
-   # Stop PostgreSQL
-   (cd IaC/local && ./start_local_pg_server.sh --stop)
+# PostgreSQL
+./start_local_pg_server.sh --stop    # stop and remove the container
+./start_local_pg_server.sh --reset   # fresh container (data is lost)
+```
 
-   # Reset (fresh start)
-   (cd IaC/local && ./start_local_pg_server.sh --reset)
-   ```
-
+After resetting PostgreSQL, run `./start_debezium.sh --full-reset` so the replication slot and offsets match the new database.
 
 ## Configuration
 
-### PostgreSQL CDC Settings
+### PostgreSQL
 
-Set in `configure_pg_cdc.sh` via environment or container:
+Set by `start_local_pg_server.sh` when starting the container:
 
-- **wal_level**: `logical` (enables CDC)
-- **max_wal_senders**: 4 (concurrent replication connections)
-- **max_replication_slots**: 4 (replication slot limit)
-- **Replication slot**: `debezium_slot`
-- **Publication**: `debezium_pub` (all tables in `cdc` schema)
+| Setting | Value |
+|---|---|
+| `wal_level` | `logical` |
+| `max_wal_senders` | `4` |
+| `max_replication_slots` | `4` |
+| Publication | `c360_cdc_publication` (created by the backend bootstrap) |
+| Replication slot | `debezium_slot` (created by Debezium) |
 
-### Debezium Connector Settings
+Optional overrides (defaults shown):
 
-**Base connector config**: `IaC/local/debezium-postgres.conf`
-
-- Matches managed connector in `IaC/connector/connector.tf`
-- Captures: `cdc.public.accounts`, `cdc.public.customers`, `cdc.public.transactions`
-- Format: AVRO (with Confluent Schema Registry)
-- Topic prefix: `cdc`
-
-```
-# Database connection
-database.hostname=localhost
-database.port=5432
-database.user=dbadmin
-database.password=localdevonly
-database.dbname=c360db
-
-# Replication
-plugin.name=pgoutput
-database.publication.name=debezium_pub
-database.slot.name=debezium_slot
-
-# Table selection
-table.include.list=cdc\.\*
-
-# Kafka output
-producer.bootstrap.servers=pkc-v12gj.us-east-2.aws.confluent.cloud:9092
-producer.security.protocol=SASL_SSL
-producer.sasl.mechanism=PLAIN
-
-# CDC options
-snapshot.mode=initial
-decimal.handling.mode=string
-tombstones.on.delete=true
-```
-
-**Runtime credentials injection**: Confluent Cloud credentials are injected from environment into the runtime config:
-
-```bash
-# Required for Debezium to connect to Confluent Cloud
-export CONFLUENT_CLOUD_API_KEY=<key>
-export CONFLUENT_CLOUD_API_SECRET=<secret>
-export CONFLUENT_CLOUD_BOOTSTRAP_SERVER=pkc-v12gj.us-east-2.aws.confluent.cloud:9092
-```
-
-Add these to `apps/backend/.env` (via `ENV_CONFIG_FILE`) or export in your shell before running `./scripts/run_dev.sh --cdc`.
-
-**Optional PostgreSQL overrides** (defaults shown):
-
-```bash
+```sh
 export LOCAL_PG_USER=dbadmin
 export LOCAL_PG_PASSWORD=localdevonly
-export LOCAL_PG_HOST=localhost
-export LOCAL_PG_PORT=5432
 export LOCAL_PG_DB=c360db
+export PG_PORT=5432
 ```
 
+### Debezium connector
+
+`start_debezium.sh` is the single entry point. It checks Postgres, creates the Connect storage topics (`my_connect_configs`, `my_connect_offsets`, `my_connect_status`, replication factor 3), downloads the Confluent Avro converter, starts the `c360-debezium` worker (REST API on `localhost:8083`) and applies the `postgres-cdc` connector with an idempotent `PUT /connectors/postgres-cdc/config`.
+
+| Setting | Value |
+|---|---|
+| Plugin | `pgoutput` |
+| Publication | `c360_cdc_publication` (`publication.autocreate.mode=disabled`) |
+| Slot | `debezium_slot` |
+| Tables | `public.accounts`, `public.cards`, `public.customers`, `public.transactions` |
+| Topic prefix | `cdc` → `cdc.public.<table>` |
+| Format | Avro key and value, via Confluent Schema Registry |
+| Snapshot | `snapshot.mode=initial` |
+| Tombstones | `tombstones.on.delete=true` |
+| Topic creation | 6 partitions, replication factor 3 |
+
+The connector reaches Postgres through the container IP (read from `container list`), not `localhost`, which inside the Debezium container would be the container itself.
 
 ## Troubleshooting
 
 ### Debezium container won't start
 
-Check logs:
-
-```bash
+```sh
 (cd IaC/local && ./start_debezium.sh --logs)
 ```
 
-Common issues:
-- PostgreSQL not running: start with `./start_local_pg_server.sh`
-- PostgreSQL not configured for CDC: run `./configure_pg_cdc.sh`
-- Confluent Cloud credentials missing: add to `apps/backend/.env` or export `CONFLUENT_CLOUD_*` vars
-- Base config file missing: ensure `IaC/local/debezium-postgres.conf` exists
+Common causes:
 
-### No messages appearing in Confluent Cloud
+- PostgreSQL is not running: `./start_local_pg_server.sh`.
+- `wal_level` is not `logical` (container started elsewhere): recreate it with `./start_local_pg_server.sh --reset --seed`.
+- Confluent Cloud or Schema Registry credentials are missing from `apps/backend/.env` and the shell.
+- The publication does not exist: run the backend bootstrap (`./start_local_pg_server.sh --seed`).
 
-1. Verify PostgreSQL replication slot exists:
-   ```bash
+### No messages in Confluent Cloud
+
+1. Check that the replication slot exists:
+
+   ```sh
    container exec c360-postgres psql -U dbadmin -d c360db -c "SELECT * FROM pg_replication_slots;"
    ```
 
-2. Verify publication captures tables in `cdc` schema:
-   ```bash
-   container exec c360-postgres psql -U dbadmin -d c360db -c "SELECT * FROM pg_publication_tables WHERE pubname='debezium_pub';"
+2. Check that the publication covers the tables:
+
+   ```sh
+   container exec c360-postgres psql -U dbadmin -d c360db -c "SELECT * FROM pg_publication_tables WHERE pubname='c360_cdc_publication';"
    ```
 
-### Replication slot already exists error
+3. Check the connector task state (see step 3).
 
-The slot exists from a previous run. Either reset PostgreSQL or drop it manually:
+### Replication slot already exists, or doesn't match
 
-```bash
-container exec c360-postgres psql -U postgres -c \
+The slot is left over from a previous run, or was created with a different plugin. The connector requires `pgoutput`. Run `./start_debezium.sh --full-reset`, or drop it manually:
+
+```sh
+container exec c360-postgres psql -U dbadmin -d c360db -c \
   "SELECT pg_drop_replication_slot('debezium_slot');"
 ```
