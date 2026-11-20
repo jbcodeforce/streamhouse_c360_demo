@@ -107,7 +107,12 @@ cd IaC/local
 ./start_local_pg_server.sh --reset   # fresh container (data is lost)
 ```
 
-After resetting PostgreSQL, run `./start_debezium.sh --full-reset` so the replication slot and offsets match the new database.
+A reset PostgreSQL container is empty: it has no tables and no `c360_cdc_publication`, and `start_debezium.sh` refuses to start without the publication. Recreate them with `--seed`, then reset Debezium so the replication slot and offsets match the new database:
+
+```sh
+./start_local_pg_server.sh --reset --seed
+./start_debezium.sh --full-reset
+```
 
 ## Configuration
 

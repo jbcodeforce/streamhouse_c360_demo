@@ -17,6 +17,7 @@ def test_one_debit_card_per_checking_account():
     assert len(card_account_ids) == len(checking_ids)  # exactly one each
     assert all(c.card_type == "DEBIT" for c in cards)
     assert all(c.credit_limit is not None for c in cards)
+    assert all(c.created_at is not None for c in cards)
 
 
 def test_card_ids_are_stable_across_loads():

@@ -13,6 +13,7 @@ For each approach the following activities are common:
 
 * [Deploying the Flink pipeline](./flink_deployment.md) to build the customer 360 analytics profile using Confluent dbt.
 * [See dedicated 'demo script' note](./demo_script.md) to run the application with local components.
+* [Jupyter Notebook for Ad-hoc Analytics](#data-science-and-ad-hoc-analytics-with-jupyter-notebook): Explore the Real-Time Context Engine / Lightning Table using Python and Pandas (`notebooks/c360_profile_lightning_query.ipynb`).
 
 ## Run with a remote database server
 
@@ -340,9 +341,43 @@ There are few Flink statements with sink as materialized table that are using th
 
     ![](./images/app/cep_spike.png)
 
-TBC
+### Data Science and Ad-hoc Analytics with Jupyter Notebook
 
-### Verify data are in Postgresql tables. 
+The repository includes a ready-to-run Jupyter notebook at [`notebooks/c360_profile_lightning_query.ipynb`](https://github.com/jbcodeforce/streamhouse_c360_demo/blob/main/notebooks/c360_profile_lightning_query.ipynb) demonstrating how data scientists, ML engineers, and analysts can interactively query the real-time Customer 360 profile (`fct_c360_profile`) directly from Python using Confluent Cloud's **Lightning Query API** / **Real-Time Context Engine (RTCE)**.
+
+![](./images/notebook_and_LT.png)
+
+#### 1. Setup and Launch
+
+The `notebooks` directory is managed with Astral `uv` and includes all required dependencies (`httpx`, `pandas`, `python-dotenv`, `ipykernel`).
+
+```sh
+cd notebooks
+uv sync
+uv run jupyter lab
+# or: uv run jupyter notebook
+```
+
+Open `c360_profile_lightning_query.ipynb`.
+
+#### 2. Notebook Workflow & Demonstrations
+
+The notebook walks through:
+
+1. **Environment & Credential Auto-loading**: Automatically loads the Global API key (`CONFLUENT_GLOBAL_KEY` / `CONFLUENT_GLOBAL_SECRET`), Environment ID (`FLINK_ENV_ID`), Kafka Cluster ID (`KAFKA_CLUSTER_ID`), and Cloud region from `apps/backend/.env` or active environment variables.
+2. **Lightning Client Implementation**: Executes synchronous HTTP POST requests to `https://sql.{CLOUD_REGION}.{CLOUD_PROVIDER}.confluent.cloud/query/v1alpha1` and maps the JSON response rows and schema directly into a `pandas.DataFrame`.
+3. **Sample Profile Query**: Runs `SELECT * FROM fct_c360_profile LIMIT 10` across all 29 enriched customer dimensions and transaction aggregates.
+4. **Sub-second Point Lookups**: Demonstrates sub-second (< 300 ms) point lookups by primary key:
+    ```sql
+    SELECT customer_id, first_name, last_name, customer_segment,
+           yearly_income, credit_score, total_balance, txn_count, txn_total
+    FROM fct_c360_profile
+    WHERE customer_id = '00000000-0000-0000-0000-234567890124'
+    ```
+5. **Customer Segment Analysis**: Aggregates metrics (e.g., mean credit score, balance, and transaction volume) across customer segments (such as `SMB` and `PRIVATE`) using native Pandas `groupby` operations.
+6. **Schema & Types Inspection**: Displays column schemas and data types for all computed fields produced by the Flink SQL dbt pipeline.
+
+### Verify data are in Postgresql tables.
 
 * Start a session in psql:
     ```sh

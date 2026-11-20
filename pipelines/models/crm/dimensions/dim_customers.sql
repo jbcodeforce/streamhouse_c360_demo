@@ -29,7 +29,7 @@ WITH card_account AS (
     JOIN LATERAL SNAPSHOT(
         input => TABLE  {{ ref('src_cards') }},
         on_time => DESCRIPTOR($rowtime),
-        load_completed_idle_timeout => INTERVAL '30' SECONDS
+        load_completed_idle_timeout => INTERVAL '5' SECONDS
     ) AS c
     ON a.account_id = c.account_id
 ),

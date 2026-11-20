@@ -25,7 +25,7 @@
 #   DEBEZIUM_PORT            Host port for the Connect REST API (default: 8083)
 #   DEBEZIUM_CONTAINER_NAME  Container name (default: c360-debezium)
 #   PG_CONTAINER_NAME        Postgres container name (default: c360-postgres)
-#   LOCAL_PG_USER/PASSWORD/DB/PORT   Postgres connection (seepg_local_server.sh)
+#   LOCAL_PG_USER/PASSWORD/DB/PORT   Postgres connection (see start_local_pg_server.sh)
 #   PG_PUBLICATION           Publication to stream (default: c360_cdc_publication)
 #   PG_SLOT                  Replication slot (default: debezium_slot)
 # ─────────────────────────────────────────────────────────────────────────────
@@ -147,16 +147,18 @@ for c in json.load(sys.stdin):
 psql_pg() { container exec "${PG_CONTAINER_NAME}" psql -U "${LOCAL_PG_USER}" -d "${LOCAL_PG_DB}" -tA "$@"; }
 
 [[ "$(psql_pg -c 'SHOW wal_level')" == "logical" ]] || \
-  die "PostgreSQL wal_level is not 'logical'. Run ./configure_pg_cdc.sh or set it and restart Postgres."
+  die "PostgreSQL wal_level is not 'logical'. Recreate the container: ./start_local_pg_server.sh --reset --seed"
 [[ "$(psql_pg -c "SELECT count(*) FROM pg_publication WHERE pubname='${PG_PUBLICATION}'")" == "1" ]] || \
   die "Publication '${PG_PUBLICATION}' not found. Start the backend once
     (or run apps/backend/bootstrap.py) to create it."
 
 # A slot created by another plugin (e.g. test_decoding) would make the connector fail.
+# --full-reset drops the slot below, so it is the way out of this state.
 SLOT_PLUGIN="$(psql_pg -c "SELECT plugin FROM pg_replication_slots WHERE slot_name='${PG_SLOT}'")"
-if [[ -n "${SLOT_PLUGIN}" && "${SLOT_PLUGIN}" != "pgoutput" ]]; then
+if [[ "${DO_FULL_RESET}" != true && -n "${SLOT_PLUGIN}" && "${SLOT_PLUGIN}" != "pgoutput" ]]; then
   die "Replication slot '${PG_SLOT}' uses plugin '${SLOT_PLUGIN}', expected 'pgoutput'.
-    Drop it:  container exec ${PG_CONTAINER_NAME} psql -U ${LOCAL_PG_USER} -d ${LOCAL_PG_DB} -c \"SELECT pg_drop_replication_slot('${PG_SLOT}')\""
+    Run  $0 --full-reset  (drops the slot), or drop it:
+    container exec ${PG_CONTAINER_NAME} psql -U ${LOCAL_PG_USER} -d ${LOCAL_PG_DB} -c \"SELECT pg_drop_replication_slot('${PG_SLOT}')\""
 fi
 
 # ── Full reset: wipe Kafka-side state so the connector re-snapshots from scratch ─

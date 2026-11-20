@@ -16,3 +16,4 @@ __pycache__/
 **/.env.j9r
 **/logs/
 tmp/
+site/

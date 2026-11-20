@@ -37,7 +37,7 @@ When the architecture is applied to the Confluent technology stack, Streamhouse 
 1. **Capture** is done by different Kafka source connectors.
 1. **Transport** is supported by Kafka brokers and topics, with contracts in Schema Registry.
 1. **Transform** is done by Confluent Cloud for Flink, with stateless or stateful logic to build golden records and business events.
-1. **Serve** is supported by Flink snapshot queries, Kafka sink connectors, and Tableflow, which writes Iceberg tables to object storage. The Real-Time Context Engine is also a serving layer for AI agents.
+1. **Serve** is supported by Flink snapshot queries, Kafka sink connectors, and Tableflow, which writes Iceberg tables to object storage. The Real-Time Context Engine is also a serving layer for AI agents and interactive Jupyter data science notebooks.
 1. **Governance** is done by Schema Registry and other end-to-end governance capabilities.
 
 
@@ -233,6 +233,17 @@ See the [HTTP client code reference](https://github.com/jbcodeforce/streamhouse_
 ![](./diagrams/app/LT_app_flow.drawio.png){ width=600 }
 <caption>Chat with the Real-Time Context Engine</caption>
 </figure>
+
+### Interactive data science with Jupyter Notebooks & Lightning queries
+
+Data scientists and ML engineers can perform exploratory data analysis and feature extraction directly against the real-time Streamhouse state without waiting for batch ETL or staging database copies. By executing HTTP queries against Confluent Cloud's **Lightning Query API** (Real-Time Context Engine), results from golden record fact tables (like `fct_c360_profile`) return in milliseconds directly into Python `pandas.DataFrame` structures.
+
+A ready-to-run notebook is provided at [`notebooks/c360_profile_lightning_query.ipynb`](https://github.com/jbcodeforce/streamhouse_c360_demo/blob/main/notebooks/c360_profile_lightning_query.ipynb), illustrating:
+- Sub-second (< 300 ms) point lookups by customer primary key.
+- Customer segment analysis (e.g. `SMB` vs. `PRIVATE` average balances and transaction volumes).
+- Direct bridge between streaming state and Python data science / AI workflows.
+
+[See the demonstration script](./demo_script.md#data-science-and-ad-hoc-analytics-with-jupyter-notebook) for how to run the notebook.
 
 ### Complex event processing for fraud detection
 

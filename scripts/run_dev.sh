@@ -26,10 +26,11 @@
 # Options:
 #   --db local|rds   Force a target. Omit to auto-detect from $DATABASE_URL.
 #   --db-url URL     Override DATABASE_URL explicitly (implies a custom target).
-#   --cdc            Setup CDC: configure PostgreSQL + start Debezium server.
+#   --cdc            Setup CDC: start local PostgreSQL (schema, publication and
+#                    seed data) + start the Debezium worker. Implies --db local.
 #   --no-frontend    Start the backend only.
 #   --no-backend     Start the frontend only.
-#   --no-debezium    When --cdc is set, skip starting Debezium (configure PG only).
+#   --no-debezium    When --cdc is set, skip starting Debezium (start PG only).
 #   --check          Validate + print config, then exit without starting.
 #   -h, --help       Show this help.
 #
@@ -269,25 +270,22 @@ fi
 
 # CDC validation
 if $RUN_CDC; then
-  [[ -x "$LOCAL_IAC_DIR/configure_pg_cdc.sh" ]] \
-    || die "CDC setup script not found: $LOCAL_IAC_DIR/configure_pg_cdc.sh"
+  [[ -x "$LOCAL_IAC_DIR/start_local_pg_server.sh" ]] \
+    || die "Local PostgreSQL script not found: $LOCAL_IAC_DIR/start_local_pg_server.sh"
   if $RUN_DEBEZIUM; then
     [[ -x "$LOCAL_IAC_DIR/start_debezium.sh" ]] \
       || die "Debezium startup script not found: $LOCAL_IAC_DIR/start_debezium.sh"
-    [[ -n "${CONFLUENT_CLOUD_API_KEY:-}${CONFLUENT_CLOUD_BOOTSTRAP_SERVER:-}" ]] || \
-      warn "Confluent Cloud credentials not found. Add CONFLUENT_CLOUD_API_KEY, CONFLUENT_CLOUD_API_SECRET, and CONFLUENT_CLOUD_BOOTSTRAP_SERVER to backend/.env"
+    [[ -n "${KAFKA_BOOTSTRAP_SERVERS:-}" ]] || \
+      warn "KAFKA_BOOTSTRAP_SERVERS is not set. Run scripts/set_env_from_tf.sh to fill apps/backend/.env."
   fi
 fi
 
-# Reachability check for the local DB (best effort; warn only).
-if $RUN_BACKEND && [[ "$DB_TARGET" == "local" ]]; then
+# Reachability check for the local DB (best effort; warn only). With --cdc the
+# container is started below, so there is nothing to warn about.
+if $RUN_BACKEND && ! $RUN_CDC && [[ "$DB_TARGET" == "local" ]]; then
   if command -v nc >/dev/null 2>&1 && ! nc -z "$LOCAL_PG_HOST" "$LOCAL_PG_PORT" >/dev/null 2>&1; then
     warn "No PostgreSQL listening on ${LOCAL_PG_HOST}:${LOCAL_PG_PORT}."
-    if $RUN_CDC; then
-      warn "Start PostgreSQL with CDC enabled:  (cd IaC/local && ./start_local_pg_server.sh && ./configure_pg_cdc.sh)"
-    else
-      warn "Start it first:  (cd IaC/local && ./start_local_pg_server.sh)"
-    fi
+    warn "Start it first:  (cd IaC/local && ./start_local_pg_server.sh --seed)"
   fi
 fi
 
@@ -328,17 +326,19 @@ fi
 if $RUN_CDC; then
   log "Setting up CDC pipeline…"
 
-  log "Configuring PostgreSQL for CDC…"
-  ( cd "$LOCAL_IAC_DIR" && exec bash configure_pg_cdc.sh ) || \
-    die "Failed to configure PostgreSQL for CDC"
+  # The container starts with wal_level=logical. --seed creates the tables and
+  # the c360_cdc_publication that Debezium requires, and is idempotent.
+  log "Starting local PostgreSQL (schema, publication, seed data)…"
+  ( cd "$LOCAL_IAC_DIR" && bash start_local_pg_server.sh --seed ) || \
+    die "Failed to start and seed local PostgreSQL"
 
   if $RUN_DEBEZIUM; then
     log "Starting Debezium server…"
     ( cd "$LOCAL_IAC_DIR" && bash start_debezium.sh ) || \
       die "Failed to start Debezium server"
-    log "Debezium is ready. CDC events from cdc.* tables will flow to Confluent Cloud."
+    log "Debezium is ready. Changes to public.* tables will flow to cdc.public.* topics in Confluent Cloud."
   else
-    log "PostgreSQL configured for CDC (Debezium start skipped via --no-debezium)"
+    log "PostgreSQL is ready for CDC (Debezium start skipped via --no-debezium)"
   fi
 fi
 

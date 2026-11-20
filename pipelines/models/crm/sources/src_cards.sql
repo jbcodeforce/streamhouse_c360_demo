@@ -13,12 +13,13 @@
     ]
    ) 
 }}
-select 
+select
     card_id,
     account_id,
-    card_brand, 
-    card_type, 
+    card_brand,
+    card_type,
     has_chip,
-    credit_limit 
+    credit_limit,
+    TO_TIMESTAMP_LTZ(created_at, 'yyyy-MM-dd''T''HH:mm:ss.SSSSSS''Z''') as created_at
 from {{ source('cdc', 'cards')}}
 where account_id IS NOT NULL

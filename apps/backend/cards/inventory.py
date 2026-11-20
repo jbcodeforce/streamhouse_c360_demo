@@ -23,6 +23,17 @@ def _card_id_for(card_number: str) -> UUID:
     return uuid5(_ACCOUNT_ID_NAMESPACE, f"card|{card_number}")
 
 
+_FIELDNAMES = [
+    "account_id",
+    "card_brand",
+    "card_type",
+    "card_number",
+    "expires",
+    "has_chip",
+    "credit_limit",
+    "created_at",
+]
+
 _cards: list[Card] = []
 
 
@@ -31,8 +42,10 @@ def _row_to_card(row: dict) -> Card:
     cleaned = {k: (v if v != "" else None) for k, v in row.items()}
     now = datetime.now(tz=timezone.utc)
     cleaned["card_id"] = _card_id_for(row["card_number"])
-    cleaned["created_at"] = now
-    cleaned["updated_at"] = now
+    if not cleaned.get("created_at"):
+        cleaned["created_at"] = now
+    if not cleaned.get("updated_at"):
+        cleaned["updated_at"] = cleaned["created_at"]
     return Card.model_validate(cleaned)
 
 

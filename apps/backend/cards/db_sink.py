@@ -27,6 +27,8 @@ _DDL_STATEMENTS = [
         updated_at      TIMESTAMPTZ     NOT NULL DEFAULT NOW()
     )
     """,
+    "ALTER TABLE cards ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+    "ALTER TABLE cards ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()",
     "CREATE INDEX IF NOT EXISTS idx_cards_account_id ON cards (account_id)",
     """
     CREATE OR REPLACE FUNCTION set_updated_at()

@@ -44,12 +44,11 @@ cd IaC/local
 Key behaviors to preserve:
 
 - **Credentials** come from `apps/backend/.env` (gitignored): `KAFKA_BOOTSTRAP_SERVERS`, `KAFKA_API_KEY/SECRET`, `SCHEMA_REGISTRY_URL`, `SCHEMA_REGISTRY_API_KEY/SECRET`. Already-exported variables win over the file.
-- **Connector config**: `pgoutput` plugin, publication `c360_cdc_publication` (owned by the backend bootstrap, `publication.autocreate.mode=disabled`), slot `debezium_slot`, tables `public.{accounts,customers,transactions}`, `topic.prefix=cdc` → `cdc.public.*`, Avro key/value converters against Schema Registry.
+- **Connector config**: `pgoutput` plugin, publication `c360_cdc_publication` (owned by the backend bootstrap, `publication.autocreate.mode=disabled`), slot `debezium_slot`, tables `public.{accounts,cards,customers,transactions}`, `topic.prefix=cdc` → `cdc.public.*`, Avro key/value converters against Schema Registry.
 - **Worker env vars** must use the `CONNECT_` prefix (e.g. `CONNECT_*_STORAGE_REPLICATION_FACTOR=3`) or the image ignores them. SASL settings are needed for the worker, producer, admin and consumer clients.
 - **Postgres is addressed by the container IP** (read from `container list`), not `localhost`, which inside the Debezium container is the container itself.
-- **Do not create the slot with `test_decoding`** (as `configure_pg_cdc.sh` does): the connector requires `pgoutput`, and `start_debezium.sh` aborts with the drop command if a mismatched slot exists. `configure_pg_cdc.sh` also creates `debezium_pub` on a `cdc` schema that does not exist; it is only needed to turn on `wal_level=logical`, and `./scripts/run_dev.sh --cdc` still calls it.
+- **The replication slot is created by Debezium** with `pgoutput`. Do not pre-create it with `test_decoding`: `start_debezium.sh` aborts if a mismatched slot exists, and `--full-reset` drops it. The Postgres container already starts with `wal_level=logical`, so no separate CDC configuration script is needed.
 - **The backend never produces `cdc.public.*`**: the Kafka producers and the `SINK` / `KAFKA_PRODUCE_ENABLED` / `CDC_CONNECTOR_ENABLED` settings were removed; all change events come from Debezium.
-- `debezium-postgres.conf` is a legacy reference and is not used by the scripts.
 
 ---
 
@@ -103,7 +102,7 @@ backend as `DATABASE_URL`. The schema's field definitions live in each service's
 Scripts for running services locally during development live under [`scripts`](scripts).
 
 - [`IaC/local/start_local_pg_server.sh`](IaC/local/start_local_pg_server.sh): Starts a CDC-ready (`wal_level=logical`) PostgreSQL 17 container via the **Apple Container CLI** (`container`) and, with `--seed`, runs the backend bootstrap (schema, `c360_cdc_publication`, seed data) against it.
-- [`scripts/run_dev.sh`](scripts/run_dev.sh): runs the dev stack; `--cdc` configures local Postgres and starts Debezium via [`IaC/local/`](IaC/local/) (see section 3), `--no-debezium` skips the Debezium step.
+- [`scripts/run_dev.sh`](scripts/run_dev.sh): runs the dev stack; `--cdc` starts and seeds local Postgres (`start_local_pg_server.sh --seed`) and starts Debezium via [`IaC/local/`](IaC/local/) (see section 3), `--no-debezium` skips the Debezium step.
 
 ```bash
 # Start container only

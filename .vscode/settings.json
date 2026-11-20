@@ -1,0 +1,10 @@
+{
+    "python.defaultInterpreterPath": "notebooks/.venv/bin/python",
+    "python.envFile": "apps/backend/.env",
+    "python.venvFolders": [
+        "notebooks/.venv",
+        "apps/backend/.venv"
+    ],
+    "python.terminal.useEnvFile": true,
+    "python.terminal.activateEnvironment": true
+}

@@ -1,6 +1,6 @@
 models:
 - name: src_cards
-  description: "Cleaned customers"
+  description: "Cleaned cards"
   columns:
   - name: card_id
     data_type: string
@@ -18,4 +18,6 @@ models:
     data_type: boolean
   - name: credit_limit
     data_type: decimal(18, 2)
+  - name: created_at
+    data_type: timestamp_ltz
 

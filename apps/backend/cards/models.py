@@ -13,6 +13,7 @@ class CardCreate(BaseModel):
     expires: date
     has_chip: bool = True
     credit_limit: Decimal | None = Field(default=None, ge=0)  # NULL for debit cards
+    created_at: datetime | None = None
 
 
 class Card(CardCreate):

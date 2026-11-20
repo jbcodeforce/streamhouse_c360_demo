@@ -1,93 +1,134 @@
 # Flink Project Management
 
-This section addresses the Flink pipeline definition and management using [Confluent dbt](https://pypi.org/project/dbt-confluent/) plugin.
+This section describes how the Flink pipelines are defined, deployed and removed with the [Confluent dbt](https://pypi.org/project/dbt-confluent/) plugin. The dbt project is in [`pipelines/`](https://github.com/jbcodeforce/streamhouse_c360_demo/tree/main/pipelines).
 
-1. To be able to connect to Confluent Cloud, we need to set the environment variables for API keys and secrets. The following script loads those from Terraform output
+## Prerequisites
+
+1. To connect to Confluent Cloud, dbt needs the API keys, secrets and ids as environment variables. This script loads them from the Terraform outputs (see [Defining Confluent Cloud Resources with Terraform](sre_ccloud_tf.md)):
+
     ```sh
     source ./scripts/set_env_from_tf.sh
     ```
 
-    As an alternate source the .env file under apps/backend/
+    As an alternative, load the `apps/backend/.env` file that the script writes:
 
-1. `dbt` needs models. The first layer is the references to existing CDC topics [see pipelines/models/sources.yaml](../pipelines/models/sources.yaml) file.
-
-    ```yaml
-    version: 2
-    sources:
-    - name: cdc
-    schema: "{{ env_var('KAFKA_CLUSTER_NAME') }}"
-    tables:
-    - name: customers
-        identifier: cdc.public.customers
-    - name: accounts
-        identifier: cdc.public.accounts
-        description: accounts information for a customer    
-    - name: transactions
-        identifier: cdc.public.transactions
-        description: Topic 'cdc.public.transactions' — registered via sl-dbt get-schema-existing-topic-to-dbt.
+    ```sh
+    set -a; source apps/backend/.env; set +a
     ```
 
-1. Be sure to modify your `.dbt/profiles.yml` with the following element.
-    ```yaml
-    cc_flink:
-        outputs:
-            dev:
-                cloud_provider: '{{ env_var(''CC_PROVIDER'') }}'
-                cloud_region: '{{ env_var('CC_REGION'') }}'
-                compute_pool_id: '{{ env_var('FLINK_COMPUTE_POOL_ID'') }}'
-                dbname: '{{ env_var('KAFKA_CLUSTER_NAME'') }}'
-                environment_id: '{{ env_var('ENVIRONMENT_ID'') }}'
-                execution_mode: streaming_query
-                flink_api_key: '{{ env_var(''FLINK_API_KEY'') }}'
-                flink_api_secret: '{{ env_var(''FLINK_API_SECRET'') }}'
-                organization_id: '{{ env_var(''CC_ORG_ID'') }}'
-                statement_label: dbt-confluent
-                statement_name_prefix: dbt-
-                threads: 4
-                type: confluent
-        target: dev
+1. Install the dbt dependencies (`dbt-core` and `dbt-confluent`, see [`pyproject.toml`](https://github.com/jbcodeforce/streamhouse_c360_demo/blob/main/pipelines/pyproject.toml)):
+
+    ```sh
+    cd pipelines
+    uv sync
     ```
 
-    This is a generic profile for Confluent Cloud  that uses environment variables to avoid sharing secrets in yaml file.
+1. Add the profile below to `~/.dbt/profiles.yml`. The profile name must be `j9r`, the value of `profile` in [`dbt_project.yml`](https://github.com/jbcodeforce/streamhouse_c360_demo/blob/main/pipelines/dbt_project.yml). It reads everything from environment variables, so no secret is stored in the file:
 
-1. Continue to create the following flink statements to filter and transform raw CDC topics, create dimension and fact for the analytics.
+    ```yaml
+    j9r:
+      outputs:
+        dev:
+          cloud_provider: "{{ env_var('CLOUD_PROVIDER') }}"
+          cloud_region: "{{ env_var('CLOUD_REGION') }}"
+          compute_pool_id: "{{ env_var('FLINK_COMPUTE_POOL_ID') }}"
+          dbname: "{{ env_var('KAFKA_CLUSTER_NAME') }}"
+          environment_id: "{{ env_var('FLINK_ENV_ID') }}"
+          execution_mode: streaming_query
+          flink_api_key: "{{ env_var('FLINK_API_KEY') }}"
+          flink_api_secret: "{{ env_var('FLINK_API_SECRET') }}"
+          organization_id: "<your-confluent-organization-id>"
+          statement_label: dbt-confluent
+          statement_name_prefix: dbt-
+          threads: 4
+          type: confluent
+      target: dev
+    ```
 
-The [path is pipelines/models/c360](../pipelines/models/c360)
+    `set_env_from_tf.sh` does not export the organization id. Get it from the Confluent Console, or with `confluent organization list`.
 
-| Source Table(s) | Folder Name | Sink Table | Goal |
-| ----------------| ------------ |-----------|-----|
-| cdc.public.accounts | sources | src_accounts | Deduplicate, flatten, filter, transform |
-| cdc.public.customers | sources | src_customers | eduplicate, flatten, filter, transform |
-| cdc.public.transactions| sources | src_transactions | eduplicate, flatten, filter, transform |
-| src_customers | dimension |  dim_customers| Compute customer dimension |
-| src_customers, src_account | dimension |  dim_customers| Compute transaction cross account metrics |
-| dim_customers, | facts | fct_c360_profiles |
+    The `compute_pool_id` of the profile is overridden per data product in `dbt_project.yml`: `c360` models run on `FLINK_COMPUTE_POOL_ID` and `crm` models run on `FLINK_CRM_COMPUTE_POOL_ID`. This lets the Cost API attribute the cost per product.
+
+## Pipeline definition
+
+### Sources
+
+The first layer of models references the existing CDC topics, declared in [`pipelines/models/sources.yaml`](https://github.com/jbcodeforce/streamhouse_c360_demo/blob/main/pipelines/models/sources.yaml):
+
+```yaml
+version: 2
+sources:
+- name: cdc
+  schema: "{{ env_var('KAFKA_CLUSTER_NAME') }}"
+  tables:
+  - name: customers
+    identifier: cdc.public.customers
+  - name: accounts
+    identifier: cdc.public.accounts
+    description: accounts information for a customer
+  - name: transactions
+    identifier: cdc.public.transactions
+    description: Topic 'cdc.public.transactions'.
+  - name: cards
+    identifier: cdc.public.cards
+    description: Topic 'cdc.public.cards'.
+```
+
+### Models
+
+The models are organized by data product under [`pipelines/models`](https://github.com/jbcodeforce/streamhouse_c360_demo/tree/main/pipelines/models): `c360`, `crm` and `fraud`. Each product has a `sources`, `dimensions` and `facts` folder, and each model has a `.sql` file and a `.yml` file. Models are linked with `ref()`, so a model can depend on a model of another product: the `c360` dimensions use `src_accounts` and `dim_customers` from `crm`.
 
 ```sh
+models
 ├── c360
-│   ├── dimensions
-│   │   ├── dim_account_tx_agg.sql
-│   │   ├── dim_account_tx_agg.yml
-│   │   ├── dim_customers.sql
-│   │   ├── dim_customers.yml
-│   │   ├── dim_transactions.sql
-│   │   ├── dim_transactions.yml
-│   │   ├── dim_tx_x_account.sql
-│   │   └── dim_tx_x_account.yml
-│   ├── facts
-│   │   └── fct_c360_profile.sql
-│   └── sources
-│       ├── src_accounts.sql
-│       ├── src_accounts.yml
-│       ├── src_customers.sql
-│       ├── src_customers.yml
-│       ├── src_transactions.sql
-│       └── src_transactions.yml
+│   ├── dimensions
+│   │   ├── dim_account_tx_agg.{sql,yml}
+│   │   ├── dim_transactions.{sql,yml}
+│   │   └── dim_tx_x_account.{sql,yml}
+│   ├── facts
+│   │   ├── fct_c360_profile.{sql,yml}
+│   │   ├── fct_crm_summary.{sql,yml}
+│   │   └── fct_merchant_streak.{sql,yml}
+│   └── sources
+│       └── src_transactions.{sql,yml}
+├── crm
+│   ├── dimensions
+│   │   └── dim_customers.{sql,yml}
+│   ├── facts
+│   │   ├── fct_crm_by_country.{sql,yml}
+│   │   ├── fct_crm_by_gender.{sql,yml}
+│   │   ├── fct_crm_by_generation.{sql,yml}
+│   │   └── fct_crm_by_segment.{sql,yml}
+│   └── sources
+│       ├── src_accounts.{sql,yml}
+│       ├── src_cards.{sql,yml}
+│       └── src_customers.{sql,yml}
+├── fraud
+│   └── facts
+│       ├── fct_fraud_probe.{sql,yml}
+│       └── fct_smb_spike.{sql,yml}
 ├── deploy_manifest.json
 └── sources.yaml
 ```
 
-Each model needs to have the table definition to create as sink. As an example the dimension to compute account aggregations look like ([file dim_account_tx_agg.sq](../pipelines/models/c360/dimensions/dim_account_tx_agg.sql)):
+| Model | Product | Inputs | Materialization | Goal |
+| ----- | ------- | ------ | --------------- | ---- |
+| `src_transactions` | c360 | `cdc.public.transactions` | streaming table | Deduplicate, flatten, filter, transform |
+| `src_accounts` | crm | `cdc.public.accounts` | streaming table | Deduplicate, flatten, filter, transform |
+| `src_cards` | crm | `cdc.public.cards` | streaming table | Deduplicate, flatten, filter, transform |
+| `src_customers` | crm | `cdc.public.customers` | streaming table | Deduplicate, flatten, filter, transform |
+| `dim_customers` | crm | `src_accounts`, `src_cards`, `src_customers` | streaming table | Customer dimension, with its accounts and cards |
+| `dim_transactions` | c360 | `src_transactions`, `src_customers`, seeds `currency_codes` and `country_codes` | materialized table | Enrich transactions with currency, customer and country |
+| `dim_account_tx_agg` | c360 | `src_accounts`, `dim_transactions` | materialized table | Transaction aggregates per account |
+| `dim_tx_x_account` | c360 | `dim_customers`, `dim_account_tx_agg` | materialized table | Transaction and account metrics per customer |
+| `fct_c360_profile` | c360 | `dim_customers`, `dim_tx_x_account` | materialized table | Customer 360 profile, served by the RTCE Lightning API |
+| `fct_crm_summary` | c360 | `fct_c360_profile` | materialized table | CRM analytics, served by the RTCE Lightning API |
+| `fct_merchant_streak` | c360 | `src_transactions` | streaming table | CEP: three or more consecutive transactions in the same merchant category |
+| `fct_crm_by_country`, `_by_gender`, `_by_generation`, `_by_segment` | crm | `dim_customers` | materialized table | CRM aggregates |
+| `fct_fraud_probe` | fraud | `src_transactions` | streaming table | CEP: small card-test charge followed by large charges |
+| `fct_smb_spike` | fraud | `src_transactions`, `src_customers` | streaming table | CEP: large debits followed by a credit on an SMB account |
+
+Each model needs the definition of the table it creates as sink. As an example, here is the [`dim_account_tx_agg.yml`](https://github.com/jbcodeforce/streamhouse_c360_demo/blob/main/pipelines/models/c360/dimensions/dim_account_tx_agg.yml) file of the dimension that computes the account aggregations:
 
 ```yaml
 models:
@@ -112,7 +153,7 @@ models:
   - name: balance
     data_type: DECIMAL
   - name: txn_count
-    data_type: DECIMAL
+    data_type: BIGINT
   - name: txn_total
     data_type: DECIMAL
   - name: last_transacted_at
@@ -121,52 +162,89 @@ models:
 
 ## Deploy
 
-dbt supports different way to manage the dependencies. We can use tag, folder, or tree.
+dbt can select the models to deploy by tag, folder or dependency tree. Run the commands from the `pipelines` folder.
 
-* Deploy all the sources that are the first level of flink statements to deploy
-```sh
-# within the pipelines folder:
-dbt run --select c360.sources --full-refresh
-```
-* Deploy the facts and its parents
+* Load the reference data (the `country_codes` and `currency_codes` seeds), needed by `dim_transactions`:
 
-```sh
-# within the pipelines folder:
-dbt run --select +c360.facts.fct_c360_profile
-# Deploy other product
-dbt run --select +crm.facts
-```
+    ```sh
+    uv run dbt seed
+    ```
+
+* Deploy the sources, which are the first level of Flink statements:
+
+    ```sh
+    uv run dbt run --select c360.sources crm.sources --full-refresh
+    ```
+
+* Deploy a fact table and all its parents:
+
+    ```sh
+    uv run dbt run --select +c360.facts.fct_c360_profile
+    ```
+
+* Deploy the other products:
+
+    ```sh
+    uv run dbt run --select +crm.facts
+    uv run dbt run --select +fraud.facts
+    ```
+
+After editing a query, run `dbt run --full-refresh` on the model to redeploy it. This is required for the CEP models (`fct_merchant_streak`, `fct_fraud_probe`, `fct_smb_spike`).
 
 ## Undeploy
 
-1. As dbt does not support undeploying, we need another tool to manage the drop table and undeploy statement. The [flink-tools-for-agents](https://github.com/jbcodeforce/flink-tools-for-agents/tree/main/tools/flink) includes tools to define a manifest of metadata about existing statements and then perform deplooy, undeploy and drop tables. 
+dbt does not support undeploying. The [flink-tools-for-agents](https://github.com/jbcodeforce/flink-tools-for-agents/tree/main/tools/flink) project provides tools that use a manifest of the existing statements to deploy, undeploy and drop tables. This repository has one in [`pipelines/models/deploy_manifest.json`](https://github.com/jbcodeforce/streamhouse_c360_demo/blob/main/pipelines/models/deploy_manifest.json). It defines:
+
+* the statement groups `c360_pipeline`, `crm_pipeline` and `fraud_pipeline`, in deploy order;
+* the `drop_tables` groups `c360`, `crm`, `fraud`, `cdc`, `connect` and `seeds`.
+
+1. Regenerate the manifest if models were added or removed (the clone of `flink-tools-for-agents` is next to this repository):
+
     ```sh
-    cd flink-tools-for-agents 
-   v
-    # OR
-    uv run generate-manifest --sql-dir ../streamhouse_c360_demo/pipelines/models --overwrite 
+    cd flink-tools-for-agents
+    uv run generate-manifest --sql-dir ../streamhouse_c360_demo/pipelines/models --overwrite
     ```
 
-    Drop tables listed in the `drop_tables` element of the manifest
+1. Drop the tables listed in the `drop_tables` element of the manifest:
+
     ```sh
-    uv run flink-sql-deploy  --sql-dir ../streamhouse_c360_demo/pipelines/models drop-tables --group fraud
+    uv run flink-sql-deploy --sql-dir ../streamhouse_c360_demo/pipelines/models drop-tables --group fraud
     uv run flink-sql-deploy --sql-dir ../streamhouse_c360_demo/pipelines/models drop-tables --group crm
-    uv run flink-sql-deploy --sql-dir ../streamhouse_c360_demo/pipelines/models drop-tables --group c360 
+    uv run flink-sql-deploy --sql-dir ../streamhouse_c360_demo/pipelines/models drop-tables --group c360
     ```
 
-### IaC
+## Remove the infrastructure
 
-* Remove connector
+Destroy the Terraform modules in the reverse order of their creation. `IaC/ccloud` comes last, because `IaC/rtce` and `IaC/connector` read its state. Skip the modules you did not apply.
+
+* Remove the RTCE topics and Global API key:
+
+    ```sh
+    cd IaC/rtce && terraform destroy
+    ```
+
+* Remove the app host (needs AWS credentials):
+
+    ```sh
+    ./scripts/tf_ec2.sh destroy
+    ```
+
+* Remove the managed connector:
+
     ```sh
     ./scripts/tf_connector.sh destroy
     ```
 
-* Remove Confluent Cloud resources
-    ```sh
-    ./scripts/tf.sh destroy
-    ```
+* Remove the AWS resources:
 
-* Remove AWS resources
     ```sh
     ./scripts/tf_aws.sh destroy
     ```
+
+* Remove the Confluent Cloud resources:
+
+    ```sh
+    cd IaC/ccloud && terraform destroy
+    ```
+
+For the local PostgreSQL and Debezium containers, see [Local CDC](local_cdc.md#4-stop-and-reset).
