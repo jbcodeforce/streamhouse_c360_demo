@@ -243,6 +243,8 @@ A ready-to-run notebook is provided at [`notebooks/c360_profile_lightning_query.
 - Customer segment analysis (e.g. `SMB` vs. `PRIVATE` average balances and transaction volumes).
 - Direct bridge between streaming state and Python data science / AI workflows.
 
+![](./images/notebook_and_LT.png)
+
 [See the demonstration script](./demo_script.md#data-science-and-ad-hoc-analytics-with-jupyter-notebook) for how to run the notebook.
 
 ### Complex event processing for fraud detection
