@@ -4,6 +4,7 @@ This project is under heavy development. Still a little bit fragile.
 
 ## Updates
 
+* 11/24/2026: Add time windows. Fix issues in doc and in backend. Add new first page with 3D animations.
 * 11/09/2026: Adapt transactions, customers to be able to reuse Kaggle dataset, slightly modified. Add Cards for fraud detection, and merchant insights. Remove mock code. Add snapshot query compute pool.
 * 11/06/2026 Change docs in mkdocs. Clean data for scenarios.
 * 11/01/2026 Add CEP use cases, user interface, scenarion backend, flink statements. Terraform for Kafka connect topics. 
@@ -23,6 +24,13 @@ This project is under heavy development. Still a little bit fragile.
 ## Features
 
 [See the list of features/capabilities demonstrated in this repository](https://jbcodeforce.github.io/streamhouse_c360_demo/#capabilities-demonstrated).
+
+## Getting Started
+
+* [Deploy the Confluent Cloud environment]()
+* [Start local frontend and backend]()
+* [Deploy Flink statements with dbt]()
+* [Run the demonstration scripts to present all Streamhouse capabilities]()
 
 ## 🙏 Support my work
 

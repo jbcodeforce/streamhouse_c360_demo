@@ -18,7 +18,11 @@ nav:
   - Demo Script: demo_script.md
   - Cleaning: cleanup.md
  
-theme: 
+extra_css:
+  - stylesheets/landing.css
+extra_javascript:
+  - javascripts/landing.js
+theme:
   name: material 
   logo: images/logo_wh.drawio.png
   favicon: images/logo.drawio.png

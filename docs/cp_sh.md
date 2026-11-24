@@ -39,6 +39,7 @@ With self-managed platform some streamhouse capabilities need to be stiched toge
 * Plan authentication, authorization, and network encryption.
 * Plan Capacity and Sizing for Confluent for Kubernetes: Size CPU, memory, and storage for deployed workload.
 * Plan log retention and review configuration constraints.
+* Establish query on the index, using software like Redis, or Cassandra
 
 
 ## Sources of information

@@ -1,6 +1,9 @@
 models:
 - name: src_cards
   description: "Cleaned cards"
+  constraints:
+    - type: custom
+      expression: "WATERMARK FOR created_at AS created_at - INTERVAL '5' SECOND"
   columns:
   - name: card_id
     data_type: string

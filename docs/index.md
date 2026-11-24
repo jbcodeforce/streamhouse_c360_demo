@@ -1,3 +1,86 @@
+---
+hide:
+  - toc
+---
+
+
+<div class="sh-hero" markdown>
+
+# Streamhouse Customer 360
+
+<p class="sh-tagline">Synchronize a change in business state <strong>everywhere it is used</strong>: from a database transaction, through Kafka and Flink on Confluent Cloud, to the data lake and to the applications and AI agents that depend on it.</p>
+
+<div class="sh-cta" markdown>
+[Run the demo](demo_script.md){ .md-button .md-button--primary }
+[Deploy it](local_cdc.md){ .md-button }
+[Source code](https://github.com/jbcodeforce/streamhouse_c360_demo){ .md-button }
+</div>
+
+<div class="sh-stages">
+<a href="#hybrid-ingestion">Capture</a>
+<a href="#cdc-envelope-automatic-processing-to-upsert-tables">Transport</a>
+<a href="#dbt-deployment-materialized-and-streaming-tables">Transform</a>
+<a href="#snapshot-query">Serve</a>
+<a href="#purpose">Govern</a>
+</div>
+
+![Transactions captured from PostgreSQL by Debezium, flowing through Kafka topics and Flink processing, down to the Iceberg data lake and the serving layer](./images/hero_streamhouse.svg)
+
+</div>
+
+<div class="grid cards sh-tiles" markdown>
+
+-   ![](./images/ccloud/cdc_topics.png){ loading=lazy }
+
+    **Hybrid CDC ingestion**
+
+    Local PostgreSQL and Debezium feeding Confluent Cloud topics. [Explore](#hybrid-ingestion)
+
+-   ![](./images/dbt_lineage_graph.png){ loading=lazy }
+
+    **Flink pipelines with dbt**
+
+    Streaming and materialized tables deployed with `dbt run`. [Explore](#dbt-deployment-materialized-and-streaming-tables)
+
+-   ![](./images/snap_query_carter.png){ loading=lazy }
+
+    **Snapshot queries**
+
+    Bounded Flink queries from the web app. [Explore](#snapshot-query)
+
+-   ![](./images/notebook_and_LT.png){ loading=lazy }
+
+    **Lightning queries and notebooks**
+
+    Millisecond lookups on golden records with the Real-Time Context Engine. [Explore](#lightning-query)
+
+-   ![](./images/app/cep_fraud.png){ loading=lazy }
+
+    **Fraud detection with CEP**
+
+    Pattern matching over the transaction stream. [Explore](#complex-event-processing-for-fraud-detection)
+
+-   ![](./images/app/querying_with_chat_rtce.png){ loading=lazy }
+
+    **Chat with business data**
+
+    A local LLM calling the Real-Time Context Engine as a tool. [Explore](#chat-with-business-data-leveraging-the-real-time-context-engine)
+
+-   ![](./images/app/statement_graph.png){ loading=lazy }
+
+    **Flink statement lineage**
+
+    Live graph of the statements that build a data product. [Explore](#flink-pipeline-lineage)
+
+-   ![](./images/app/crm_billing_graph.png){ loading=lazy }
+
+    **Billing per pipeline**
+
+    Monthly cost by Flink pipeline, from the Confluent REST API. [Explore](#billing-aggregation)
+
+</div>
+
+
 
 ## Purpose
 
