@@ -1,15 +1,17 @@
 models:
-- name: fct_c360_profile
+- name: fct_hourly_tx_metrics
   description: ""
   constraints:
-
+  - type: primary_key
+    columns: [account_number, window_start, window_end]
+    expression: "NOT ENFORCED"
   columns:
-  - name: account_number
+  - name: account_id
     data_type: string
   - name: window_start
-    data_type:  TIMESTAMP(3)
+    data_type:  BIGINT
   - name:   window_end 
-    data_type: TIMESTAMP(3)
+    data_type: BIGINT
   - name:   window_type 
     data_type: STRING
   - name:   tx_count

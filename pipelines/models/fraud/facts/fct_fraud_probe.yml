@@ -19,10 +19,10 @@ models:
   - name: probe_time
     data_type: timestamp_ltz
   - name: probe_amount
-    data_type: decimal
+    data_type: decimal(18,2)
   - name: last_large_time
-    data_type: timestamp_ltz
+    data_type: timestamp_ltz(2)
   - name: last_large_amount
-    data_type: decimal
+    data_type: decimal(18,2)
   - name: large_count
     data_type: bigint

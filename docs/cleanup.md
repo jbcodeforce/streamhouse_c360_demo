@@ -1,4 +1,4 @@
-# Cloud Resource Cleanup
+# Cloud Resources Cleanup
 
 !!! info "Version"
     **Last updated:** 2026-11-24

@@ -2,7 +2,7 @@
 
 !!! info "Version"
     **Last updated:** 2026-11-24
-    
+
 This section addresses the Flink pipeline definition and management using [Confluent dbt](https://pypi.org/project/dbt-confluent/) plugin.
 
 ## What is built
@@ -119,7 +119,7 @@ The Confluent Cloud Flink statement organization reflects the medallion and star
 
         ![](./images/flink/no_duplicate.png)
 
-1. We can continue the data analysis and finally build the following Flink SQL for filtering and data cleaning. See the [Flink source processing folder](../flink_sqls/).
+1. We can continue the data analysis and finally build the following Flink SQL for filtering and data cleaning. See the [Flink source processing folder](https://github.com/jbcodeforce/streamhouse_c360_demo/tree/main/flink_sqls).
 
 1. To be able to connect to Confluent Cloud, we need to set the environment variables for API keys and secrets. The following script loads those from Terraform output
     ```sh
@@ -128,7 +128,7 @@ The Confluent Cloud Flink statement organization reflects the medallion and star
 
     Alternatively, source the `.env` file under `apps/backend/`.
 
-1. `dbt` needs models. The first layer is the references to existing CDC topics [see pipelines/models/sources.yaml](../pipelines/models/sources.yaml) file.
+1. `dbt` needs models. The first layer is the references to existing CDC topics [see pipelines/models/sources.yaml](https://github.com/jbcodeforce/streamhouse_c360_demo/tree/main/pipelines/models/sources.yaml) file.
 
     ```yaml
     version: 2
@@ -171,7 +171,7 @@ The Confluent Cloud Flink statement organization reflects the medallion and star
 
 1. Continue to create the following Flink statements to filter and transform raw CDC topics, and create dimensions and facts for the analytics.
 
-The [path is pipelines/models/c360](../pipelines/models/c360)
+The [path is pipelines/models/c360](https://github.com/jbcodeforce/streamhouse_c360_demo/tree/main/pipelines/models/c360)
 
 | Source Table(s) | Folder Name | Sink Table | Goal |
 | ----------------| ------------ |-----------|-----|
@@ -206,7 +206,7 @@ The [path is pipelines/models/c360](../pipelines/models/c360)
 └── sources.yaml
 ```
 
-Each model needs to have the table definition to create as a sink. As an example, the dimension to compute account aggregations looks like this ([`dim_account_tx_agg.sql`](../pipelines/models/c360/dimensions/dim_account_tx_agg.sql)):
+Each model needs to have the table definition to create as a sink. As an example, the dimension to compute account aggregations looks like this ([`dim_account_tx_agg.sql`](https://github.com/jbcodeforce/streamhouse_c360_demo/tree/main/pipelines/models/c360/dimensions/dim_account_tx_agg.sql)):
 
 ```yaml
 models:

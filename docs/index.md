@@ -155,7 +155,7 @@ One path of the demonstration runs the database and the Debezium connector on lo
 
 The alternative to the previous deployment is to make the database accessible from the Confluent Cloud VPC and use a managed connector deployment.
 
-* [See this note for Terraform-based deployment](./sre_ccloud_tf.md#defining-confluent-cloud-resources-with-the-terraform)
+* [See this note for Terraform-based deployment](./sre_ccloud_tf.md/#defining-confluent-cloud-resources-with-terraform)
 * [See this note for Confluent Cloud Console-driven deployment](./sre_ccloud.md#create-debezium-cdc-v2-kafka-connector)
 
 ### Infrastructure as Code
@@ -362,7 +362,7 @@ The REST API and the dbt manifest help to build a Flink statement pipeline linea
 Once one is selected we can see the Flink statements lineage:
 
 <figure markdown='span'>
-![](./images/statement_graph.png)
+![](./images/app/statement_graph.png)
 <caption>Flink Statement Graph</caption>
 </figure>
 

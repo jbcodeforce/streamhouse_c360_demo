@@ -1,10 +1,10 @@
 
 models:
 - name: dim_transactions
-  description: ""
-  config:
-    contract:
-      enforced: true
+  description: "Financial transaction dimension"
+  constraints:
+      - type: custom
+        expression: "WATERMARK FOR transacted_at AS transacted_at - INTERVAL '5' SECOND"
   columns:
   - name: transaction_id
     data_type: varchar(2147483647)
@@ -21,7 +21,7 @@ models:
   - name: transaction_type
     data_type: string
   - name: amount
-    data_type: DECIMAL
+    data_type: DECIMAL(18,2)
   - name: currency
     data_type: string
   - name: currency_code_numeric
@@ -53,7 +53,7 @@ models:
   - name: status
     data_type: string
   - name: transacted_at
-    data_type: timestamp_ltz
+    data_type: timestamp_ltz(2)
   - name: transaction_date_only 
     data_type: DATE
   - name:  transaction_hour 

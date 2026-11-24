@@ -232,7 +232,7 @@ The Frontend also exposes a widget to get a customer c360 profile given his/her 
 
 This time the application logic flow leverages a client that use the REST API of lightning table:
 
-![](./diagrams/LT_app_flow.drawio.png)
+![](./diagrams/app/LT_app_flow.drawio.png)
 
 (The customer record is loaded from the database.)
 
@@ -240,7 +240,7 @@ This time the application logic flow leverages a client that use the REST API of
 
 This time the 'Assistant' user interface is to emulate an agent to call the [Confluent real-time context engine](https://docs.confluent.io/cloud/current/ai/real-time-context-engine/overview.html) to get real-time customer 360 profile data. 
 
-![](./images/querying_with_chat_rtce.png)
+![](./images/app/querying_with_chat_rtce.png)
 
 In a developer-centric demonstration, we would use a tool like Claude Code, Codex, or similar. Here we want to simulate a business user who wants to get business data directly from Kafka.
 
@@ -272,7 +272,7 @@ It is interesting to note that an MCP `ClientSession` is stateful and single-ses
 
 Here is component view of the integration:
 
-![](./diagrams/chat_rtce.drawio.png)
+![](./diagrams/app/chat_rtce.drawio.png)
 
 ### Get Data Product Lineage and Metrics
 
@@ -280,7 +280,7 @@ The last part of the demonstration is to present a Flink-focused lineage with a 
 
 * The frontend uses a [DataProductsPage](https://github.com/jbcodeforce/streamhouse_c360_demo/blob/main/apps/frontend/src/pages/DataProductsPage.tsx) and [StatementGraphPage](https://github.com/jbcodeforce/streamhouse_c360_demo/blob/main/apps/frontend/src/pages/StatementGraphPage.tsx)
 
-![](./images/statement_graph.png)
+![](./images/app/statement_graph.png)
 
 * The backend exposes a REST resource in [api/data_product_resource.py](https://github.com/jbcodeforce/streamhouse_c360_demo/blob/main/apps/backend/api/data_product_resource.py) backed by `data_products/service.py`, `data_products/providers.py`, and `data_products/confluent_client.py`, following the same vertical-slice pattern.
 * The list of data products comes from JSON descriptor files in `data_products/descriptors/`; each graph is a static definition built from the dbt pipelines.

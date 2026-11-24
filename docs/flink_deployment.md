@@ -1,16 +1,34 @@
-# Flink Project Management
+# Flink Project Management with dbt
 
 !!! info "Version"
     **Last updated:** 2026-11-24
 
-This section describes how the Flink pipelines are defined, deployed and removed with the [Confluent dbt](https://pypi.org/project/dbt-confluent/) plugin. The dbt project is in [`pipelines/`](https://github.com/jbcodeforce/streamhouse_c360_demo/tree/main/pipelines).
+This section describes how the different Flink pipelines are defined, deployed and removed with the [Confluent dbt](https://pypi.org/project/dbt-confluent/) plugin. The dbt project is in the [`pipelines/`](https://github.com/jbcodeforce/streamhouse_c360_demo/tree/main/pipelines) folder.
+
+*As of 11/24** all commands were performed on MacOS.
 
 ## Prerequisites
+
+1. Be sure to get the last version of [Confluent dbt](https://pypi.org/project/dbt-confluent/), getting from PyPi: adapt the version in [pipelines/pyproject.toml](https://github.com/jbcodeforce/streamhouse_c360_demo/tree/main/pipelines/pyproject.toml)
+  ```yaml
+    dependencies = [
+    "dbt-confluent>=0.6.0"
+    ]
+  ```
+
+1. Start virtual environment to run dbt
+  ```sh
+  cd pipelines
+  source .venv/bin/activate
+  # if new version was specified
+  uv sync
+  ```
 
 1. To connect to Confluent Cloud, dbt needs the API keys, secrets and ids as environment variables. This script loads them from the Terraform outputs (see [Defining Confluent Cloud Resources with Terraform](sre_ccloud_tf.md)):
 
     ```sh
-    source ./scripts/set_env_from_tf.sh
+    # still in pipelines
+    source ../scripts/set_env_from_tf.sh
     ```
 
     As an alternative, load the `apps/backend/.env` file that the script writes:
@@ -19,14 +37,15 @@ This section describes how the Flink pipelines are defined, deployed and removed
     set -a; source apps/backend/.env; set +a
     ```
 
-1. Install the dbt dependencies (`dbt-core` and `dbt-confluent`, see [`pyproject.toml`](https://github.com/jbcodeforce/streamhouse_c360_demo/blob/main/pipelines/pyproject.toml)):
-
+    Verify the settings via:
     ```sh
-    cd pipelines
-    uv sync
+    printenv
     ```
 
-1. Add the profile below to `~/.dbt/profiles.yml`. The profile name must be `j9r`, the value of `profile` in [`dbt_project.yml`](https://github.com/jbcodeforce/streamhouse_c360_demo/blob/main/pipelines/dbt_project.yml). It reads everything from environment variables, so no secret is stored in the file:
+
+1. Normally on brand new project, `dbt init` is run. [See Confluent dbt documentation](https://docs.confluent.io/cloud/current/flink/operate-and-deploy/deploy-flink-dbt.html#step-2-create-and-connect-a-dbt-project). Init build also a `$HOME/.dbt/profiles.yml` file that includes references to Confluent cloud environment (or other dbt backend).
+
+1. Add the profile below to `~/.dbt/profiles.yml`. As of now, the profile name must be `j9r`, to match the value set as `profile` in [`dbt_project.yml`](https://github.com/jbcodeforce/streamhouse_c360_demo/blob/main/pipelines/dbt_project.yml). Align names if you change. The below declartion, for dbt to read everything from environment variables, so no secret is stored in the file:
 
     ```yaml
     j9r:
@@ -48,11 +67,11 @@ This section describes how the Flink pipelines are defined, deployed and removed
       target: dev
     ```
 
-    `set_env_from_tf.sh` does not export the organization id. Get it from the Confluent Console, or with `confluent organization list`.
+    The `set_env_from_tf.sh` does not export the organization id. Get it from the Confluent Console, or with `confluent organization list`.
 
-    The `compute_pool_id` of the profile is overridden per data product in `dbt_project.yml`: `c360` models run on `FLINK_COMPUTE_POOL_ID` and `crm` models run on `FLINK_CRM_COMPUTE_POOL_ID`. This lets the Cost API attribute the cost per product.
+    The `compute_pool_id` of the profile is overridden per data product in `dbt_project.yml`: `c360` models run on `FLINK_COMPUTE_POOL_ID` and `crm` adn`fraud` models run on `FLINK_CRM_COMPUTE_POOL_ID`. This lets the Cost API attribute to present the cost per product.
 
-## Pipeline definition
+## Pipeline definitions
 
 ### Sources
 
@@ -77,6 +96,8 @@ sources:
     description: Topic 'cdc.public.cards'.
 ```
 
+* Important to note that the database name for the `schema` entry, is defined as Kafka cluster name.
+
 ### Models
 
 The models are organized by data product under [`pipelines/models`](https://github.com/jbcodeforce/streamhouse_c360_demo/tree/main/pipelines/models): `c360`, `crm` and `fraud`. Each product has a `sources`, `dimensions` and `facts` folder, and each model has a `.sql` file and a `.yml` file. Models are linked with `ref()`, so a model can depend on a model of another product: the `c360` dimensions use `src_accounts` and `dim_customers` from `crm`.
@@ -91,6 +112,7 @@ models
 │   ├── facts
 │   │   ├── fct_c360_profile.{sql,yml}
 │   │   ├── fct_crm_summary.{sql,yml}
+│   │   ├── fct_hourly_tx_metrics.{sql,yml}
 │   │   └── fct_merchant_streak.{sql,yml}
 │   └── sources
 │       └── src_transactions.{sql,yml}
@@ -163,11 +185,13 @@ models:
     data_type: timestamp_ltz
 ```
 
+[To get some tricks and how tos, see this chapter](https://jbcodeforce.github.io/flink-studies/coding/dbt/#how-to)
+
 ## Deploy
 
 dbt can select the models to deploy by tag, folder or dependency tree. Run the commands from the `pipelines` folder.
 
-* Load the reference data (the `country_codes` and `currency_codes` seeds), needed by `dim_transactions`:
+* Load the reference data (the `country_codes` (ISO 3166-1 country codes) and `currency_codes` (ISO 4217 currency codes) seeds), needed by `dim_transactions`:
 
     ```sh
     uv run dbt seed

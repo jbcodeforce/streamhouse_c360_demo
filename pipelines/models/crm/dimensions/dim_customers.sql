@@ -28,7 +28,7 @@ WITH card_account AS (
     from {{ ref('src_accounts') }}  as a 
     JOIN LATERAL SNAPSHOT(
         input => TABLE  {{ ref('src_cards') }},
-        on_time => DESCRIPTOR($rowtime),
+        on_time => DESCRIPTOR(created_at),
         load_completed_idle_timeout => INTERVAL '5' SECONDS
     ) AS c
     ON a.account_id = c.account_id

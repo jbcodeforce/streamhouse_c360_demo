@@ -15,7 +15,7 @@ with completed_tx as (
   select * from {{ ref('dim_transactions') }} where status = 'COMPLETED'
 )
 SELECT 
-    account_number,
+    account_id,
     window_start,
     window_end,
     '1_HOUR' AS window_type,
@@ -27,4 +27,4 @@ SELECT
 FROM TABLE(
     TUMBLE(TABLE completed_tx, DESCRIPTOR(`transacted_at`), INTERVAL '1' HOUR)
 )
-GROUP BY account_number, window_start, window_end;
+GROUP BY account_id, window_start, window_end;

@@ -39,7 +39,8 @@ models:
       +compute_pool_id: "{{ env_var('FLINK_COMPUTE_POOL_ID') }}"
     crm:
       +compute_pool_id: "{{ env_var('FLINK_CRM_COMPUTE_POOL_ID') }}"
-
+    fraud:
+      +compute_pool_id: "{{ env_var('FLINK_CRM_COMPUTE_POOL_ID') }}"
 
 # Reference data (ISO 3166-1 countries, ISO 4217 currencies). `dbt seed` creates
 # one Kafka topic + Flink table per CSV and inserts the rows, so they can be

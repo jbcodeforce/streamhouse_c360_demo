@@ -1,7 +1,7 @@
 
 models:
 - name: dim_customers
-  description: ""
+  description: "Customer reusable dimension"
   config:
     contract:
       enforced: true
@@ -25,11 +25,11 @@ models:
   - name: gender
     data_type: string
   - name: registration_date
-    data_type: timestamp_ltz
+    data_type: timestamp_ltz(2)
   - name: customer_segment
     data_type: string
   - name: customer_since
-    data_type: timestamp_ltz
+    data_type: timestamp_ltz(2)
   - name: city
     data_type: string
   - name: state
@@ -45,7 +45,7 @@ models:
   - name: credit_score
     data_type: integer
   - name: event_ts
-    data_type: timestamp_ltz
+    data_type: timestamp_ltz(2)
   - name: days_since_registration
     data_type: integer
   - name: generation_segment

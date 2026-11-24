@@ -19,10 +19,10 @@ models:
   - name: account_status
     data_type: string
   - name: balance
-    data_type: DECIMAL
+    data_type: DECIMAL(18,2)
   - name: txn_count
     data_type: BIGINT
   - name: txn_total
-    data_type: DECIMAL
+    data_type: DECIMAL(18,2)
   - name: last_transacted_at
     data_type: timestamp_ltz

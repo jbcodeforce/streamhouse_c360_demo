@@ -22,5 +22,5 @@ models:
   - name: credit_limit
     data_type: decimal(18, 2)
   - name: created_at
-    data_type: timestamp_ltz
+    data_type: timestamp_ltz(3)
 

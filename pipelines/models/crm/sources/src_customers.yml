@@ -42,5 +42,5 @@ models:
   - name: credit_score
     data_type: integer
   - name: event_ts
-    data_type: timestamp_ltz
+    data_type: timestamp_ltz(3)
 
