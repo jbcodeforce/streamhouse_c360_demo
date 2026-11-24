@@ -27,10 +27,12 @@ This project is under heavy development. Still a little bit fragile.
 
 ## Getting Started
 
-* [Deploy the Confluent Cloud environment]()
-* [Start local frontend and backend]()
-* [Deploy Flink statements with dbt]()
-* [Run the demonstration scripts to present all Streamhouse capabilities]()
+* [Deploy the Confluent Cloud environment](https://jbcodeforce.github.io/streamhouse_c360_demo/sre_ccloud_tf/)
+* [Optional Deploy RDS on AWS](https://jbcodeforce.github.io/streamhouse_c360_demo/sre_aws/)
+* [Start local frontend and backend](https://jbcodeforce.github.io/streamhouse_c360_demo/local_cdc/)
+* [Deploy Flink statements with dbt](https://jbcodeforce.github.io/streamhouse_c360_demo/flink_deployment/)
+* [Run the demonstration scripts to present all Streamhouse capabilities](https://jbcodeforce.github.io/streamhouse_c360_demo/demo_script/)
+* [Cleaning up cloud resources](https://jbcodeforce.github.io/streamhouse_c360_demo/cleanup/)
 
 ## 🙏 Support my work
 

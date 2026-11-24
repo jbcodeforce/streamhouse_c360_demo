@@ -39,6 +39,12 @@ export default function HomePage() {
           serving business facts so every application, agent and analytics
           consumer works from the same trusted, fresh context.
         </p>
+        <figure className="home-hero__scene">
+          <img
+            src="/hero_streamhouse.svg"
+            alt="Isometric view of the data flow: the transaction app and PostgreSQL feed Debezium CDC, Kafka topics and Flink, then the Iceberg data lake, the Lightning / RTCE serving layer queried by an AI agent, and a BI dashboard reading golden records."
+          />
+        </figure>
       </section>
 
       <section className="home-section">

@@ -28,6 +28,8 @@ hide:
 
 </div>
 
+<h2>Key Capabilities</h2>
+
 <div class="grid cards sh-tiles" markdown>
 
 -   ![](./images/ccloud/cdc_topics.png){ loading=lazy }
@@ -126,13 +128,13 @@ When the architecture is applied to the Confluent technology stack, Streamhouse 
 
 ### Shifting to real-time processing
 
-Preparing medallion layers is possible by using data already in Kafka. The classical batch processing can be shifted to the left of the architecture, by doing transformation, filtering, deduplication to build the silver layer in Kafka Topic using Flink processing. 
+Preparing medallion layers is possible by using data already in Kafka. The classical batch processing can be shifted to the left of the architecture by doing transformation, filtering, and deduplication to build the silver layer in Kafka topics using Flink processing.
 
 <figure markdown='span'>
 ![](./diagrams/raw-to-sink.drawio.png)
 </figure>
 
-The business logic that applies to data in Kafka topics so in Flink tables can be built in Flink to create gold records. Those gold records, representing dimensions and facts, can be persisted for long term in object storages, in Iceberg Tables. An external query engines, and federated catalog can be used on top of those Iceberg Tables.  Most of the logic done in batch should be easily ported to real-time processing. Still some consideration like state size, running all time streaming processing, time and watermark add to the semantic complexity.
+The business logic that applies to data in Kafka topics and Flink tables can be built in Flink to create gold records. Those gold records, representing dimensions and facts, can be persisted long term in object storage as Iceberg tables. External query engines and a federated catalog can be used on top of those Iceberg tables. Most of the logic done in batch should be easily ported to real-time processing. Still, some considerations like state size, always-on streaming processing, time, and watermarks add to the semantic complexity.
 
 Adopting an event-driven architecture, silver and gold topics/ business events are reusable and not just usable for analytic query engines.
 
@@ -305,8 +307,7 @@ try:
 
 ### Lightning query
 
-The Confluent Cloud [Real-Time Context Engine]() (RTCE) exposes a Flink-maintained table for current-state point lookups over HTTP: a single synchronous POST returns the
-table's current rows in milliseconds.
+The Confluent Cloud [Real-Time Context Engine](https://docs.confluent.io/cloud/current/ai/real-time-context-engine/overview.html) (RTCE) exposes a Flink-maintained table for current-state point lookups over HTTP: a single synchronous POST returns the table's current rows in milliseconds.
 
 The request uses HTTP Basic auth with a dedicated *Global* resource API key (``CONFLUENT_GLOBAL_KEY``/``SECRET``, provisioned by ``IaC/ccloud/lightning.tf``) and a body scoped by ``catalog_name`` = environment *ID* and ``database_name`` = Kafka cluster *ID* (IDs, not the display names that the Flink SQL Statements API uses).
 
@@ -435,7 +436,8 @@ Two architectures are presented in this repository: one purely in the cloud, and
     * The Debezium CDC Kafka connector is deployed as a managed service.
     * The Kafka cluster, Schema Registry, Real-Time Context Engine, Tableflow, and Flink jobs run on Confluent Cloud.
 
-    ! Because it is more complex to deploy, this architecture is still under construction and testing.
+    !!! note "Note"
+        Because it is more complex to deploy, this architecture is still under construction and testing.
 
 
 #### Web app backend architecture
@@ -509,3 +511,6 @@ The following steps are generic and may be supported by different tools:
 * [My living Flink study book](https://jbcodeforce.github.io/flink-studies/) with best practices, methodology, and code samples
 * [Confluent Stream Processing with Confluent Cloud for Apache Flink](https://docs.confluent.io/cloud/current/flink/overview.html)
 * [Streamhouse](https://streamhouse.com/) web site
+
+!!! info "Version"
+    **Last updated:** 2026-11-24

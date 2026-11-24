@@ -1,5 +1,8 @@
 # Local CDC: PostgreSQL → Debezium → Confluent Cloud
 
+!!! info "Version"
+    **Last updated:** 2026-11-24
+
 Run the CDC path entirely on your workstation: a local PostgreSQL 17 container and a Debezium (Kafka Connect) container publish Avro change events to Confluent Cloud Kafka. This replaces the managed connector in `IaC/connector/` and the RDS instance in `IaC/AWS/`.
 
 ## Architecture
@@ -194,3 +197,4 @@ The slot is left over from a previous run, or was created with a different plugi
 container exec c360-postgres psql -U dbadmin -d c360db -c \
   "SELECT pg_drop_replication_slot('debezium_slot');"
 ```
+

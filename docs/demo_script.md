@@ -1,13 +1,16 @@
 # Demonstration Script
 
+!!! info "Version"
+    **Last updated:** 2026-11-24
+
 We may demonstrate the Streamhouse architecture in different ways, using one of the approaches implemented in this repository:
 
-1. **Hybrid cloud:**: Local database, local kafka connect Debezium, to write database change directly to Kafka topics defined within Confluent Cloud Kafka Cluster. [Read this section below](#run-with-local-database-get-started-locally)
+1. **Hybrid cloud:** Local database, local Kafka Connect Debezium, writing database changes directly to Kafka topics defined within a Confluent Cloud Kafka cluster. [Read this section below](#run-with-local-database-get-started-locally)
 2. **Cloud deployment VPC to VPC**: Run Database on AWS, with Kafka Connector in Confluent Cloud as managed connector, defined to get data from the database to Kafka topics. This approach has cost for the services on AWS.
 
 For each approach the following activities are common:
 
-1.  Deploy Confluent Cloud components: This step is to create Confluent Cloud Environment, Kafka cluster, schema registry, service accounts, api keys and secrets, and then compute pools. We propose two approches to define the environment and components of this demonstration, one using the Confluent Console or one using Terraform as Infrastructure as code:
+1.  Deploy Confluent Cloud components: this step creates the Confluent Cloud environment, Kafka cluster, Schema Registry, service accounts, API keys and secrets, and compute pools. We propose two approaches to define the environment and components of this demonstration: one using the Confluent Console and one using Terraform as infrastructure as code:
     * [using Terraform](./sre_ccloud_tf.md).
     * [or using the Confluent cloud console](./sre_ccloud.md)
 
@@ -17,7 +20,7 @@ For each approach the following activities are common:
 
 ## Run with a remote database server
 
-The goal is to deploy Postgresql instancd in AWS RDS with the needed [AWS components](./sre_aws.md) using terraform. 
+The goal is to deploy a PostgreSQL instance in AWS RDS with the needed [AWS components](./sre_aws.md) using Terraform.
 
 The architecture of the demonstration at the high-level looks like:
 
@@ -38,7 +41,7 @@ Once the Confluent Cloud and AWS resources are created by Terraform, you start t
     source apps/backend/.env
     set +a
     ```
-* Set the ENV_CONFIG_FILE environment variable to the .env file so the application can load the other environment. This method may help top have different `.env` file for different environment.
+* Set the `ENV_CONFIG_FILE` environment variable to the `.env` file so the application can load the environment configuration. This method can help you maintain different `.env` files for different environments.
     ```sh
     export ENV_CONFIG_FILE=./apps/backend/.env
     ```
@@ -81,7 +84,7 @@ This approach uses the database and the Kafka connector locally and the web app 
     └─────────────────────────────────────────────────────────┘
     ```
 
-* Set environment variables to access Confluent Cloud resources, like Kafka, schema Key/secrets and bootstrap address. This can be done by looking terraform output:
+* Set environment variables to access Confluent Cloud resources such as Kafka, Schema Registry keys/secrets and bootstrap address. This can be done by inspecting the Terraform output:
     ```sh
     source ./scripts/set_env_from_tf.sh
     ```
@@ -218,8 +221,7 @@ The customers page presents a list of existing customers loaded from the databas
 ![](./images/customers_page.png)
 </figure>
 
-Each 
-It is possible to add a new customer, with the Add customer button, or view, update, delete an existing customer using the action icon.
+It is possible to add a new customer with the **Add customer** button, or view, update, or delete an existing customer using the action icon.
 
 For example selecting the eye icon on James Carter brings this view:
 
@@ -253,7 +255,7 @@ The transactions page presents a list of current transactions in the database:
 
 ![](./images/app/web_tx.png)
 
-Again this is for demonstration purpose.
+Again, this is for demonstration purposes.
 
 * It is possible to create a transaction manually to test the updates to the fact tables. Here are some valuable data for demonstration:
 
@@ -286,15 +288,15 @@ This page demonstrates the presentation of Flink statement lineage and metrics p
 * See the pipeline graph for one of the fact table:
     ![](./images/app/statement_graph.png)
 
-* User can drill down to see real-time metrics for on of the statement, and the deployed SQL query:
-    ![](./imagesapp/statement_metrics.png)
+* Users can drill down to see real-time metrics for one of the statements and the deployed SQL query:
+    ![](./images/app/statement_metrics.png)
 
     The message in and out should be greater than 0 when there is record flowing into the topics.
 
 
 ### Analytics Dashboard
 
-The Analytics page is an illustration of what can be done by directly accessing data in kafka
+The Analytics page illustrates what can be done by directly accessing data in Kafka.
 
 1. Get the aggregation cross customers. Rather than pulling every customer row and folding it in the backend, the cross-customer aggregates are built in Flink as a **CRM analytic data product** — four small materialized tables ( `fct_crm_by_segment`, `fct_crm_by_generation`, `fct_crm_by_gender`, `fct_crm_by_country`) derived from `dim_customers`, plus the fact tables `fct_crm_summary`, and `fct_c360_profile`. The backend reads them with six simple `SELECT *` **snapshot queries** run concurrently through the `confluent-sql` driver — the aggregation work stays in Flink and only the summary rows cross the wire. This is the Streamhouse pattern: build analytics products in Flink, expose them through a plain query.
 
@@ -315,7 +317,7 @@ The Analytics page is an illustration of what can be done by directly accessing 
 
 ### Demonstrate Real-time Context Engine
 
-There is a local LLM running in the background listening on http://localhost:7999/v1, so a OpenAPI compatible protocol. The backend is running an Agent with MCP tool defined in code, and the user interface support chatting with the customer 360 profile topic:
+There is a local LLM running in the background listening on `http://localhost:7999/v1`, an OpenAI-compatible protocol. The backend runs an agent with an MCP tool defined in code, and the user interface supports chatting with the Customer 360 profile topic:
 
 ![](./images/app/querying_with_chat_rtce.png)
 
@@ -327,7 +329,7 @@ There is a local LLM running in the background listening on http://localhost:799
 
 ### Complex Event Processing
 
-There are few Flink statements with sink as materialized table that are using the MATCH_RECOGNIZE function. To demonstrate those logics, we need controlled data. The CEP Patterns page offers 3 different scenarios:
+There are a few Flink statements with a materialized table sink that use the `MATCH_RECOGNIZE` function. To demonstrate these patterns, we need controlled data. The CEP Patterns page offers 3 different scenarios:
 
 * **Fraud Probe:** Card-cloning telltale: a $2.99 verification charge on Carter's CHECKING account is immediately followed by two large charges ($899 + $749). Carter's SAVINGS account gets a benign $45 grocery charge that must NOT trigger the pattern — demonstrating per-account isolation.
 

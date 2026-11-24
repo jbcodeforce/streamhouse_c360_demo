@@ -31,6 +31,13 @@ body { margin: 0; font-family: system-ui, -apple-system, sans-serif; color: #0f1
 .home-hero__title { margin: 0 0 12px; font-size: 30px; line-height: 1.15; color: #0f172a; }
 .home-hero__lede { margin: 0; font-size: 16px; line-height: 1.6; color: #334155; max-width: 720px; }
 .home-hero__lede a { color: var(--accent); }
+.home-hero__scene {
+  margin: 20px 0 0; border-radius: 12px; overflow: hidden;
+  background: radial-gradient(ellipse at 20% 0%, rgba(56,189,248,.22), transparent 55%),
+              radial-gradient(ellipse at 85% 10%, rgba(236,72,153,.18), transparent 50%),
+              linear-gradient(180deg, #0b1220 0%, #0f1b33 100%);
+}
+.home-hero__scene img { display: block; width: 100%; height: auto; }
 
 .home-section { margin-bottom: 32px; }
 .home-section__title { margin: 0 0 12px; font-size: 18px; color: #0f172a; }

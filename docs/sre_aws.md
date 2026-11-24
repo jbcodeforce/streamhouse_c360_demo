@@ -1,22 +1,25 @@
 # AWS Resources
 
+!!! info "Version"
+    **Last updated:** 2026-11-24
+
 This section of the documentation is to create AWS resources for the end-to-end Streamhouse demonstration with source database, S3 buckets and Catalog. 
 
 Terraform is organized under the [`IaC/`](https://github.com/jbcodeforce/streamhouse_c360_demo/tree/main/IaC/) directory as **three independent root modules** (separate local state), each file-per-concern. This split lets the core Confluent Cloud stack run locally with **no AWS credentials**; AWS and the managed connector are opt-in cost paths.
 
-- [`IaC/AWS/`](https://github.com/jbcodeforce/streamhouse_c360_demo/tree/main/IaC/AWS/) — **AWS stack**: PostgreSQL RDS 17 (CDC-ready), VPC/subnet lookups, security group (allowlists Confluent egress IPs), KMS, and the Secrets Manager secret consumed by `IaC/connector/`. Run with [`scripts/tf_aws.sh`](https://github.com/jbcodeforce/streamhouse_c360_demo/tree/main/scripts/tf_aws.sh) as it needs AWS credentials and `CONFLUENT_CLOUD_API_KEY/SECRET` exported as to setup of the security group reads Confluent egress IPs dynamically.
+- [`IaC/AWS/`](https://github.com/jbcodeforce/streamhouse_c360_demo/tree/main/IaC/AWS/) — **AWS stack**: PostgreSQL RDS 17 (CDC-ready), VPC/subnet lookups, security group (allowlists Confluent egress IPs), KMS, and the Secrets Manager secret consumed by `IaC/connector/`. Run with [`scripts/tf_aws.sh`](https://github.com/jbcodeforce/streamhouse_c360_demo/tree/main/scripts/tf_aws.sh), which needs AWS credentials and `CONFLUENT_CLOUD_API_KEY/SECRET` exported because the security group setup reads Confluent egress IPs dynamically.
 
 - [`IaC/connector/`](https://github.com/jbcodeforce/streamhouse_c360_demo/tree/main/IaC/connector/) — managed Debezium Postgres CDC connector on Confluent cloud: reads the core stack's outputs from `../ccloud/terraform.tfstate` via `terraform_remote_state`, and the RDS credentials from AWS Secrets Manager. Run with [`scripts/tf_connector.sh`](https://github.com/jbcodeforce/streamhouse_c360_demo/tree/main/scripts/tf_connector.sh) (needs AWS creds). Optional — in local mode the backend app writes Debezium-shaped events directly to `cdc.public.*` topics instead.
 
-**Apply order:** `IaC/ccloud` → `IaC/AWS` →  `IaC/connector.
+**Apply order:** `IaC/ccloud` → `IaC/AWS` → `IaC/connector`.
 
 
-The resources created are illustrated in following figure:
+The resources created are illustrated in the following figure:
 
 ![](./diagrams/aws-rds.drawio.png)
 
 * RDS Postgresql instance
-* Security Group and metwork policies for the application load balancer
+* Security group and network policies for the application load balancer
 * Secrets
 
 ### Pre-requisites
@@ -28,7 +31,7 @@ The resources created are illustrated in following figure:
     brew install libpq
     ```
 
-* Login to AWS console using one of your profile aved in `~/.aws/credentials` 
+* Log in to the AWS console using one of your profiles saved in `~/.aws/credentials`:
     ```sh
     aws sso login --profile your-profile-name
     export AWS_PROFILE="your-profile-name"
@@ -39,7 +42,7 @@ The resources created are illustrated in following figure:
 * Find the VPC you want to use to deploy RDS instance. For that go to the AWS Console, VPC and then select one of the VPC_id
     ![](./images/aws/aws_vpc.png)
 * Find you the public IP address of your machine: [https://checkip.amazonaws.com](https://checkip.amazonaws.com)
-* Under `IaC/aws/` copy to `terraform.tfvars.example` to  `terraform.tfvars` and fill in real values.
+* Under `IaC/aws/`, copy `terraform.tfvars.example` to `terraform.tfvars` and fill in real values:
     ```sh
     cp terraform.tfvars.example terraform.tfvars
     ```
@@ -148,7 +151,7 @@ It is important to get the following information to be able to create the Kafka 
 | Region | us-west-2 |
 | RDS host name | e.g. c360-j9r-postgres.c.....us-west-2.rds.amazonaws.com |
 | secrets_manager_secret_arn | Resource ref for AWS Secrets Manager |
-| Database password  | Coud be created by the admin or retrieve from the secret |
+| Database password  | Can be created by the admin or retrieved from the secret |
 | Public certificates | a .pem file to download |
 
 ![](./images/aws/aws-rds-info.png)
@@ -193,3 +196,4 @@ Once the CDC connector is running, it is the **only** writer of the
 `cdc.public.*` topics. The backend only writes to RDS (the source of truth);
 it contains no Kafka producer for customers, accounts or transactions, so
 changes cannot be published twice.
+

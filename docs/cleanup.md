@@ -1,18 +1,23 @@
-# Cleanup
+# Cloud Resource Cleanup
 
-There are different cleaning operations to perform depending of the needs.
+!!! info "Version"
+    **Last updated:** 2026-11-24
 
-1. Undeploying Flink Statements and drop intermediate, sink tables
+
+There are different cleaning operations to perform depending on the need.
+
+1. Undeploy Flink statements and drop intermediate and sink flink tables
 1. Reset all the data of the application
 1. Migrate part of one Flink pipeline
 1. Teardown AWS resources
-1. Teardown Confluent cloude resources 
+1. Tear down Confluent Cloud resources
 
 
-## Undeploy Statements
+## Undeploy Flink Statements
 
-* Stop all statements with dropping tables (need [another repo](https://github.com/jbcodeforce/flink-tools-for-agents))
+* Stop all statements with dropping tables (need [the flink-tools-for-agents repo](https://github.com/jbcodeforce/flink-tools-for-agents)) to access some extra tools.
     ```sh
+    git clone https://github.com/jbcodeforce/flink-tools-for-agents
     cd ../flink-tools-for-agents/
     uv run flink-sql-deploy --sql-dir ../streamhouse_c360_demo/pipelines/models undeploy --group crm_pipeline
 
@@ -21,9 +26,11 @@ There are different cleaning operations to perform depending of the needs.
     uv run flink-sql-deploy --sql-dir ../streamhouse_c360_demo/pipelines/models undeploy --group c360_pipeline
     ```
 
+The flink-sql-deploy tools uses the `confluent-sql` Python library to access the Confluent Cloud flink REST API to manage statements. It uses a `deploy_manifest.json` file to keep flink statement metadata.
+
 ## Cleaning Materialized Tables
 
-Because Flink statements to manage Materialized table are hidden, we need to drop the tables.
+Because Flink statements that manage materialized tables are hidden, we need to drop the tables.
 
 ```sh
 uv run flink-sql-deploy --sql-dir ../streamhouse_c360_demo/pipelines/models drop_tables --group crm
@@ -33,7 +40,11 @@ uv run flink-sql-deploy --sql-dir ../streamhouse_c360_demo/pipelines/models drop
 uv run flink-sql-deploy --sql-dir ../streamhouse_c360_demo/pipelines/models drop_tables --group fraud
 ```
 
-## Cleaning topics
+The drop_tables command is taking into account materialized tables versus streaming tables.
+
+## Cleaning CDC and Kafka  Connect Topics
+
+The manifest also includes group definition for external topics.
 
 ```sh
 uv run flink-sql-deploy --sql-dir ../streamhouse_c360_demo/pipelines/models drop_tables --group cdc
@@ -45,13 +56,13 @@ uv run flink-sql-deploy --sql-dir ../streamhouse_c360_demo/pipelines/models drop
 
 * Stop webapp and backend
     ```sh
-      ./scripts/stop_dev.sh
+    ./scripts/stop_dev.sh
     ```
 
 * Stop postgresql local server
     ```sh
     cd IaC/local
-     ./pg_local_server.sh --stop
+    ./pg_local_server.sh --stop
     ```
 * Debezium connector reset
     ```sh
@@ -74,7 +85,7 @@ uv run flink-sql-deploy --sql-dir ../streamhouse_c360_demo/pipelines/models drop
 
 ## Confluent Cloud resource teardown
 
-* If you used Managed kafka connectors
+* If you used managed Kafka connectors
     ```sh
     cd IaC/connector
     terraform destroy
@@ -91,3 +102,4 @@ uv run flink-sql-deploy --sql-dir ../streamhouse_c360_demo/pipelines/models drop
     cd IaC/ccloud
     terraform destroy
     ```
+

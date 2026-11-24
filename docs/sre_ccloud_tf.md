@@ -1,5 +1,8 @@
 # Defining Confluent Cloud Resources with Terraform
 
+!!! info "Version"
+    **Last updated:** 2026-11-24
+    
 This section presents the steps to deploy the Confluent Cloud components for Streamhouse using Terraform.
 
 Terraform is organized under the [`IaC/`](https://github.com/jbcodeforce/streamhouse_c360_demo/tree/main/IaC) directory as **independent root modules** (separate local state), each file-per-concern:

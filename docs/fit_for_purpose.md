@@ -1,5 +1,8 @@
 # Fit for Purpose
 
+!!! info "Version"
+    **Last updated:** 2026-11-24
+
 Once the Flink pipeline has materialized `fct_c360_profile` (and the CRM data products) in Kafka, there are several ways to *read* that data back, and one way to *act* on it continuously. They look similar from the outside (SQL in, rows out), but they are built for different jobs. This page helps a solution engineer pick the right one, and explains what to say when a customer asks "why not just use X?".
 
 | Need | Use | Demo page |
@@ -208,3 +211,4 @@ The pattern that ties it together in this repository: Flink CEP detects, Lightni
 - Streaming Agents: [Overview](https://docs.confluent.io/cloud/current/ai/streaming-agents/overview.html), [Build and run](https://docs.confluent.io/cloud/current/ai/streaming-agents/create-and-run-streaming-agents.html), [Agent runtime guide](https://docs.confluent.io/cloud/current/ai/streaming-agents/agent-runtime-guide.html), [Examples](https://docs.confluent.io/cloud/current/ai/streaming-agents/streaming-agents-examples.html), [`CREATE AGENT`](https://docs.confluent.io/cloud/current/flink/reference/statements/create-agent.html), [`CREATE TOOL`](https://docs.confluent.io/cloud/current/flink/reference/statements/create-tool.html)
 - Blog: [Unleash Real-Time Agentic AI: Introducing Streaming Agents on Confluent Cloud](https://www.confluent.io/blog/introducing-streaming-agents/)
 - This repo: [Web app design](web_app_design.md), [Flink DSP](build_flink_dsp.md)
+

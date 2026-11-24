@@ -89,7 +89,12 @@
   border-color: #7dd3fc;
 }
 
-/* tiles */
+/* tiles — override Material's default 0.4rem grid gap on the div itself
+   (the ul has display:contents so gap must live on the grid container) */
+.md-typeset .grid.cards.sh-tiles {
+  gap: 1.4rem;
+}
+
 .md-typeset .grid.cards.sh-tiles > ul > li {
   cursor: pointer;
 

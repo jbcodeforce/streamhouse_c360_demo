@@ -1,10 +1,13 @@
-# Defining Confluent Cloud Resources with the Consol
+# Defining Confluent Cloud Resources with the Console
+
+!!! info "Version"
+    **Last updated:** 2026-11-24
 
 ## SRE's tasks Walking Through
 
 ### Confluent Console Walk Through
 
-We suppose the user has OrganizatonAdmin role to be able to create environment. 
+We assume the user has the `OrganizationAdmin` role to be able to create an environment.
 
 Pre-requisites:
 
@@ -13,13 +16,13 @@ Pre-requisites:
 #### Create Confluent Cloud Environment
 
 1. From the home page, go to the environment page, and click on the `Add Cloud Environment` button on the top right part of the page.
-1. Enter name and select one of the governance package. As the demonstration scope is not about governance, use Essential
+1. Enter a name and select one of the governance packages. As the demonstration scope is not about governance, use **Essentials**.
 
     ![](./images/ccloud/cc-env-1.png)
 
 #### Create Confluent Cloud Kafka Cluster
 
-Next step is to create a KafKa Cluster
+The next step is to create a Kafka cluster.
 1. Enter name, and Cluster Type, which for demonstration will be standard.
 
     ![](./images/ccloud/cc-kafka-1.png)
@@ -50,7 +53,7 @@ Once the database instance is created and has DNS server name and port number an
 1. Add Connector, and select the Postgres CDC Source V2
     ![](./images/ccloud/cc-cdc-deb.png)
 
-1. Add topic information like the prefix to use to differentiate among other topic. Set the default number of partitions and cleanup policy
+1. Add topic information such as the prefix to use to differentiate among other topics. Set the default number of partitions and the cleanup policy.
 
     ![](./images/ccloud/cdc-topic-cfg.png)
 
@@ -76,3 +79,4 @@ Once the database instance is created and has DNS server name and port number an
 
 1. Verify Schema registry schemas
     ![](./images/ccloud/cdc-schemas.png)
+

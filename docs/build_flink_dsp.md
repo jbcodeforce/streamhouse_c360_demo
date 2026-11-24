@@ -1,5 +1,8 @@
 # Build Flink Processing
 
+!!! info "Version"
+    **Last updated:** 2026-11-24
+    
 This section addresses the Flink pipeline definition and management using [Confluent dbt](https://pypi.org/project/dbt-confluent/) plugin.
 
 ## What is built
@@ -10,7 +13,7 @@ We want to implement the following pipeline to process the raw/bronze layer of r
 
 To a silver layer which includes clean source data, with no duplicate, reflecting a canonical model and filtered records. The golden layer includes the `star schema` dimensions and facts. For this demonstration the c360-profile defines analytics about a customer based on the buying transactions done so far.
 
-The Confluent Cloud Flink statement organization reflects the medaillon and star schema structure.  The Flink statements run in a compute pool, already created via the terraform deployment (or reused but referenced in FLINK_COMPUTE_POOL_ID).
+The Confluent Cloud Flink statement organization reflects the medallion and star schema structure. The Flink statements run in a compute pool already created via the Terraform deployment (or reused and referenced in `FLINK_COMPUTE_POOL_ID`).
 
 1. First, create the pipeline folder to manage the different Flink SQL statements, using the star schema pattern. This can be done manually or using a tool from [flink-tools-for-agents](https://github.com/jbcodeforce/flink-tools-for-agents/tree/main/tools/dbt) project, which complement the dbt Confluent CLI:
     ```sh
@@ -31,7 +34,7 @@ The Confluent Cloud Flink statement organization reflects the medaillon and star
     └── tools
     ```
 
-1. Add a data  analytic product named `c360`, to keep metrics for customer 360 view.
+1. Add a data analytic product named `c360`, to keep metrics for the Customer 360 view.
     ```sh
     uv run sl-dbt add-data-product ~/Code/streamhouse_c360_demo c360
     ```
@@ -51,7 +54,7 @@ The Confluent Cloud Flink statement organization reflects the medaillon and star
         └── tests
     ```
 
-1. Add one table as output of deduplicating customers raw data, and to filter unnecessary records:
+1. Add one table as output of deduplicating raw customer data and filtering unnecessary records:
 
     ```sh
      uv run sl-dbt add-table ~/Code/streamhouse_c360_demo src_customers c360 --table-type  src
@@ -79,7 +82,7 @@ The Confluent Cloud Flink statement organization reflects the medaillon and star
     1. Assess the source table structure. Run the SQL: `show create table cdc.public.customers`
         ![](./images/flink/show_create_table.png)
 
-        We can observe the Debezium envelop is already transformed to the sub schema. We can verify the schema definitiom in the schema registry has a before and after envelop. Go to schema registry page and select `cdc.public.customers-value`. The schema has Debezium fields of `before`, `after`, `op`...
+        We can observe that the Debezium envelope is already transformed to the sub-schema. We can verify the schema definition in Schema Registry has a `before` and `after` envelope. Go to the Schema Registry page and select `cdc.public.customers-value`. The schema has Debezium fields: `before`, `after`, `op`...
 
         ![](./images/flink/schema_customer.png)
 
@@ -91,8 +94,8 @@ The Confluent Cloud Flink statement organization reflects the medaillon and star
 
         We can do the same for: `show create table cdc.public.accounts;` and `show create table cdc.public.transactions;`
 
-        We can also discover that by default the changelog mode is set to `retract`. This is due to CDC debezium configuration that may not have  defined the primary key mapping. If the Kafka topic has `cleanup.policy` set to compact, the `changelog.mode` is set to upsert instead. 
-        With `retract` we could not run snapshot queries but only streaming query. 
+        We can also discover that by default the changelog mode is set to `retract`. This is due to the CDC Debezium configuration that may not have defined the primary key mapping. If the Kafka topic has `cleanup.policy` set to `compact`, the `changelog.mode` is set to `upsert` instead.
+        With `retract` mode we cannot run snapshot queries, only streaming queries.
 
     1. Look at some data and select only active customers:
         ```sql
@@ -116,14 +119,14 @@ The Confluent Cloud Flink statement organization reflects the medaillon and star
 
         ![](./images/flink/no_duplicate.png)
 
-1. We can continue the data analysis and finally build the following Flink SQL to do some filtering and data cleaning. See [flink src processing folder](../flink_sqls/).
+1. We can continue the data analysis and finally build the following Flink SQL for filtering and data cleaning. See the [Flink source processing folder](../flink_sqls/).
 
 1. To be able to connect to Confluent Cloud, we need to set the environment variables for API keys and secrets. The following script loads those from Terraform output
     ```sh
     source ./scripts/set_env_from_tf.sh
     ```
 
-    As an alternate source the .env file under apps/backend/
+    Alternatively, source the `.env` file under `apps/backend/`.
 
 1. `dbt` needs models. The first layer is the references to existing CDC topics [see pipelines/models/sources.yaml](../pipelines/models/sources.yaml) file.
 
@@ -166,15 +169,15 @@ The Confluent Cloud Flink statement organization reflects the medaillon and star
 
     This is a generic profile for Confluent Cloud  that uses environment variables to avoid sharing secrets in yaml file.
 
-1. Continue to create the following flink statements to filter and transform raw CDC topics, create dimension and fact for the analytics.
+1. Continue to create the following Flink statements to filter and transform raw CDC topics, and create dimensions and facts for the analytics.
 
 The [path is pipelines/models/c360](../pipelines/models/c360)
 
 | Source Table(s) | Folder Name | Sink Table | Goal |
 | ----------------| ------------ |-----------|-----|
 | cdc.public.accounts | sources | src_accounts | Deduplicate, flatten, filter, transform |
-| cdc.public.customers | sources | src_customers | eduplicate, flatten, filter, transform |
-| cdc.public.transactions| sources | src_transactions | eduplicate, flatten, filter, transform |
+| cdc.public.customers | sources | src_customers | Deduplicate, flatten, filter, transform |
+| cdc.public.transactions| sources | src_transactions | Deduplicate, flatten, filter, transform |
 | src_customers | dimension |  dim_customers| Compute customer dimension |
 | src_customers, src_account | dimension |  dim_customers| Compute transaction cross account metrics |
 | dim_customers, | facts | fct_c360_profiles |
@@ -203,7 +206,7 @@ The [path is pipelines/models/c360](../pipelines/models/c360)
 └── sources.yaml
 ```
 
-Each model needs to have the table definition to create as sink. As an example the dimension to compute account aggregations look like ([file dim_account_tx_agg.sq](../pipelines/models/c360/dimensions/dim_account_tx_agg.sql)):
+Each model needs to have the table definition to create as a sink. As an example, the dimension to compute account aggregations looks like this ([`dim_account_tx_agg.sql`](../pipelines/models/c360/dimensions/dim_account_tx_agg.sql)):
 
 ```yaml
 models:
@@ -237,7 +240,7 @@ models:
 
 ## Deploy
 
-dbt supports different way to manage the dependencies. We can use tag, folder, or tree.
+dbt supports different ways to manage dependencies. We can use tags, folders, or the dependency tree.
 
 * Deploy all the sources that are the first level of flink statements to deploy
 ```sh
@@ -255,7 +258,7 @@ dbt run --select +crm.facts
 
 ## Undeploy
 
-1. As dbt does not support undeploying, we need another tool to manage the drop table and undeploy statement. The [flink-tools-for-agents](https://github.com/jbcodeforce/flink-tools-for-agents/tree/main/tools/flink) includes tools to define a manifest of metadata about existing statements and then perform deplooy, undeploy and drop tables. 
+1. As dbt does not support undeploying, we need another tool to manage the drop table and undeploy operations. The [flink-tools-for-agents](https://github.com/jbcodeforce/flink-tools-for-agents/tree/main/tools/flink) project includes tools to define a manifest of metadata about existing statements and then perform deploy, undeploy, and drop tables.
     ```sh
     cd flink-tools-for-agents 
     uv run generate-manifest --sql-dir ../streamhouse_c360_demo/pipelines/models 
@@ -284,3 +287,5 @@ dbt run --select +crm.facts
     ```sh
     ./scripts/tf_aws.sh destroy
     ```
+
+

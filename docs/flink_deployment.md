@@ -1,5 +1,8 @@
 # Flink Project Management
 
+!!! info "Version"
+    **Last updated:** 2026-11-24
+
 This section describes how the Flink pipelines are defined, deployed and removed with the [Confluent dbt](https://pypi.org/project/dbt-confluent/) plugin. The dbt project is in [`pipelines/`](https://github.com/jbcodeforce/streamhouse_c360_demo/tree/main/pipelines).
 
 ## Prerequisites
@@ -248,3 +251,4 @@ Destroy the Terraform modules in the reverse order of their creation. `IaC/cclou
     ```
 
 For the local PostgreSQL and Debezium containers, see [Local CDC](local_cdc.md#4-stop-and-reset).
+
