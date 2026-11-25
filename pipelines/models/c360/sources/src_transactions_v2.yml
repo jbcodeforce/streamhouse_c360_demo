@@ -1,0 +1,50 @@
+
+models:
+- name: src_transactions_v2
+  description: ""
+  config:
+    contract:
+      enforced: true
+  columns:
+  - name: transaction_id
+    data_type: varchar(2147483647)
+    constraints:
+      - type: not_null
+      - type: primary_key
+        expression: "not enforced"
+  - name: account_id
+    data_type: string
+  - name: customer_id
+    data_type: string
+  - name: transaction_type
+    data_type: string
+  - name: amount
+    data_type: DECIMAL(18,2)
+  - name: currency
+    data_type: string
+  - name: comments
+    data_type: string
+  - name: merchant_name
+    data_type: string
+  - name: merchant_category
+    data_type: string
+  - name: channel
+    data_type: string
+  - name: status
+    data_type: string
+  - name: transacted_at
+    data_type: timestamp_ltz
+  - name: card_id
+    data_type: string
+  - name: use_chip
+    data_type: string
+  - name: merchant_city
+    data_type: string
+  - name: merchant_state
+    data_type: string
+  - name: merchant_zip
+    data_type: string
+  - name: currency_code_numeric
+    data_type: string
+  - name: currency_name
+    data_type: string

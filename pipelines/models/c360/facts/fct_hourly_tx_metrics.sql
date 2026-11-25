@@ -1,6 +1,6 @@
 {{ config(
     materialized = 'materialized_table',
-    distributed_by={'columns': ['account_number', 'window_start', 'window_end'], 'buckets': 1},
+    distributed_by={'columns': ['account_id', 'window_start', 'window_end'], 'buckets': 1},
     with= {
         'changelog.mode': 'append',
         'kafka.cleanup-policy': 'delete',
@@ -14,7 +14,7 @@
 with completed_tx as (
   select * from {{ ref('dim_transactions') }} where status = 'COMPLETED'
 )
-SELECT 
+SELECT
     account_id,
     window_start,
     window_end,
@@ -25,6 +25,6 @@ SELECT
     MIN(amount) AS min_amount,
     MAX(amount) AS max_amount
 FROM TABLE(
-    TUMBLE(TABLE completed_tx, DESCRIPTOR(`transacted_at`), INTERVAL '1' HOUR)
+    TUMBLE(TABLE completed_tx, DESCRIPTOR(transacted_at), INTERVAL '1' HOUR)
 )
 GROUP BY account_id, window_start, window_end;

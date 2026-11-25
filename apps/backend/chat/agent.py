@@ -52,6 +52,7 @@ _RETRY_BACKOFF_SECONDS = 0.75
 # Cached-session bounds, to keep open MCP connections from accumulating.
 _MAX_SESSIONS = 20
 _SESSION_TTL_SECONDS = 1800  # 30 minutes idle
+_TRACE_MAX_CHARS = 500  # per-field cap for tool-call trace log lines
 
 _INSTRUCTIONS = [
     "You are the C360 Assistant for the customer-360 demo.",
@@ -119,6 +120,28 @@ def _build_prompt(message: str, history: list[ChatMessage]) -> str:
     return f"Conversation so far:\n{ctx}\n\nUser: {message}" if ctx else message
 
 
+def _truncate(value, limit: int = _TRACE_MAX_CHARS) -> str:
+    text = " ".join(str(value).split())
+    return text if len(text) <= limit else f"{text[:limit]}... (+{len(text) - limit} chars)"
+
+
+def _log_tool_trace(result, session_id: str | None) -> None:
+    """Log each tool call of a run (name, args, outcome, result) to the terminal."""
+    for i, call in enumerate(getattr(result, "tools", None) or [], start=1):
+        metrics = getattr(call, "metrics", None)
+        duration = getattr(metrics, "duration", None)
+        logger.info(
+            "tool call #%d (session=%s) %s args=%s -> %s%s | result=%s",
+            i,
+            session_id or "-",
+            call.tool_name,
+            _truncate(call.tool_args),
+            "ERROR" if call.tool_call_error else "ok",
+            f" in {duration:.2f}s" if isinstance(duration, (int, float)) else "",
+            _truncate(call.result),
+        )
+
+
 # --------------------------------------------------------------------------- #
 # agno construction (the live pieces — monkeypatched in tests)
 # --------------------------------------------------------------------------- #
@@ -155,6 +178,7 @@ async def _run_stateless(prompt: str) -> str:
     ) as tools:
         agent = Agent(model=model, tools=[tools], instructions=_INSTRUCTIONS, markdown=False)
         result = await agent.arun(input=prompt)
+    _log_tool_trace(result, None)
     return (result.content or "").strip()
 
 
@@ -286,6 +310,7 @@ async def run_agent(
                 entry = await _get_or_create(session_id)
                 async with entry.lock:
                     result = await entry.agent.arun(input=prompt, session_id=session_id)
+                _log_tool_trace(result, session_id)
                 return (result.content or "").strip()
             return await _run_stateless(prompt)
         except Exception as exc:  # noqa: BLE001 — retry/reconnect any failure

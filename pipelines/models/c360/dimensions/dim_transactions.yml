@@ -28,12 +28,6 @@ models:
     data_type: string
   - name: currency_name
     data_type: string
-  - name: customer_country
-    data_type: string
-  - name: customer_country_alpha3
-    data_type: string
-  - name: customer_country_name
-    data_type: string
   - name: comments
     data_type: string
   - name: merchant_name
@@ -53,7 +47,7 @@ models:
   - name: status
     data_type: string
   - name: transacted_at
-    data_type: timestamp_ltz(2)
+    data_type: timestamp_ltz(3)
   - name: transaction_date_only 
     data_type: DATE
   - name:  transaction_hour 

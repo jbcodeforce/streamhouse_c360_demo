@@ -11,6 +11,7 @@
         'value.format': 'avro-registry'
     }
 ) }}
+-- users per country
 SELECT 
     COALESCE(country,'US') as country,
     COUNT(distinct customer_id)           AS country_count

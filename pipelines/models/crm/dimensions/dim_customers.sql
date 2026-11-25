@@ -34,8 +34,31 @@ WITH card_account AS (
     ON a.account_id = c.account_id
 ),
 customers AS (
-   SELECT *, TO_TIMESTAMP_LTZ(date_of_birth, 'yyyy-MM-dd') AS dob_ts
-    FROM {{ ref('src_customers') }}
+    SELECT *
+    FROM TO_CHANGELOG(
+            input      => TABLE {{ ref('src_customers') }},
+            op         => DESCRIPTOR(op),
+            op_mapping => MAP[
+                'INSERT',       'c',
+                'UPDATE_AFTER', 'u',
+                'DELETE',       'd'
+            ]
+        )
+),
+
+customer_coded AS (
+   SELECT 
+     c.*, 
+     TO_TIMESTAMP_LTZ(c.date_of_birth, 'yyyy-MM-dd') AS dob_ts,
+     ctry.country_code_alpha3 AS customer_country_alpha3,
+     ctry.country_name AS customer_country_name
+    FROM customers as c
+    LEFT JOIN LATERAL SNAPSHOT(
+        input => TABLE {{ ref('country_codes') }},
+        on_time => DESCRIPTOR($rowtime),
+        load_completed_idle_timeout => INTERVAL '30' SECONDS
+    ) AS ctry
+    ON c.country = ctry.country_code
 )
 SELECT 
     u.customer_id,
@@ -52,6 +75,8 @@ SELECT
     u.`state`,
     u.postal_code,
     u.country,
+    u.customer_country_alpha3,
+    u.customer_country_name,
     u.yearly_income,
     u.retirement_age,
     u.credit_score,
@@ -87,6 +112,6 @@ SELECT
     c.card_type, 
     c.has_chip, 
     c.card_credit_limit
-FROM customers as u
+FROM customer_coded as u
     LEFT JOIN card_account as c
     ON u.customer_id = c.customer_id

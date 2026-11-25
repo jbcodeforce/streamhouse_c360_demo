@@ -15,11 +15,11 @@ models:
   - name: account_count
     data_type: BIGINT
   - name: total_balance
-    data_type: decimal
+    data_type: DECIMAL(18,2)
   - name: txn_count
     data_type: BIGINT
   - name: txn_total
-    data_type: decimal
+    data_type: DECIMAL(18,2)
   - name: last_transacted_at
     data_type: timestamp_ltz
 

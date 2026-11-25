@@ -91,21 +91,15 @@
     "c360" : [
       { "table": "fct_smb_spike", "materialized": false},
       { "table": "fct_c360_profile", "materialized": true},
-      { "table": "dim_transactions", "materialized": true},
+      { "table": "dim_transactions", "materialized": false},
       { "table": "dim_account_tx_agg", "materialized": true},
       { "table": "dim_tx_x_account", "materialized": true},
       { "table": "src_transactions", "materialized": true},
       { "table": "fct_merchant_streak","materialized": false}
     ],
     "crm" : [ 
-       {
-          "table": "src_customers",
-          "materialized": true
-        },
-        {
-          "table": "dim_customers",
-          "materialized": true
-        },
+      { "table": "src_customers", "materialized": true},
+      { "table": "dim_customers", "materialized": true},
         {
           "table": "src_accounts",
           "materialized": true

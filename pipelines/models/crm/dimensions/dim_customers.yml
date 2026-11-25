@@ -38,6 +38,10 @@ models:
     data_type: string
   - name: country
     data_type: string
+  - name: customer_country_alpha3
+    data_type: string
+  - name: customer_country_name
+    data_type: string
   - name: yearly_income
     data_type: decimal(18, 2)
   - name: retirement_age
