@@ -32,11 +32,11 @@ function toPayload(form: FormState): AccountCreate {
 }
 
 export default function AccountFormPage() {
-  const { id } = useParams<{ id: string }>()
+  const { customerId, accountId } = useParams<{ customerId?: string; accountId?: string }>()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  const isEdit = Boolean(id)
-  const presetCustomerId = searchParams.get('customer_id') ?? ''
+  const isEdit = Boolean(accountId)
+  const presetCustomerId = customerId ?? searchParams.get('customer_id') ?? ''
 
   const [form, setForm] = useState<FormState>(
     presetCustomerId ? { ...EMPTY, customer_id: presetCustomerId } : EMPTY,
@@ -51,7 +51,7 @@ export default function AccountFormPage() {
       try {
         const [custs, account] = await Promise.all([
           listCustomers(),
-          id ? getAccount(id) : Promise.resolve(null),
+          accountId ? getAccount(accountId) : Promise.resolve(null),
         ])
         setCustomers(custs)
         if (account) {
@@ -74,7 +74,7 @@ export default function AccountFormPage() {
       }
     }
     void init()
-  }, [id])
+  }, [accountId])
 
   function validate(): boolean {
     const next: Partial<Record<keyof AccountCreate, string>> = {}
@@ -91,8 +91,8 @@ export default function AccountFormPage() {
     if (!validate()) return
     const payload = toPayload(form)
     try {
-      if (isEdit && id) {
-        await updateAccount(id, payload)
+      if (isEdit && accountId) {
+        await updateAccount(accountId, payload)
       } else {
         await createAccount(payload)
       }
@@ -106,15 +106,16 @@ export default function AccountFormPage() {
     setForm({ ...form, [key]: value })
   }
 
-  const customerLocked = Boolean(presetCustomerId) || isEdit
+  const customerLocked = Boolean(presetCustomerId) || (isEdit && accountId)
   const returnTo = form.customer_id ? `/customers/${form.customer_id}` : '/customers'
 
+  const pageTitle = isEdit ? 'Edit account' : 'New account'
   if (loading) return <div className="status-msg">Loading…</div>
 
   return (
     <div>
       <div className="page-header">
-        <h1>{isEdit ? 'Edit account' : 'New account'}</h1>
+        <h1>{pageTitle}</h1>
       </div>
       <form className="form" onSubmit={onSubmit} noValidate>
         <div className="form__row">

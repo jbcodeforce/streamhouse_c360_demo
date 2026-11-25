@@ -381,9 +381,10 @@ The frontend also exposes the monthly dollar amount per Flink pipeline:
 The code that supports the implementation is in [backend/data_products/confluent_client.py](https://github.com/jbcodeforce/streamhouse_c360_demo/blob/main/apps/backend/data_products/confluent_client.py), and uses the REST API for billing combined with compute pool and statement name information. 
 
 
-### Others to finalize
-* [ ] Sliding window aggregations over transactions grouped by cardholder (1-minute to 1-day windows).
+### Future features
+
 * [ ] How to propagate delete operations to the sink bucket.
+* [ ] Add a virtual shopping assistant to simultaneously query against a particular customer’s shopping history—stored in open table formats—while joining on their current browsing activity as a real time feed.
 * [ ] Iceberg table and Tableflow enabled in dbt.
 * [ ] Tableflow catalog in sync with the AWS Glue Catalog.
 * [ ] AWS Athena integrated with the AWS Glue Catalog for the defined Kafka cluster, so the Iceberg tables can be seen and queried.
@@ -511,6 +512,7 @@ The following steps are generic and may be supported by different tools:
 * [My living Flink study book](https://jbcodeforce.github.io/flink-studies/) with best practices, methodology, and code samples
 * [Confluent Stream Processing with Confluent Cloud for Apache Flink](https://docs.confluent.io/cloud/current/flink/overview.html)
 * [Streamhouse](https://streamhouse.com/) web site
+* [Your Business, Always Current. Streamhouse - The Data Architecture for the Age of AI.](https://master.www.confluent.io/blog/streamhouse-your-business-always-current/)
 
 !!! info "Version"
     **Last updated:** 2026-11-24

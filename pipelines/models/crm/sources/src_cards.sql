@@ -16,6 +16,7 @@
 select
     card_id,
     account_id,
+    card_number,
     card_brand,
     card_type,
     has_chip,

@@ -147,6 +147,11 @@ export default function CustomerFormPage() {
         ))}
         {submitError && <div className="form__error">{submitError}</div>}
         <div className="form__actions">
+          {isEdit && (
+            <button type="button" className="btn btn--secondary" onClick={() => navigate(`/customers/${id}/account`)}>
+              Add account
+            </button>
+          )}
           <button type="submit" className="btn">Save</button>
           <button type="button" className="btn btn--secondary" onClick={() => navigate('/customers')}>Cancel</button>
         </div>

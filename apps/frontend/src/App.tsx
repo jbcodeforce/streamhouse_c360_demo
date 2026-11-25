@@ -25,9 +25,10 @@ export default function App() {
         <Route path="/customers/new" element={<CustomerFormPage />} />
         <Route path="/customers/:id" element={<CustomerDetailPage />} />
         <Route path="/customers/:id/edit" element={<CustomerFormPage />} />
+        <Route path="/customers/:customerId/account" element={<AccountFormPage />} />
         <Route path="/accounts/new" element={<AccountFormPage />} />
         <Route path="/accounts/:id" element={<AccountDetailPage />} />
-        <Route path="/accounts/:id/edit" element={<AccountFormPage />} />
+        <Route path="/accounts/:accountId/edit" element={<AccountFormPage />} />
         <Route path="/transactions" element={<TransactionsPage />} />
         <Route path="/transactions/new" element={<TransactionFormPage />} />
         <Route path="/transactions/generated" element={<GeneratedTransactionsPage />} />

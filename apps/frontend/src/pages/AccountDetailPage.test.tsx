@@ -1,4 +1,5 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as api from '../api/accounts'
@@ -66,5 +67,32 @@ describe('AccountDetailPage', () => {
     vi.spyOn(api, 'getAccount').mockRejectedValue(new ApiError(404, 'Account not found'))
     renderAt('nope')
     expect(await screen.findByText(/Account not found/)).toBeInTheDocument()
+  })
+
+  it('creates a card from the add-card icon and refreshes the list', async () => {
+    vi.spyOn(api, 'getAccount').mockResolvedValue(account as never)
+    const create = vi.spyOn(cardsApi, 'createCard').mockResolvedValue(card)
+    const list = vi.spyOn(cardsApi, 'listCards').mockResolvedValueOnce([]).mockResolvedValue([card])
+    renderAt('a1')
+    await userEvent.click(await screen.findByRole('button', { name: /add card/i }))
+    await userEvent.type(screen.getByLabelText(/card number/i), '4532010000079192')
+    await userEvent.click(screen.getByRole('button', { name: /create card/i }))
+    await waitFor(() => expect(create).toHaveBeenCalledWith(expect.objectContaining({
+      account_id: 'a1', card_brand: 'VISA', card_type: 'DEBIT', card_number: '4532010000079192', credit_limit: null,
+    })))
+    expect(await screen.findByText('•••• 9192')).toBeInTheDocument()
+    expect(list).toHaveBeenCalledTimes(2)
+    expect(screen.queryByRole('form', { name: /new card/i })).not.toBeInTheDocument()
+  })
+
+  it('rejects a malformed card number without calling the API', async () => {
+    vi.spyOn(api, 'getAccount').mockResolvedValue(account as never)
+    const create = vi.spyOn(cardsApi, 'createCard')
+    renderAt('a1')
+    await userEvent.click(await screen.findByRole('button', { name: /add card/i }))
+    await userEvent.type(screen.getByLabelText(/card number/i), '12ab')
+    await userEvent.click(screen.getByRole('button', { name: /create card/i }))
+    expect(await screen.findByText(/12 to 19 digits/)).toBeInTheDocument()
+    expect(create).not.toHaveBeenCalled()
   })
 })

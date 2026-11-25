@@ -18,7 +18,7 @@ function renderAt(path: string) {
     <MemoryRouter initialEntries={[path]}>
       <Routes>
         <Route path="/accounts/new" element={<AccountFormPage />} />
-        <Route path="/accounts/:id/edit" element={<AccountFormPage />} />
+        <Route path="/accounts/:accountId/edit" element={<AccountFormPage />} />
         <Route path="/customers/:id" element={<div>customer page</div>} />
       </Routes>
     </MemoryRouter>,

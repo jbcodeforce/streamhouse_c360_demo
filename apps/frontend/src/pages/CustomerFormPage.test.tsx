@@ -3,7 +3,9 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import * as api from '../api/customers'
+import * as accountsApi from '../api/accounts'
 import CustomerFormPage from './CustomerFormPage'
+import AccountFormPage from './AccountFormPage'
 
 afterEach(() => vi.restoreAllMocks())
 
@@ -13,6 +15,7 @@ function renderAt(path: string) {
       <Routes>
         <Route path="/customers/new" element={<CustomerFormPage />} />
         <Route path="/customers/:id/edit" element={<CustomerFormPage />} />
+        <Route path="/customers/:customerId/account" element={<AccountFormPage />} />
         <Route path="/customers" element={<div>list</div>} />
       </Routes>
     </MemoryRouter>,
@@ -102,5 +105,36 @@ describe('CustomerFormPage', () => {
     expect(await screen.findByLabelText(/credit score/i)).toHaveValue(742)
     expect(screen.getByLabelText(/yearly income/i)).toHaveValue(78500)
     expect(screen.getByLabelText(/retirement age/i)).toHaveValue(65)
+  })
+
+  it('hides the Add account button when creating a new customer', async () => {
+    renderAt('/customers/new')
+    expect(await screen.queryByRole('button', { name: /add account/i })).not.toBeInTheDocument()
+  })
+
+  it('navigates to the account form with the customer id preselected', async () => {
+    vi.spyOn(api, 'getCustomer').mockResolvedValue({
+      customer_id: 'c1', first_name: 'Ada', last_name: 'Lovelace', email: 'ada@x.io',
+      country: 'US', customer_since: '2020-01-01', created_at: '', updated_at: '',
+    } as never)
+    vi.spyOn(api, 'listCustomers').mockResolvedValue([
+      { customer_id: 'c1', first_name: 'Ada', last_name: 'Lovelace', email: 'ada@x.io',
+        country: 'US', customer_since: '2020-01-01', created_at: '', updated_at: '' },
+    ] as never)
+    vi.spyOn(accountsApi, 'getAccount').mockResolvedValue(null as never)
+    render(
+      <MemoryRouter initialEntries={['/customers/c1/edit']}>
+        <Routes>
+          <Route path="/customers/new" element={<CustomerFormPage />} />
+          <Route path="/customers/:id/edit" element={<CustomerFormPage />} />
+          <Route path="/customers/:customerId/account" element={<AccountFormPage />} />
+          <Route path="/customers" element={<div>list</div>} />
+        </Routes>
+      </MemoryRouter>,
+    )
+    await screen.findByRole('button', { name: /add account/i })
+    await userEvent.click(screen.getByRole('button', { name: /add account/i }))
+    const select = (await screen.findByLabelText(/customer/i)) as HTMLSelectElement
+    expect(select.value).toBe('c1')
   })
 })

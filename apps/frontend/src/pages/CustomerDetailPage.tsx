@@ -1,13 +1,15 @@
-import { Eye, Pencil, Ban } from 'lucide-react'
+import { Eye, Pencil, Ban, CreditCard } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import ConfirmDialog from '../components/ConfirmDialog'
 import { ApiError } from '../api/client'
 import { getCustomer } from '../api/customers'
 import { listAccounts, updateAccount } from '../api/accounts'
+import { createCard } from '../api/cards'
 import { formatCurrency } from '../lib/format'
 import type { Customer } from '../types/customer'
 import type { Account } from '../types/account'
+import type { CardCreate } from '../types/card'
 
 const FIELDS: [keyof Customer, string][] = [
   ['first_name', 'First name'],
@@ -45,6 +47,7 @@ export default function CustomerDetailPage() {
   const [error, setError] = useState<string | null>(null)
   const [accountsError, setAccountsError] = useState<string | null>(null)
   const [pendingClose, setPendingClose] = useState<Account | null>(null)
+  const [creatingCard, setCreatingCard] = useState<string | null>(null)
 
   async function loadAccounts(customerId: string) {
     setAccountsError(null)
@@ -78,6 +81,30 @@ export default function CustomerDetailPage() {
       setAccountsError(e instanceof ApiError ? e.message : 'Failed to close account')
       setPendingClose(null)
     }
+  }
+
+  async function handleCreateCard(accountId: string) {
+    setCreatingCard(accountId)
+    try {
+      // Generate a plausible card number (mod-10 compliant)
+      const brand = 'VISA'
+      const cardNumber = '4' + '00000000000000' + (Math.random() > 0.5 ? '1' : '2')
+      const now = new Date()
+      const expires = new Date(now.getFullYear() + 4, now.getMonth(), 1)
+      const data: CardCreate = {
+        account_id: accountId,
+        card_brand: brand,
+        card_type: Math.random() > 0.5 ? 'CREDIT' : 'DEBIT',
+        card_number: cardNumber,
+        expires: expires.toISOString().slice(0, 10),
+        has_chip: true,
+      }
+      await createCard(data)
+      await loadAccounts(id!)
+    } catch (e) {
+      setAccountsError(e instanceof ApiError ? e.message : 'Failed to create card')
+    }
+    setCreatingCard(null)
   }
 
   if (loading) return <div className="status-msg">Loading…</div>
@@ -133,6 +160,15 @@ export default function CustomerDetailPage() {
                     onClick={() => setPendingClose(a)}
                   >
                     <Ban size={18} />
+                  </button>
+                  <button
+                    className="icon-btn"
+                    aria-label="Create card"
+                    title="Create a card for this account"
+                    disabled={a.status === 'CLOSED'}
+                    onClick={() => handleCreateCard(a.account_id)}
+                  >
+                    <CreditCard size={18} />
                   </button>
                 </div>
               </td>

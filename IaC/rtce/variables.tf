@@ -57,13 +57,19 @@ variable "core_state_path" {
 
 variable "profile_topic" {
   type        = string
-  description = "Name of the materialized (upsert) topic to expose via the Lightning Query API"
+  description = "Name of the fct_c360_profile materialized (upsert) topic to expose via the Lightning Query API"
   default     = "fct_c360_profile"
 }
 
 variable "crm_summary_topic" {
   type        = string
-  description = "Name of the topic to expose via the Lightning Query API"
+  description = "Name of the fct_crm_summary topic to expose via the Lightning Query API"
   default     = "fct_crm_summary"
 }
 
+
+variable "fct_hourly_tx_metrics_topic" {
+  type        = string
+  description = "Name of the fct_hourly_tx_metrics topic to expose via the Lightning Query API"
+  default     = "fct_hourly_tx_metrics"
+}

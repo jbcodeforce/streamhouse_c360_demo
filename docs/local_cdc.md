@@ -7,7 +7,9 @@ Run the CDC path entirely on your workstation: a local PostgreSQL 17 container a
 
 ## Architecture
 
+<figure markdown='span'>
 ![](./diagrams/local/local_cdc.drawio.png)
+</figure>
 
 ## Prerequisites
 
@@ -27,6 +29,14 @@ All variables live in `apps/backend/.env` (gitignored). Generate it from the Ter
 
 Debezium needs `KAFKA_BOOTSTRAP_SERVERS`, `KAFKA_API_KEY`, `KAFKA_API_SECRET`, `SCHEMA_REGISTRY_URL`, `SCHEMA_REGISTRY_API_KEY` and `SCHEMA_REGISTRY_API_SECRET`. Variables already exported in your shell take precedence over the file.
 
+**Future execution**, when doing new execution from existing Confluent Cloud environment, you just need to set environment variables in the Termincal session with:
+
+```sh
+set -a && source ./apps/backend/.env && set +a
+```
+
+[See also reset data, if you want to restart from new databae and new cdc topics](#4-stop-and-reset)
+
 ### 2. Start the stack
 
 ```sh
@@ -37,7 +47,8 @@ cd IaC/local
 
 # PostgreSQL 17 with wal_level=logical, plus schema, publication and seed data
 ./start_local_pg_server.sh --seed
-
+# Alternate start DB server on existing database
+./start_local_pg_server.sh
 # Debezium worker + connector (waits until the connector is RUNNING)
 ./start_debezium.sh
 ```
@@ -106,20 +117,44 @@ cd IaC/local
 ./start_debezium.sh --full-reset   # also wipe Connect topics and drop the replication slot (forces a re-snapshot)
 
 # PostgreSQL
-./start_local_pg_server.sh --stop    # stop and remove the container
-./start_local_pg_server.sh --reset   # fresh container (data is lost)
+./start_local_pg_server.sh --stop    # stop and remove the container (data is kept)
+./start_local_pg_server.sh --purge   # stop and remove the container AND its data volume
+./start_local_pg_server.sh --reset   # purge, then start a fresh empty container (data is lost)
 ```
 
-A reset PostgreSQL container is empty: it has no tables and no `c360_cdc_publication`, and `start_debezium.sh` refuses to start without the publication. Recreate them with `--seed`, then reset Debezium so the replication slot and offsets match the new database:
+#### PostgreSQL data persistence
+
+The PostgreSQL data directory lives on a named volume, `c360-pgdata`, mounted at `/var/lib/postgresql/data` with `PGDATA=/var/lib/postgresql/data/pgdata`. The container is disposable; the volume is not.
+
+| Action | Container | Volume `c360-pgdata` (your data) |
+|---|---|---|
+| `start_local_pg_server.sh` (first run) | created | created |
+| `start_local_pg_server.sh` (container stopped or removed) | restarted or recreated | reused, data is back |
+| `--stop` | removed | **kept** |
+| `--purge` | removed | **deleted** |
+| `--reset` | recreated | **deleted**, then recreated empty |
+
+Rows you create through the app or SQL therefore survive `--stop` followed by a restart, a reboot, or an Apple container daemon restart. Only `--purge` and `--reset` discard them.
+
+Why this matters: without a volume, PostgreSQL writes to the container's own filesystem, which is destroyed with `container delete`. Earlier versions of the script had no volume, so `--stop`/`--reset` (the latter being the only suggested way out of the "container exists but is not running" error) silently wiped customers created after the initial CSV seed. The seed only reloads the committed CSVs, so those rows were lost.
+
+`PGDATA` points to a subdirectory because a freshly created volume can contain a `lost+found` directory, and `initdb` refuses a non-empty data root.
+
+A container created by an older version of the script has no volume and keeps the old behavior. To migrate, run `./start_local_pg_server.sh --reset --seed` once (this loses its current data), or dump it first with `pg_dump`.
+
+Because the database now survives restarts, the Debezium replication slot and connector offsets stay consistent with it. After `--purge` or `--reset` the database is new, so reset Debezium too (see below).
+
+A purged or reset PostgreSQL container is empty: it has no table and no `c360_cdc_publication`, and `start_debezium.sh` refuses to start without the publication. Recreate them with `--seed`, then reset Debezium so the replication slot and offsets match the new database:
 
 ```sh
 ./start_local_pg_server.sh --reset --seed
 ./start_debezium.sh --full-reset
 ```
 
-## Configuration
+## Troubleshooting
+### Configuration
 
-### PostgreSQL
+#### PostgreSQL
 
 Set by `start_local_pg_server.sh` when starting the container:
 
@@ -140,7 +175,7 @@ export LOCAL_PG_DB=c360db
 export PG_PORT=5432
 ```
 
-### Debezium connector
+#### Debezium connector
 
 `start_debezium.sh` is the single entry point. It checks Postgres, creates the Connect storage topics (`my_connect_configs`, `my_connect_offsets`, `my_connect_status`, replication factor 3), downloads the Confluent Avro converter, starts the `c360-debezium` worker (REST API on `localhost:8083`) and applies the `postgres-cdc` connector with an idempotent `PUT /connectors/postgres-cdc/config`.
 
@@ -158,7 +193,6 @@ export PG_PORT=5432
 
 The connector reaches Postgres through the container IP (read from `container list`), not `localhost`, which inside the Debezium container would be the container itself.
 
-## Troubleshooting
 
 ### Debezium container won't start
 
@@ -168,7 +202,7 @@ The connector reaches Postgres through the container IP (read from `container li
 
 Common causes:
 
-- PostgreSQL is not running: `./start_local_pg_server.sh`.
+- PostgreSQL is not running: `./start_local_pg_server.sh` (restarts a stopped container and keeps its data).
 - `wal_level` is not `logical` (container started elsewhere): recreate it with `./start_local_pg_server.sh --reset --seed`.
 - Confluent Cloud or Schema Registry credentials are missing from `apps/backend/.env` and the shell.
 - The publication does not exist: run the backend bootstrap (`./start_local_pg_server.sh --seed`).
@@ -198,3 +232,6 @@ container exec c360-postgres psql -U dbadmin -d c360db -c \
   "SELECT pg_drop_replication_slot('debezium_slot');"
 ```
 
+### No response from lightning queries
+
+This is mostly due to not enabling it on the fact tables.

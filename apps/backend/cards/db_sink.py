@@ -57,6 +57,9 @@ _INSERT_COLS = (
     "has_chip, credit_limit, created_at, updated_at"
 )
 _PLACEHOLDERS = ", ".join(["%s"] * 10)
+_INSERT_RETURNING_SQL = (
+    f"INSERT INTO cards ({_INSERT_COLS}) VALUES ({_PLACEHOLDERS}) RETURNING *"
+)  # noqa: S608 — static column list
 _SEED_SQL = (
     f"INSERT INTO cards ({_INSERT_COLS}) VALUES ({_PLACEHOLDERS}) "
     f"ON CONFLICT (card_id) DO NOTHING"
@@ -86,6 +89,13 @@ def list_all() -> list[Card]:
     return [Card(**row) for row in rows]
 
 
+def insert_one(c: Card) -> Card:
+    with db.cursor(dict_rows=True, commit=True) as cur:
+        cur.execute(_INSERT_RETURNING_SQL, _insert_params(c))
+        row = cur.fetchone()
+    return Card(**row)
+
+
 def get_by_account(account_id: UUID) -> list[Card]:
     with db.cursor(dict_rows=True) as cur:
         cur.execute(
@@ -94,4 +104,27 @@ def get_by_account(account_id: UUID) -> list[Card]:
         )
         rows = cur.fetchall()
     return [Card(**row) for row in rows]
+
+
+def update_by_id(card_id: UUID, data: dict) -> Card | None:
+    """Update a single card by id, setting only the columns present in *data*."""
+    if not data:
+        return get_by_id(card_id)
+    set_parts = [f"{col} = %s" for col in data]
+    params = tuple(str(data[col]) if isinstance(data[col], UUID) else data[col]
+                   for col in data)
+    sql = (f"UPDATE cards SET {', '.join(set_parts)}, updated_at = NOW() "
+           f"WHERE card_id = %s RETURNING *")
+    params += (str(card_id),)
+    with db.cursor(dict_rows=True, commit=True) as cur:
+        cur.execute(sql, params)
+        row = cur.fetchone()
+    return Card(**row) if row else None
+
+
+def get_by_id(card_id: UUID) -> Card | None:
+    with db.cursor(dict_rows=True) as cur:
+        cur.execute("SELECT * FROM cards WHERE card_id = %s", (str(card_id),))
+        row = cur.fetchone()
+    return Card(**row) if row else None
 

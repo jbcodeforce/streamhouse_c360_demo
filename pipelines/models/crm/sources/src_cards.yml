@@ -13,6 +13,8 @@ models:
         expression: "not enforced"
   - name: account_id
     data_type: string
+  - name: card_number
+    data_type: string
   - name: card_brand
     data_type: string
   - name: card_type

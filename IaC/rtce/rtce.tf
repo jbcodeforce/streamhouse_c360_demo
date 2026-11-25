@@ -93,3 +93,18 @@ resource "confluent_rtce_topic" "fct_crm_summary" {
     id = local.kafka_cluster_id
   }
 }
+
+resource "confluent_rtce_topic" "fct_hourly_tx_metrics" {
+  cloud       = var.cloud_provider
+  region      = var.aws_region_primary
+  topic_name  = var.fct_hourly_tx_metrics_topic
+  description = "Tx hourly analytics"
+
+  environment {
+    id = local.environment_id
+  }
+
+  kafka_cluster {
+    id = local.kafka_cluster_id
+  }
+}

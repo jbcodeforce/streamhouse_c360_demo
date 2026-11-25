@@ -12,8 +12,11 @@
 #   --seed          Run the backend bootstrap (create schema + CDC publication
 #                   and seed from the committed CSVs) once Postgres is ready.
 #                   Idempotent: safe to combine with an already-running container
-#   --stop          Stop and remove the running container, then exit
-#   --reset         Stop + remove any existing container, start a fresh one
+#   --stop          Stop and remove the container, then exit. The data volume
+#                   is kept, so the next start finds the same databases
+#   --reset         Stop + remove the container AND its data volume, then start
+#                   a fresh, empty one (data is lost)
+#   --purge         Stop + remove the container and the data volume, then exit
 #
 # Environment (optional overrides):
 #   PG_PASSWORD     Postgres superuser password (default: localdevonly)
@@ -23,6 +26,10 @@ set -euo pipefail
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 CONTAINER_NAME="c360-postgres"
+VOLUME_NAME="c360-pgdata"
+# PGDATA is a subdirectory of the mount: a fresh volume may hold lost+found,
+# which makes initdb refuse a non-empty data root.
+PG_DATA_MOUNT="/var/lib/postgresql/data"
 PG_IMAGE="docker.io/library/postgres:17"
 PG_DB="c360db"
 PG_USER="dbadmin"
@@ -36,12 +43,14 @@ BACKEND_DIR="$(cd "${SCRIPT_DIR}/../../apps/backend" && pwd)"
 DO_SEED=false
 DO_STOP=false
 DO_RESET=false
+DO_PURGE=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --seed)       DO_SEED=true; shift ;;
     --stop)       DO_STOP=true; shift ;;
     --reset)      DO_RESET=true; shift ;;
+    --purge)      DO_PURGE=true; shift ;;
     *)            echo "Unknown option: $1" >&2; exit 1 ;;
   esac
 done
@@ -61,6 +70,18 @@ container_running() {
     | grep -q "\"${CONTAINER_NAME}\""
 }
 
+volume_exists() {
+  container volume list --format json 2>/dev/null \
+    | grep -q "\"${VOLUME_NAME}\""
+}
+
+remove_volume() {
+  if volume_exists; then
+    log "Removing data volume '${VOLUME_NAME}' …"
+    container volume delete "${VOLUME_NAME}"
+  fi
+}
+
 stop_and_remove() {
   if container_running; then
     log "Stopping container '${CONTAINER_NAME}' …"
@@ -72,14 +93,37 @@ stop_and_remove() {
   fi
 }
 
+wait_for_postgres() {
+  log "Waiting for PostgreSQL to accept connections …"
+  local max_wait=30 elapsed=0
+  until container exec "${CONTAINER_NAME}" \
+        pg_isready -U "${PG_USER}" -d "${PG_DB}" -q 2>/dev/null; do
+    if [[ ${elapsed} -ge ${max_wait} ]]; then
+      err "PostgreSQL did not become ready within ${max_wait}s."
+      exit 1
+    fi
+    sleep 1
+    elapsed=$((elapsed + 1))
+  done
+  log "PostgreSQL is ready (${elapsed}s)."
+}
+
 # ── --stop ─────────────────────────────────────────────────────────────────────
 if [[ "${DO_STOP}" == true ]]; then
   if container_exists; then
     stop_and_remove
-    log "✅ Container '${CONTAINER_NAME}' stopped and removed."
+    log "✅ Container '${CONTAINER_NAME}' stopped and removed (data volume '${VOLUME_NAME}' kept)."
   else
     warn "Container '${CONTAINER_NAME}' not found — nothing to stop."
   fi
+  exit 0
+fi
+
+# ── --purge: remove container and data ─────────────────────────────────────────
+if [[ "${DO_PURGE}" == true ]]; then
+  stop_and_remove
+  remove_volume
+  log "✅ Container and data volume removed."
   exit 0
 fi
 
@@ -87,21 +131,28 @@ fi
 if [[ "${DO_RESET}" == true ]]; then
   log "--reset: tearing down existing container if any …"
   stop_and_remove
+  remove_volume
 fi
 
 # ── Start container (skip if already running) ─────────────────────────────────
 if container_running; then
   log "Container '${CONTAINER_NAME}' is already running — skipping start."
 elif container_exists; then
-  err "Container '${CONTAINER_NAME}' exists but is not running."
-  err "Use --reset to remove it and start fresh, or --stop to remove it."
-  exit 1
+  log "Container '${CONTAINER_NAME}' exists but is stopped — starting it (data preserved) …"
+  container start "${CONTAINER_NAME}"
+  wait_for_postgres
 else
+  if ! volume_exists; then
+    log "Creating data volume '${VOLUME_NAME}' …"
+    container volume create "${VOLUME_NAME}"
+  fi
   log "Pulling image ${PG_IMAGE} (if not cached) …"
   container run \
     --detach \
     --name "${CONTAINER_NAME}" \
     --publish "${PG_PORT}:5432" \
+    --volume "${VOLUME_NAME}:${PG_DATA_MOUNT}" \
+    --env "PGDATA=${PG_DATA_MOUNT}/pgdata" \
     --env "POSTGRES_DB=${PG_DB}" \
     --env "POSTGRES_USER=${PG_USER}" \
     --env "POSTGRES_PASSWORD=${PG_PASSWORD}" \
@@ -113,20 +164,7 @@ else
 
   log "Container '${CONTAINER_NAME}' started on host port ${PG_PORT}."
 
-  # Wait for PostgreSQL to be ready
-  log "Waiting for PostgreSQL to accept connections …"
-  MAX_WAIT=30
-  ELAPSED=0
-  until container exec "${CONTAINER_NAME}" \
-        pg_isready -U "${PG_USER}" -d "${PG_DB}" -q 2>/dev/null; do
-    if [[ ${ELAPSED} -ge ${MAX_WAIT} ]]; then
-      err "PostgreSQL did not become ready within ${MAX_WAIT}s."
-      exit 1
-    fi
-    sleep 1
-    ELAPSED=$((ELAPSED + 1))
-  done
-  log "PostgreSQL is ready (${ELAPSED}s)."
+  wait_for_postgres
 fi
 
 # ── Print connection details ───────────────────────────────────────────────────
@@ -141,8 +179,9 @@ printf "│  User     : %-44s│\n" "${PG_USER}"
 printf "│  Password : %-44s│\n" "${PG_PASSWORD}"
 echo "└─────────────────────────────────────────────────────────┘"
 echo ""
-echo "  Stop / clean up:"
+echo "  Stop (keeps data) / wipe data:"
 echo "    ./IaC/local/start_local_pg_server.sh --stop"
+echo "    ./IaC/local/start_local_pg_server.sh --purge"
 echo ""
 
 # ── Optionally run the backend bootstrap (schema + CDC publication + seed) ─────
