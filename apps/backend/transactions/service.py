@@ -17,12 +17,24 @@ from transactions.models import Transaction, TransactionCreate
 __all__ = ["NoEligibleAccountsError"]
 
 
-def generate() -> list[Transaction]:
+def generate(
+    customer_id: UUID | None = None, count: int | None = None
+) -> list[Transaction]:
     """Create a batch of back-dated transactions on existing cards and accounts.
+
+    With *customer_id*, only that customer's accounts (and their cards) are used.
+    *count* defaults to the generator's ``DEFAULT_COUNT``.
 
     Raises :class:`NoEligibleAccountsError` when no account can be used.
     """
-    txns = generator.generate(accounts_service.list_all(), cards_service.list_all())
+    accounts = accounts_service.list_all()
+    cards = cards_service.list_all()
+    if customer_id is not None:
+        accounts = [a for a in accounts if a.customer_id == customer_id]
+        account_ids = {a.account_id for a in accounts}
+        cards = [c for c in cards if c.account_id in account_ids]
+    kwargs = {} if count is None else {"count": count}
+    txns = generator.generate(accounts, cards, **kwargs)
     db_sink.create_many(txns)
     return txns
 

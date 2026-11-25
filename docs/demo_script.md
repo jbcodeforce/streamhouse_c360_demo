@@ -1,7 +1,7 @@
 # Demonstration Script
 
 !!! info "Version"
-    **Last updated:** 2026-11-24
+    **Last updated:** 2026-11-25
 
 We may demonstrate the Streamhouse architecture in different ways, using one of the approaches implemented in this repository:
 
@@ -20,7 +20,8 @@ For each approach the following activities are common:
 
 ## Run with a remote database server
 
-The goal is to deploy a PostgreSQL instance in AWS RDS with the needed [AWS components](./sre_aws.md) using Terraform.
+
+The goal is to deploy a PostgreSQL instance in AWS RDS with the needed [AWS components](./sre_aws.md) using Terraform. As it involves AWS cost, it is not the recommended day-to-day approach.
 
 The architecture of the demonstration at the high-level looks like:
 
@@ -276,7 +277,7 @@ Again, this is for demonstration purposes.
 
     ![](./images/app/walsh_profile_from_dash.png) 
 
-* To simulate a week of activity, click **Generate 200 transactions**. The backend creates 200 transactions on existing accounts, timestamped from 7 days ago in 15-minute increments, inserts them in Postgres, and Debezium publishes them to the `cdc.public.transactions` topic. The page then shows the newly created transactions.
+* To simulate a week of activity, use the **Create 200 transactions** scenario on the **Scenarios** page (see [Scenarios](#scenarios)). The Transactions page no longer has a generate button.
 
 ### Data products view
 
@@ -327,9 +328,20 @@ There is a local LLM running in the background listening on `http://localhost:79
     - What is the current CRM metrics?
 
 
-### Complex Event Processing
+### Scenarios
 
-There are a few Flink statements with a materialized table sink that use the `MATCH_RECOGNIZE` function. To demonstrate these patterns, we need controlled data. The CEP Patterns page offers 3 different scenarios:
+The **Scenarios** page (sidebar entry **Scenarios**, route `/scenarios`; the old `/cep` URL redirects to it) groups the controlled-data scenarios of the demo in two sections. The Transactions page no longer has a generate button: transaction generation now lives here.
+
+#### Transaction generation
+
+Each scenario card has a run button. While it runs the button is disabled, then the card shows the number of transactions written, a short preview, and a **View generated transactions** button that opens the full list. If no active account is available, an error message is displayed.
+
+* **Create 200 transactions:** the backend creates 200 transactions on existing accounts, timestamped from 7 days ago in 15-minute increments, inserts them in Postgres, and Debezium publishes them to the `cdc.public.transactions` topic. Use it to simulate a week of activity.
+* **Create transactions for Mr Carter:** the backend creates 20 random, realistic transactions only on James Carter's accounts and cards (same generator, restricted to his customer id), inserts them in Postgres, and Debezium publishes them to `cdc.public.transactions`. Use it to see Mr Carter's profile evolve.
+
+#### Complex Event Processing
+
+There are a few Flink statements with a materialized table sink that use the `MATCH_RECOGNIZE` function. To demonstrate these patterns, we need controlled data. The Complex Event Processing section of the Scenarios page offers 3 different scenarios:
 
 * **Fraud Probe:** Card-cloning telltale: a $2.99 verification charge on Carter's CHECKING account is immediately followed by two large charges ($899 + $749). Carter's SAVINGS account gets a benign $45 grocery charge that must NOT trigger the pattern — demonstrating per-account isolation.
 

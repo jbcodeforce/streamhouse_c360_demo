@@ -2,7 +2,7 @@ import { Eye } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ApiError } from '../api/client'
-import { generateTransactions, listTransactions } from '../api/transactions'
+import { listTransactions } from '../api/transactions'
 import { listAccounts } from '../api/accounts'
 import { listCards } from '../api/cards'
 import { listCustomers } from '../api/customers'
@@ -17,20 +17,6 @@ export default function TransactionsPage() {
   const [cardNumbers, setCardNumbers] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [generating, setGenerating] = useState(false)
-  const [generateError, setGenerateError] = useState<string | null>(null)
-
-  async function handleGenerate() {
-    setGenerating(true)
-    setGenerateError(null)
-    try {
-      const generated = await generateTransactions()
-      navigate('/transactions/generated', { state: { transactions: generated } })
-    } catch (e) {
-      setGenerateError(e instanceof ApiError ? e.message : 'Failed to generate transactions')
-      setGenerating(false)
-    }
-  }
 
   useEffect(() => {
     async function load() {
@@ -58,14 +44,10 @@ export default function TransactionsPage() {
       <div className="page-header">
         <h1>Transactions</h1>
         <div className="row-actions">
-          <button className="btn btn--secondary" onClick={() => void handleGenerate()} disabled={generating}>
-            {generating ? 'Generating…' : 'Generate 200 transactions'}
-          </button>
           <Link to="/transactions/new" className="btn">Add transaction</Link>
         </div>
       </div>
 
-      {generateError && <div className="status-msg status-msg--error">{generateError}</div>}
       {loading && <div className="status-msg">Loading…</div>}
       {error && <div className="status-msg status-msg--error">{error}</div>}
 

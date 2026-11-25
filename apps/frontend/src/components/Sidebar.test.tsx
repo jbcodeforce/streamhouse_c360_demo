@@ -46,4 +46,14 @@ describe('Sidebar', () => {
     )
     expect(screen.getByRole('link', { name: /analytics/i })).toHaveAttribute('href', '/analytics')
   })
+
+  it('renders a Scenarios link pointing to /scenarios and no CEP Patterns link', () => {
+    render(
+      <MemoryRouter>
+        <Sidebar />
+      </MemoryRouter>,
+    )
+    expect(screen.getByRole('link', { name: /scenarios/i })).toHaveAttribute('href', '/scenarios')
+    expect(screen.queryByRole('link', { name: /cep patterns/i })).toBeNull()
+  })
 })

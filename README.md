@@ -15,7 +15,7 @@ This project is under heavy development. Still a little bit fragile.
 * 10/24/2026: Add dashboard page
 * 10/21/2026: Add data products pipeline view
 * 10/19/2026: Add generation of 200 transactions from frontend
-* 10/04/2026: Add webapp for demos
+* 10/04/2026: Creation with the help of AI agent, like IBM Bob, Pi, Claude, micro managed: The structure of the project and code approach is mine, the feature scaling and user interface is AI based.  
 
 ## Documentation
 

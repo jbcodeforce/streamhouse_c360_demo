@@ -1,6 +1,5 @@
-import { render, screen, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
+import { render, screen } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as txnApi from '../api/transactions'
 import * as acctApi from '../api/accounts'
@@ -63,62 +62,5 @@ describe('TransactionsPage', () => {
     vi.spyOn(custApi, 'listCustomers').mockResolvedValue([] as never)
     render(<MemoryRouter><TransactionsPage /></MemoryRouter>)
     expect(await screen.findByText(/boom/)).toBeInTheDocument()
-  })
-
-  describe('generate button', () => {
-    function mockLists() {
-      vi.spyOn(txnApi, 'listTransactions').mockResolvedValue([txn] as never)
-      vi.spyOn(acctApi, 'listAccounts').mockResolvedValue([acct] as never)
-      vi.spyOn(custApi, 'listCustomers').mockResolvedValue([cust] as never)
-    }
-
-    function StateProbe() {
-      const { state } = useLocation()
-      return <div>generated: {(state as { transactions: unknown[] }).transactions.length}</div>
-    }
-
-    function renderWithRoutes() {
-      return render(
-        <MemoryRouter initialEntries={['/transactions']}>
-          <Routes>
-            <Route path="/transactions" element={<TransactionsPage />} />
-            <Route path="/transactions/generated" element={<StateProbe />} />
-          </Routes>
-        </MemoryRouter>,
-      )
-    }
-
-    it('calls the API, disables while pending, then navigates with the result as state', async () => {
-      mockLists()
-      let resolve!: (v: unknown[]) => void
-      const gen = vi.spyOn(txnApi, 'generateTransactions').mockReturnValue(
-        new Promise((r) => { resolve = r as never }),
-      )
-      renderWithRoutes()
-      await screen.findByText('CHK-1')
-
-      await userEvent.click(screen.getByRole('button', { name: /generate 200 transactions/i }))
-      expect(gen).toHaveBeenCalledTimes(1)
-      expect(await screen.findByRole('button', { name: /generating/i })).toBeDisabled()
-
-      resolve([txn, txn])
-      expect(await screen.findByText('generated: 2')).toBeInTheDocument()
-    })
-
-    it('shows an error and re-enables the button when generation fails', async () => {
-      mockLists()
-      vi.spyOn(txnApi, 'generateTransactions').mockRejectedValue(
-        new ApiError(409, 'No active accounts available'),
-      )
-      renderWithRoutes()
-      await screen.findByText('CHK-1')
-
-      await userEvent.click(screen.getByRole('button', { name: /generate 200 transactions/i }))
-      expect(await screen.findByText(/No active accounts available/)).toBeInTheDocument()
-      await waitFor(() =>
-        expect(screen.getByRole('button', { name: /generate 200 transactions/i })).toBeEnabled(),
-      )
-      expect(screen.getByText('CHK-1')).toBeInTheDocument() // table stays visible
-    })
   })
 })

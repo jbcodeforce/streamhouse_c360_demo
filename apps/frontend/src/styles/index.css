@@ -377,7 +377,7 @@ body { margin: 0; font-family: system-ui, -apple-system, sans-serif; color: #0f1
 }
 .chat-session__reset { font-size: 13px; }
 
-/* CEP Patterns page */
+/* Scenarios page: CEP patterns */
 .cep-cards {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px;
   margin-bottom: 24px;
@@ -423,3 +423,14 @@ body { margin: 0; font-family: system-ui, -apple-system, sans-serif; color: #0f1
 }
 .cep-type--debit  { background: #fee2e2; color: #991b1b; }
 .cep-type--credit { background: #dcfce7; color: #166534; }
+
+/* Scenarios page sections */
+.scenarios-section {
+  margin-top: 24px; padding: 4px 20px 6px; border: 2px solid var(--border); border-radius: 14px;
+}
+.scenarios-section--generation { border-color: #3b82f6; background: #f8fbff; }
+.scenarios-section--cep { border-color: #8b5cf6; background: #fbf9ff; }
+.scenarios-section__title { margin: 18px 0 12px; font-size: 18px; color: #0f172a; }
+.scenarios-section__intro { margin: -4px 0 14px; }
+.scenario-card { margin-bottom: 14px; }
+

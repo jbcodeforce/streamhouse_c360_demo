@@ -1,4 +1,4 @@
-import { Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes } from 'react-router-dom'
 import AppLayout from './components/AppLayout'
 import HomePage from './pages/HomePage'
 import CustomersPage from './pages/CustomersPage'
@@ -13,7 +13,7 @@ import GeneratedTransactionsPage from './pages/GeneratedTransactionsPage'
 import DataProductsPage from './pages/DataProductsPage'
 import StatementGraphPage from './pages/StatementGraphPage'
 import AnalyticsPage from './pages/AnalyticsPage'
-import CEPPage from './pages/CEPPage'
+import ScenariosPage from './pages/ScenariosPage'
 import ChatPage from './pages/ChatPage'
 
 export default function App() {
@@ -35,7 +35,8 @@ export default function App() {
         <Route path="/data-products" element={<DataProductsPage />} />
         <Route path="/data-products/:id" element={<StatementGraphPage />} />
         <Route path="/analytics" element={<AnalyticsPage />} />
-        <Route path="/cep" element={<CEPPage />} />
+        <Route path="/scenarios" element={<ScenariosPage />} />
+        <Route path="/cep" element={<Navigate to="/scenarios" replace />} />
         <Route path="/chat" element={<ChatPage />} />
       </Route>
     </Routes>

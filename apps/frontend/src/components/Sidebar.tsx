@@ -22,7 +22,7 @@ const links: { to: string; label: string; Icon: typeof Home; end?: boolean }[] =
   { to: '/transactions', label: 'Transactions', Icon: ArrowLeftRight },
   { to: '/data-products', label: 'Data Products', Icon: Workflow },
   { to: '/analytics', label: 'Analytics', Icon: BarChart3 },
-  { to: '/cep', label: 'CEP Patterns', Icon: Zap },
+  { to: '/scenarios', label: 'Scenarios', Icon: Zap },
   { to: '/chat', label: 'Assistant', Icon: Bot },
 ]
 

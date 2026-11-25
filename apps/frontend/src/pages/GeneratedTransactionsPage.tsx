@@ -46,7 +46,7 @@ export default function GeneratedTransactionsPage() {
       <div>
         <div className="page-header">
           <h1>Generated transactions</h1>
-          <Link to="/transactions" className="btn btn--secondary">Back to transactions</Link>
+          <Link to="/scenarios" className="btn btn--secondary">Back to scenarios</Link>
         </div>
         <div className="status-msg">No generated transactions to display.</div>
       </div>
@@ -61,7 +61,7 @@ export default function GeneratedTransactionsPage() {
     <div>
       <div className="page-header">
         <h1>Generated transactions ({transactions.length})</h1>
-        <Link to="/transactions" className="btn btn--secondary">Back to transactions</Link>
+        <Link to="/scenarios" className="btn btn--secondary">Back to scenarios</Link>
       </div>
 
       {error && <div className="status-msg status-msg--error">{error}</div>}

@@ -40,6 +40,7 @@ describe('GeneratedTransactionsPage', () => {
     // newest (t2, 10:15, amount 22) is listed before oldest (t1, 10:00, amount 11)
     expect(rows[0]).toHaveTextContent('22 USD')
     expect(rows[1]).toHaveTextContent('11 USD')
+    expect(screen.getByRole('link', { name: /back to scenarios/i })).toHaveAttribute('href', '/scenarios')
   })
 
   it('shows an empty state without router state (e.g. after refresh)', () => {
@@ -49,6 +50,6 @@ describe('GeneratedTransactionsPage', () => {
       </MemoryRouter>,
     )
     expect(screen.getByText(/No generated transactions to display/)).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /back to transactions/i })).toHaveAttribute('href', '/transactions')
+    expect(screen.getByRole('link', { name: /back to scenarios/i })).toHaveAttribute('href', '/scenarios')
   })
 })

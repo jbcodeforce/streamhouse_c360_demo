@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 
 from transactions import service
 from transactions.models import Transaction, TransactionCreate
@@ -13,9 +13,12 @@ router = APIRouter(prefix="/transactions", tags=["transactions"])
 
 
 @router.post("/generate", response_model=list[Transaction], status_code=201)
-def generate_transactions() -> list[Transaction]:
+def generate_transactions(
+    customer_id: UUID | None = None,
+    count: int | None = Query(default=None, ge=1, le=500),
+) -> list[Transaction]:
     try:
-        return service.generate()
+        return service.generate(customer_id=customer_id, count=count)
     except service.NoEligibleAccountsError:
         raise HTTPException(status_code=409, detail="No active accounts available")
 

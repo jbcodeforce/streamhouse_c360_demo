@@ -167,6 +167,48 @@ def test_generate_inserts_rows(svc):
     assert svc.db_sink.create_many.call_args.args[0] is txns
 
 
+@pytest.fixture
+def two_customers(monkeypatch):
+    carter, other = _account(), _account()
+    carter2 = _account(customer_id=carter.customer_id)
+    cards = [_card(carter), _card(carter2), _card(other)]
+    monkeypatch.setattr(service.accounts_service, "list_all", lambda: [carter, carter2, other])
+    monkeypatch.setattr(service.cards_service, "list_all", lambda: cards)
+    monkeypatch.setattr(service.db_sink, "create_many", MagicMock(side_effect=lambda t: t))
+    return carter, carter2, other, cards
+
+
+def test_generate_for_customer_only_uses_that_customers_accounts_and_cards(two_customers):
+    carter, carter2, other, cards = two_customers
+    txns = service.generate(customer_id=carter.customer_id, count=300)
+
+    assert len(txns) == 300
+    assert {t.customer_id for t in txns} == {carter.customer_id}
+    assert {t.account_id for t in txns if t.account_id} <= {carter.account_id, carter2.account_id}
+    own_cards = {c.card_id for c in cards if c.account_id in {carter.account_id, carter2.account_id}}
+    assert {t.card_id for t in txns if t.card_id} <= own_cards
+    service.db_sink.create_many.assert_called_once()
+
+
+def test_generate_honours_count_without_customer(svc):
+    assert len(svc.generate(count=7)) == 7
+
+
+def test_generate_for_unknown_customer_raises(two_customers):
+    with pytest.raises(service.NoEligibleAccountsError):
+        service.generate(customer_id=uuid4())
+    service.db_sink.create_many.assert_not_called()
+
+
+def test_generate_for_customer_without_active_account_raises(monkeypatch):
+    closed = _account(status="CLOSED")
+    monkeypatch.setattr(service.accounts_service, "list_all", lambda: [closed, _account()])
+    monkeypatch.setattr(service.cards_service, "list_all", lambda: [])
+    monkeypatch.setattr(service.db_sink, "create_many", MagicMock())
+    with pytest.raises(service.NoEligibleAccountsError):
+        service.generate(customer_id=closed.customer_id)
+
+
 # ---------------------------------------------------------------------------
 # API
 # ---------------------------------------------------------------------------
@@ -180,17 +222,61 @@ def client():
 
 def test_api_generate_returns_201_with_transactions(client, monkeypatch):
     txns = generator.generate([_account()], count=3, now=NOW, rng=random.Random(3))
-    monkeypatch.setattr(service, "generate", lambda: txns)
+    calls = []
+
+    def fake(customer_id=None, count=None):
+        calls.append((customer_id, count))
+        return txns
+
+    monkeypatch.setattr(service, "generate", fake)
     resp = client.post("/api/v1/transactions/generate")
     assert resp.status_code == 201
     assert len(resp.json()) == 3
+    assert calls == [(None, None)]  # default behaviour: no filter, default count
+
+
+def test_api_generate_passes_customer_id_and_count(client, monkeypatch):
+    cid = uuid4()
+    calls = []
+
+    def fake(customer_id=None, count=None):
+        calls.append((customer_id, count))
+        return []
+
+    monkeypatch.setattr(service, "generate", fake)
+    resp = client.post(f"/api/v1/transactions/generate?customer_id={cid}&count=20")
+    assert resp.status_code == 201
+    assert calls == [(cid, 20)]
+
+
+@pytest.mark.parametrize("query", ["count=0", "count=501", "count=abc", "customer_id=not-a-uuid"])
+def test_api_generate_rejects_invalid_params(client, monkeypatch, query):
+    monkeypatch.setattr(service, "generate", MagicMock())
+    resp = client.post(f"/api/v1/transactions/generate?{query}")
+    assert resp.status_code == 422
+    service.generate.assert_not_called()
+
+
+def test_api_generate_accepts_count_bounds(client, monkeypatch):
+    monkeypatch.setattr(service, "generate", lambda customer_id=None, count=None: [])
+    assert client.post("/api/v1/transactions/generate?count=1").status_code == 201
+    assert client.post("/api/v1/transactions/generate?count=500").status_code == 201
 
 
 def test_api_generate_409_without_accounts(client, monkeypatch):
-    def boom():
+    def boom(customer_id=None, count=None):
         raise generator.NoEligibleAccountsError("none")
 
     monkeypatch.setattr(service, "generate", boom)
     resp = client.post("/api/v1/transactions/generate")
+    assert resp.status_code == 409
+    assert resp.json()["detail"] == "No active accounts available"
+
+
+def test_api_generate_409_for_unknown_customer(client, monkeypatch):
+    monkeypatch.setattr(service.accounts_service, "list_all", lambda: [_account()])
+    monkeypatch.setattr(service.cards_service, "list_all", lambda: [])
+    monkeypatch.setattr(service.db_sink, "create_many", MagicMock())
+    resp = client.post(f"/api/v1/transactions/generate?customer_id={uuid4()}&count=5")
     assert resp.status_code == 409
     assert resp.json()["detail"] == "No active accounts available"

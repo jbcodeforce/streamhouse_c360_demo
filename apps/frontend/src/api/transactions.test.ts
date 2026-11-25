@@ -24,9 +24,27 @@ describe('transactions api', () => {
     expect(spy).toHaveBeenCalledWith('/transactions', { method: 'POST', body: JSON.stringify(body) })
   })
 
-  it('generateTransactions POSTs to /transactions/generate', async () => {
+  it('generateTransactions POSTs to /transactions/generate without params by default', async () => {
     const spy = vi.spyOn(client, 'request').mockResolvedValue([])
     await generateTransactions()
     expect(spy).toHaveBeenCalledWith('/transactions/generate', { method: 'POST' })
+  })
+
+  it('generateTransactions builds query string with customerId and count', async () => {
+    const spy = vi.spyOn(client, 'request').mockResolvedValue([])
+    await generateTransactions({ customerId: 'c-123', count: 20 })
+    expect(spy).toHaveBeenCalledWith('/transactions/generate?customer_id=c-123&count=20', { method: 'POST' })
+  })
+
+  it('generateTransactions builds query string with only customerId', async () => {
+    const spy = vi.spyOn(client, 'request').mockResolvedValue([])
+    await generateTransactions({ customerId: 'c-123' })
+    expect(spy).toHaveBeenCalledWith('/transactions/generate?customer_id=c-123', { method: 'POST' })
+  })
+
+  it('generateTransactions builds query string with only count', async () => {
+    const spy = vi.spyOn(client, 'request').mockResolvedValue([])
+    await generateTransactions({ count: 50 })
+    expect(spy).toHaveBeenCalledWith('/transactions/generate?count=50', { method: 'POST' })
   })
 })
