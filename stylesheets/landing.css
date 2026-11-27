@@ -1,0 +1,136 @@
+/* Landing page (docs/index.md): animated hero + tiles */
+
+.sh-hero {
+  position: relative;
+  margin: 0 -0.2rem 1.5rem;
+  padding: 2rem 1.5rem 0.5rem;
+  border-radius: 0.8rem;
+  color: #e2e8f0;
+  background:
+    radial-gradient(ellipse at 20% 0%, rgba(56, 189, 248, 0.22), transparent 55%),
+    radial-gradient(ellipse at 85% 10%, rgba(236, 72, 153, 0.18), transparent 50%),
+    linear-gradient(180deg, #0b1220 0%, #0f1b33 100%);
+  overflow: hidden;
+}
+
+.sh-hero h1 {
+  margin: 0 0 0.3rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #fff;
+}
+
+.sh-hero .sh-tagline {
+  max-width: 46rem;
+  margin: 0 0 1rem;
+  font-size: 0.95rem;
+  color: #cbd5e1;
+}
+
+.sh-hero .sh-tagline strong {
+  color: #7dd3fc;
+}
+
+.sh-hero img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.sh-hero .sh-cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: 0 0 0.8rem;
+}
+
+.sh-hero .sh-cta .md-button {
+  margin: 0;
+  color: #e2e8f0;
+  border-color: rgba(148, 163, 184, 0.5);
+}
+
+.sh-hero .sh-cta .md-button--primary {
+  color: #0b1220;
+  background: #38bdf8;
+  border-color: #38bdf8;
+}
+
+.sh-hero .sh-cta .md-button:hover {
+  color: #0b1220;
+  background: #7dd3fc;
+  border-color: #7dd3fc;
+}
+
+/* stage chips: Capture - Transport - Transform - Serve - Govern */
+.sh-stages {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0 0 1.2rem;
+}
+
+.sh-stages a {
+  padding: 0.25rem 0.8rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: #e2e8f0;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  background: rgba(15, 23, 42, 0.6);
+}
+
+.sh-stages a:hover {
+  color: #0b1220;
+  background: #7dd3fc;
+  border-color: #7dd3fc;
+}
+
+/* tiles — override Material's default 0.4rem grid gap on the div itself
+   (the ul has display:contents so gap must live on the grid container) */
+.md-typeset .grid.cards.sh-tiles {
+  gap: 1.4rem;
+}
+
+.md-typeset .grid.cards.sh-tiles > ul > li {
+  cursor: pointer;
+
+  padding: 0;
+  overflow: hidden;
+  border-radius: 0.6rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.md-typeset .grid.cards.sh-tiles > ul > li:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(2, 6, 23, 0.25);
+}
+
+.md-typeset .sh-tiles li > p {
+  margin: 0.6rem 0.9rem;
+}
+
+.md-typeset .sh-tiles li > p:first-child {
+  margin: 0;
+}
+
+.md-typeset .sh-tiles li > p:first-child img {
+  display: block;
+  width: 100%;
+  height: 9rem;
+  object-fit: cover;
+  object-position: top left;
+  border-bottom: 1px solid var(--md-default-fg-color--lightest);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .md-typeset .grid.cards.sh-tiles > ul > li {
+    transition: none;
+  }
+  .md-typeset .grid.cards.sh-tiles > ul > li:hover {
+    transform: none;
+  }
+}
