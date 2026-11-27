@@ -1,25 +1,34 @@
-
 models:
 - name: dim_tx_x_account
-  description: ""
+  description: >
+    Customer-level aggregation that joins customers from dim_customers with
+    their cross-account transaction summaries (from dim_account_tx_agg).
+    Produces per-customer aggregate statistics — account count, total balance
+    across all accounts, transaction count, total spend, and most recent
+    transaction time — used as input to the 360 customer profile.
   config:
     contract:
       enforced: true
   columns:
   - name: customer_id
     data_type: string
+    description: Primary key — the customer identifier.
     constraints:
       - type: not_null
       - type: primary_key
         expression: "not enforced"
   - name: account_count
     data_type: BIGINT
+    description: Number of distinct accounts owned by this customer.
   - name: total_balance
     data_type: DECIMAL(18,2)
+    description: Sum of balances across all customer accounts.
   - name: txn_count
     data_type: BIGINT
+    description: Total number of transactions across all customer accounts.
   - name: txn_total
     data_type: DECIMAL(18,2)
+    description: Total dollar value of all transactions across all accounts.
   - name: last_transacted_at
     data_type: timestamp_ltz
-
+    description: Timestamp of the most recent transaction across all accounts.

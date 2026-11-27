@@ -1,50 +1,74 @@
-
 models:
 - name: src_transactions_v2
-  description: ""
+  description: >
+    Enriched transaction feed that adds currency reference data (code_numeric
+    and currency_name) via a lateral snapshot join on the currency_codes seed.
+    Builds on src_transactions by dropping CANCELLED and geographically
+    incomplete rows upstream, then augmenting every row with structured
+    currency metadata for reporting and multi-currency analytics.
   config:
     contract:
       enforced: true
   columns:
   - name: transaction_id
     data_type: varchar(2147483647)
+    description: Unique transaction identifier from the source system.
     constraints:
       - type: not_null
       - type: primary_key
         expression: "not enforced"
   - name: account_id
     data_type: string
+    description: The bank account on which the transaction was processed.
   - name: customer_id
     data_type: string
+    description: The customer who owns the account.
   - name: transaction_type
     data_type: string
+    description: Type of transaction (e.g. PURCHASE, CREDIT, TRANSFER).
   - name: amount
     data_type: DECIMAL(18,2)
+    description: Monetary value of the transaction.
   - name: currency
     data_type: string
+    description: ISO 4217 three-letter currency code (e.g. USD, EUR).
   - name: comments
     data_type: string
+    description: Free-text transaction description from the source system.
   - name: merchant_name
     data_type: string
+    description: Name of the merchant where the transaction occurred.
   - name: merchant_category
     data_type: string
+    description: MCC (Merchant Category Code) — industry classification used
+      for fraud and loyalty analysis.
   - name: channel
     data_type: string
+    description: How the transaction was initiated (e.g. POS, ONLINE, ATM).
   - name: status
     data_type: string
+    description: Transaction status; CANCELLED rows are excluded at this layer.
   - name: transacted_at
     data_type: timestamp_ltz
+    description: Event-time timestamp of the transaction (local time zone).
   - name: card_id
     data_type: string
+    description: The card used for the transaction.
   - name: use_chip
     data_type: string
+    description: Whether the card was inserted (chip) vs. tapped/swiped.
   - name: merchant_city
     data_type: string
+    description: City where the merchant is located.
   - name: merchant_state
     data_type: string
+    description: State/province where the merchant is located.
   - name: merchant_zip
     data_type: string
+    description: Postal/ZIP code of the merchant location.
   - name: currency_code_numeric
     data_type: string
+    description: Numeric ISO 4217 currency code (e.g. '840' for USD).
   - name: currency_name
     data_type: string
+    description: Full English name of the currency (e.g. 'US Dollar').

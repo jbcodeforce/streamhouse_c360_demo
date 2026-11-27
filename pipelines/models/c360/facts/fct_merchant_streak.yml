@@ -8,15 +8,21 @@ models:
   columns:
   - name: customer_id
     data_type: string
+    description: The customer whose streak was detected.
     constraints:
       - type: not_null
   - name: first_customer_id
     data_type: string
+    description: Internal column — same as customer_id (kept for CEP consistency).
   - name: streak_category
     data_type: string
+    description: The merchant category (MCC) that the streak occurred within.
   - name: streak_start
     data_type: timestamp_ltz(3)
+    description: Timestamp of the first transaction in the streak.
   - name: streak_end
     data_type: timestamp_ltz(3)
+    description: Timestamp of the last transaction in the streak.
   - name: streak_length
     data_type: bigint
+    description: Number of consecutive transactions in the streak (>= 3).

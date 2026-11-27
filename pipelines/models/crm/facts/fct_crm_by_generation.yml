@@ -1,13 +1,19 @@
 models:
 - name: fct_crm_by_generation
-  description: ""
+  description: >
+    Customer count break-down by generational cohort (Gen Z, Millennial,
+    Gen X, Boomer+), derived from dim_customers. Uses COALESCE(NULL,
+    'Millennial') to handle missing generation_segment values. One row
+    per generation segment for demographic reporting.
   columns:
   - name: generation_segment
     data_type: string
+    description: Generational cohort (defaults to 'Millennial' for missing
+      values).
     constraints:
       - type: not_null
       - type: primary_key
         expression: "not enforced"
   - name: generation_count
     data_type: BIGINT
-
+    description: Number of distinct customers in this generation segment.

@@ -8,21 +8,31 @@ models:
   columns:
   - name: account_id
     data_type: string
+    description: The account on which the fraud pattern was detected.
     constraints:
       - type: not_null
   - name: customer_id
     data_type: string
+    description: The customer who owns the account.
     constraints:
       - type: not_null
   - name: probe_account_id
     data_type: string
+    description: The account from the initial probe (micro-charge) row.
   - name: probe_time
     data_type: timestamp_ltz
+    description: Timestamp of the initial card-verification micro-charge
+      (amount <= $10).
   - name: probe_amount
     data_type: decimal(18,2)
+    description: Amount of the probe/verification charge (<= $10).
   - name: last_large_time
     data_type: timestamp_ltz(2)
+    description: Timestamp of the last large charge (>= $500) in the pattern.
   - name: last_large_amount
     data_type: decimal(18,2)
+    description: Amount of the last large charge in the pattern.
   - name: large_count
     data_type: bigint
+    description: Number of large charges (>= $500) that followed the probe
+      within the 1-hour window.

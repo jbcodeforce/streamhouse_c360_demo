@@ -1,30 +1,43 @@
-
 models:
 - name: src_accounts
-  description: ""
+  description: >
+    Active accounts streaming source filtered for non-suspended accounts
+    (status <> 'SUSPENDED'). Converts the opened_date to a proper timestamp
+    and outputs the changelog (upsert/delete) so downstream models see the
+    current state of each account.
   config:
     contract:
       enforced: true
   columns:
   - name: account_id
     data_type: varchar(2147483647)
+    description: Primary key — unique account identifier.
     constraints:
       - type: not_null
       - type: primary_key
         expression: "not enforced"
   - name: customer_id
     data_type: string
+    description: The customer who owns this account.
   - name: account_number
     data_type: string
+    description: The visible account number.
   - name: account_type
     data_type: string
+    description: Account type (e.g. CHECKING, SAVINGS, CREDIT).
   - name: balance
     data_type: DECIMAL(18,2)
+    description: Current account balance.
   - name: credit_limit
     data_type: DECIMAL(18,2)
+    description: Credit limit for credit-type accounts.
   - name: opened_date
     data_type: timestamp_ltz(3)
+    description: When the account was originally opened.
   - name: status
     data_type: string
-  - name: op 
+    description: Account status — SUSPENDED rows are filtered out.
+  - name: op
     data_type: string
+    description: Change type (INSERT, UPDATE_AFTER, DELETE) from the CDC
+      changelog stream.

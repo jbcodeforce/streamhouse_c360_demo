@@ -1,28 +1,39 @@
 models:
 - name: src_cards
-  description: "Cleaned cards"
+  description: >
+    Cleaned cards source filtered to rows where account_id is not NULL.
+    Converts the raw created_at timestamp to a proper TIMESTAMP_LTZ and
+    normalizes the has_chip boolean. Provides an upsert changelog stream
+    so downstream models always see the latest state of each card.
   constraints:
     - type: custom
       expression: "WATERMARK FOR created_at AS created_at - INTERVAL '5' SECOND"
   columns:
   - name: card_id
     data_type: string
+    description: Primary key — unique card identifier.
     constraints:
       - type: not_null
       - type: primary_key
         expression: "not enforced"
   - name: account_id
     data_type: string
+    description: The bank account this card is linked to.
   - name: card_number
     data_type: string
+    description: The card number (masked/tokenized in production).
   - name: card_brand
     data_type: string
+    description: Card brand (e.g. VISA, MASTERCARD, AMEX).
   - name: card_type
     data_type: string
+    description: Card product type (e.g. CREDIT, DEBIT, PREPAID).
   - name: has_chip
     data_type: boolean
+    description: Whether the card has an EMV chip.
   - name: credit_limit
     data_type: decimal(18, 2)
+    description: Credit limit assigned to this card.
   - name: created_at
     data_type: timestamp_ltz(3)
-
+    description: When the card was issued.

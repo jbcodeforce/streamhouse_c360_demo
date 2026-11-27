@@ -1,82 +1,125 @@
-
 models:
 - name: dim_customers
-  description: "Customer reusable dimension"
+  description: >
+    Reusable customer dimension that joins src_customers with a lateral
+    snapshot of src_cards to attach card holdings, and enriches with
+    country-code reference data via a lateral snapshot join on
+    country_codes. Applies TO_CHANGELOG to materialize upsert state.
+    This is the single customer dimension — all CRM and fraud models
+    consume from here.
   config:
     contract:
       enforced: true
   columns:
   - name: customer_id
     data_type: string
+    description: Primary key — unique customer identifier.
     constraints:
       - type: not_null
       - type: primary_key
         expression: "not enforced"
   - name: first_name
     data_type: string
+    description: Customer's first name.
   - name: last_name
     data_type: string
+    description: Customer's last name.
   - name: date_of_birth
     data_type: string
+    description: Date of birth as 'YYYY-MM-DD' string.
   - name: birth_year
     data_type: BIGINT
+    description: Extracted birth year from date_of_birth.
   - name: birth_month
     data_type: BIGINT
+    description: Extracted birth month (1–12) from date_of_birth.
   - name: gender
     data_type: string
+    description: Customer gender.
   - name: registration_date
     data_type: timestamp_ltz(2)
+    description: When the customer was registered.
   - name: customer_segment
     data_type: string
+    description: Business-assigned segment (e.g. PRIVATE, INSPHERE, SMB).
   - name: customer_since
     data_type: timestamp_ltz(2)
+    description: Timestamp when the customer relationship began.
   - name: city
     data_type: string
+    description: Customer's city of residence.
   - name: state
     data_type: string
+    description: Customer's state/province of residence.
   - name: postal_code
     data_type: string
+    description: Customer's postal/ZIP code.
   - name: country
     data_type: string
+    description: ISO country code for the customer's residence.
   - name: customer_country_alpha3
     data_type: string
+    description: 3-letter ISO alpha-3 country code from reference table.
   - name: customer_country_name
     data_type: string
+    description: Full country name from reference table.
   - name: yearly_income
     data_type: decimal(18, 2)
+    description: Customer's declared annual income (default -1 if unknown).
   - name: retirement_age
     data_type: integer
+    description: Target retirement age (default 67 if unknown).
   - name: credit_score
     data_type: integer
+    description: Customer's credit score (default 350 if unknown).
   - name: event_ts
     data_type: timestamp_ltz(2)
+    description: Row-time watermark for streaming table joins.
   - name: days_since_registration
     data_type: integer
+    description: Number of days between registration and the most recent event.
   - name: generation_segment
     data_type: string
+    description: >-
+      Generational cohort: Gen Z, Millennial, Gen X, or Boomer+.
   - name: years_to_retirement
     data_type: integer
+    description: Years remaining until the customer's target retirement age.
   - name: income_band
     data_type: string
+    description: >-
+      Income banding: LOW (< $70K), MIDDLE ($70K–$120K), HIGH (>= $120K).
   - name: missing_email_flag
     data_type: integer
+    description: Flag (0/1) indicating whether the customer's email is missing.
   - name: missing_phone_flag
     data_type: integer
+    description: Flag (0/1) indicating whether the customer's phone number is
+      missing.
   - name: account_id
     data_type: string
+    description: The bank account linked to this customer (from card snapshot).
   - name: account_balance
     data_type: DECIMAL(18,2)
+    description: Current balance of the linked account.
   - name: account_credit_limit
     data_type: DECIMAL(18,2)
+    description: Credit limit of the linked account.
   - name: card_id
     data_type: string
+    description: The card linked to the account.
   - name: card_number
     data_type: string
+    description: The card number (masked/tokenized in production).
   - name: card_brand
     data_type: string
+    description: Card brand (e.g. VISA, MASTERCARD, AMEX).
   - name: card_type
     data_type: string
+    description: Card product type (e.g. CREDIT, DEBIT, PREPAID).
   - name: has_chip
     data_type: boolean
+    description: Whether the card has an EMV chip.
   - name: card_credit_limit
     data_type: decimal(18, 2)
+    description: Credit limit assigned to the card.

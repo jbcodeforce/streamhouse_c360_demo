@@ -1,46 +1,66 @@
-
 models:
 - name: src_customers
-  description: "Cleaned customers"
+  description: >
+    Cleaned customers streaming source that normalizes CDC changelog data
+    (handling INSERT, UPDATE_AFTER, DELETE) into a stable upsert table.
+    Converts ISO-8601 timestamps, casts date_of_birth to 'YYYY-MM-DD'
+    strings, and provides a row-time event_ts for streaming joins.
   columns:
   - name: customer_id
     data_type: string
+    description: Primary key — unique customer identifier.
     constraints:
       - type: not_null
       - type: primary_key
         expression: "not enforced"
   - name: first_name
     data_type: string
+    description: Customer's first name.
   - name: last_name
     data_type: string
+    description: Customer's last name.
   - name: email
     data_type: string
+    description: Customer's email address.
   - name: phone
     data_type: string
+    description: Customer's phone number.
   - name: date_of_birth
     data_type: string
+    description: Date of birth as 'YYYY-MM-DD' string.
   - name: gender
     data_type: string
+    description: Customer gender.
   - name: registration_date
     data_type: timestamp_ltz
+    description: When the customer was registered (from customer_since).
   - name: customer_segment
     data_type: string
+    description: Business-assigned segment (e.g. PRIVATE, INSPHERE, SMB).
   - name: customer_since
     data_type: timestamp_ltz
+    description: Timestamp when the customer relationship began.
   - name: city
     data_type: string
+    description: Customer's city of residence.
   - name: state
     data_type: string
+    description: Customer's state/province of residence.
   - name: postal_code
     data_type: string
+    description: Customer's postal/ZIP code.
   - name: country
     data_type: string
+    description: ISO country code for the customer's residence.
   - name: yearly_income
     data_type: decimal(18, 2)
+    description: Customer's declared annual income (default -1 if unknown).
   - name: retirement_age
     data_type: integer
+    description: Target retirement age (default 67 if unknown).
   - name: credit_score
     data_type: integer
+    description: Customer's credit score (default 350 if unknown).
   - name: event_ts
     data_type: timestamp_ltz(3)
-
+    description: Row-time watermark for streaming table joins.

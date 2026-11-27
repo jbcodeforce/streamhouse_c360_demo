@@ -1,6 +1,11 @@
 models:
 - name: fct_hourly_tx_metrics
-  description: ""
+  description: >
+    Hourly rolling-window aggregations of completed transactions per
+    account. Uses a 1-hour tumble window on the transaction event time to
+    compute transaction count, total/average/min/max spend per account
+    per hour. Only COMPLETED transactions are included. Used for real-time
+    spending pattern dashboards and as input to fraud CEP rules.
   constraints:
   - type: primary_key
     columns: [account_id, window_start, window_end]
@@ -8,19 +13,28 @@ models:
   columns:
   - name: account_id
     data_type: string
+    description: The account on which the transactions occurred.
   - name: window_start
     data_type: TIMESTAMP_LTZ(3)
-  - name:   window_end
+    description: Start of the 1-hour tumbling window.
+  - name: window_end
     data_type: TIMESTAMP_LTZ(3)
-  - name:   window_type
+    description: End of the 1-hour tumbling window (exclusive).
+  - name: window_type
     data_type: STRING
-  - name:   tx_count
+    description: Window type label — always '1_HOUR'.
+  - name: tx_count
     data_type: BIGINT
-  - name:   total_amount
-    data_type:  DECIMAL(10, 2)
-  - name:   avg_amount
-    data_type:  DECIMAL(10, 2)
-  - name:   min_amount
+    description: Number of completed transactions in the window.
+  - name: total_amount
     data_type: DECIMAL(10, 2)
-  - name:   max_amount
-    data_type:  DECIMAL(10, 2)
+    description: Sum of transaction amounts in the window.
+  - name: avg_amount
+    data_type: DECIMAL(10, 2)
+    description: Average transaction amount in the window.
+  - name: min_amount
+    data_type: DECIMAL(10, 2)
+    description: Minimum transaction amount in the window.
+  - name: max_amount
+    data_type: DECIMAL(10, 2)
+    description: Maximum transaction amount in the window.

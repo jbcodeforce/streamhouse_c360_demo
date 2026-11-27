@@ -5,12 +5,25 @@ sources:
   tables:
   - name: customers
     identifier: cdc.public.customers
+    description: >
+      Raw CDC changelog stream for the customers table — captures INSERT,
+      UPDATE, and DELETE operations for every customer record as they
+      occur in the operational database.
   - name: accounts
     identifier: cdc.public.accounts
-    description: accounts information for a customer    
+    description: >
+      Raw CDC changelog stream for the accounts table — captures INSERT,
+      UPDATE, and DELETE operations for every account record as they occur
+      in the operational database.
   - name: transactions
     identifier: cdc.public.transactions
-    description: Topic 'cdc.public.transactions'.
+    description: >
+      Raw CDC changelog stream for the transactions table — captures all
+      transaction events (INSERT, UPDATE, DELETE) from the operational
+      database.
   - name: cards
     identifier: cdc.public.cards
-    description: Topic 'cdc.public.cards'.
+    description: >
+      Raw CDC changelog stream for the cards table — captures INSERT,
+      UPDATE, and DELETE operations for every card record as they occur
+      in the operational database.

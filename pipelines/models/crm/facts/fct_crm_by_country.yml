@@ -1,13 +1,18 @@
 models:
 - name: fct_crm_by_country
-  description: ""
+  description: >
+    Customer count break-down by country of residence, derived from
+    dim_customers. Uses COALESCE(NULL, 'US') to handle missing country
+    data (defaults to US). One row per unique country, used for
+    geographic CRM dashboards.
   columns:
   - name: country
     data_type: string
+    description: ISO country code (defaults to 'US' for missing values).
     constraints:
       - type: not_null
       - type: primary_key
         expression: "not enforced"
   - name: country_count
     data_type: BIGINT
-
+    description: Number of distinct customers registered in this country.

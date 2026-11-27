@@ -1,14 +1,22 @@
 models:
 - name: fct_crm_by_segment
-  description: ""
+  description: >
+    Customer count and total balance break-down by business-assigned
+    customer segment (e.g. PRIVATE, INSPHERE, SMB, STANDARD), derived
+    from dim_customers. Uses COALESCE(NULL, 'PRIVATE') to handle missing
+    segment values. One row per segment for portfolio segmentation
+    dashboards.
   columns:
   - name: customer_segment
     data_type: string
+    description: Business segment (defaults to 'PRIVATE' for missing values).
     constraints:
       - type: not_null
       - type: primary_key
         expression: "not enforced"
   - name: customer_count
     data_type: BIGINT
+    description: Number of distinct customers in this segment.
   - name: total_balance
     data_type: decimal
+    description: Sum of account balances for customers in this segment.

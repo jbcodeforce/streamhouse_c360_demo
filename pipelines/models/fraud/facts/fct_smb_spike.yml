@@ -9,23 +9,33 @@ models:
   columns:
   - name: account_id
     data_type: string
+    description: The account on which the spike pattern was detected.
     constraints:
       - type: not_null
   - name: customer_id
     data_type: string
+    description: The SMB-segment customer who owns the account.
     constraints:
       - type: not_null
   - name: ltx_account_id
     data_type: string
+    description: Internal column — the account identifier from the first large
+      transaction in the spike.
   - name: spike_start
     data_type: timestamp_ltz
+    description: Timestamp of the first large debit in the spike.
   - name: spike_end
     data_type: timestamp_ltz
+    description: Timestamp of the last large debit before the reversal.
   - name: tx_count
     data_type: bigint
+    description: Number of consecutive large DEBIT charges in the spike (>= 3).
   - name: spike_total
     data_type: decimal(10,0)
+    description: Total dollar value of all large debit charges in the spike.
   - name: reversal_amount
     data_type: decimal(10,0)
+    description: Amount of the CREDIT reversal that followed the spike.
   - name: reversal_time
     data_type: timestamp_ltz
+    description: Timestamp of the reversal CREDIT transaction.

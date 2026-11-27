@@ -1,66 +1,107 @@
 models:
 - name: fct_c360_profile
-  description: ""
+  description: >
+    Unified 360-degree customer profile that joins demographic and account
+    data from dim_customers with cross-account transaction summaries from
+    dim_tx_x_account. Each row represents one customer with all attributes
+    — personal details, segmentation, income banding, credit metrics, card
+    holdings, and aggregate transaction statistics — materialized for BI
+    dashboards and downstream reporting.
   columns:
   - name: customer_id
     data_type: string
+    description: Primary key — the customer identifier.
     constraints:
       - type: not_null
       - type: primary_key
         expression: "not enforced"
   - name: first_name
     data_type: string
+    description: Customer's first name.
   - name: last_name
     data_type: string
+    description: Customer's last name.
   - name: date_of_birth
     data_type: string
+    description: Date of birth as 'YYYY-MM-DD' string.
   - name: birth_year
     data_type: BIGINT
+    description: Extracted birth year from date_of_birth.
   - name: birth_month
     data_type: BIGINT
+    description: Extracted birth month (1–12) from date_of_birth.
   - name: customer_segment
     data_type: string
+    description: Business-assigned customer segment (e.g. PRIVATE, INSPHERE,
+      SMB, STANDARD).
   - name: customer_since
     data_type: timestamp_ltz
+    description: Timestamp when the customer was first registered.
   - name: gender
     data_type: string
+    description: Customer gender.
   - name: city
     data_type: string
+    description: Customer's city of residence.
   - name: postal_code
     data_type: string
+    description: Customer's postal/ZIP code.
   - name: country
     data_type: string
+    description: ISO country code for the customer's residence.
   - name: state
     data_type: string
+    description: Customer's state/province of residence.
   - name: days_since_registration
     data_type: integer
+    description: Number of days between registration and the most recent event.
   - name: generation_segment
     data_type: string
+    description: >-
+      Generational cohort derived from age at last event: Gen Z,
+      Millennial, Gen X, or Boomer+.
   - name: yearly_income
     data_type: decimal(18, 2)
+    description: Customer's annual income.
   - name: retirement_age
     data_type: integer
+    description: Target retirement age for this customer.
   - name: credit_score
     data_type: integer
+    description: Customer's credit score.
   - name: years_to_retirement
     data_type: integer
+    description: Years remaining until the customer's target retirement age.
   - name: income_band
     data_type: string
+    description: >-
+      Income banding: LOW (< $70K), MIDDLE ($70K–$120K), HIGH
+      (>= $120K).
   - name: missing_email_flag
     data_type: integer
+    description: Flag (0/1) indicating whether the customer's email is missing.
   - name: missing_phone_flag
     data_type: integer
+    description: Flag (0/1) indicating whether the customer's phone number is
+      missing.
   - name: card_brand
     data_type: string
+    description: Brand of the primary card (e.g. VISA, MASTERCARD).
   - name: card_type
     data_type: string
+    description: Type of the primary card (e.g. CREDIT, DEBIT).
   - name: card_credit_limit
     data_type: decimal(18, 2)
+    description: Credit limit of the primary card.
   - name: account_count
     data_type: BIGINT
+    description: Total number of accounts across all customer products.
   - name: total_balance
     data_type: decimal
+    description: Combined balance across all customer accounts.
   - name: txn_count
     data_type: BIGINT
+    description: Total number of transactions across all accounts.
   - name: txn_total
     data_type: decimal
+    description: Total dollar value of all transactions across all accounts.

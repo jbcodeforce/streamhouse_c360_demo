@@ -1,64 +1,101 @@
-
 models:
 - name: dim_transactions
-  description: "Financial transaction dimension"
+  description: >
+    Transaction dimension with enrichment and time-decomposition. Joins
+    src_transactions_v2 with src_cards to resolve account_id on card-based
+    transactions, normalizes the currency to code and name, and decomposes
+    the event-time into date, hour, day-of-week, month, quarter, and year
+    columns. Also classifies every transaction into an order_size_category
+    (Small < $200, Medium < $500, Large < $1500, XLarge >= $1500) that is
+    used by fraud and SMB-spike CEP patterns. Uses upsert changelog mode
+    to materialize the latest state per transaction_id.
   constraints:
       - type: custom
         expression: "WATERMARK FOR transacted_at AS transacted_at - INTERVAL '5' SECOND"
   columns:
   - name: transaction_id
     data_type: varchar(2147483647)
+    description: Unique transaction identifier from the source system.
     constraints:
       - type: not_null
       - type: primary_key
         expression: "not enforced"
   - name: account_id
     data_type: string
+    description: The bank account on which the transaction was processed.
   - name: customer_id
     data_type: string
+    description: The customer who owns the account.
   - name: card_id
     data_type: string
+    description: The card used for the transaction (resolved from card source).
   - name: transaction_type
     data_type: string
+    description: Normalized type — prepended with 'CARD_' or 'XACCT_' prefix
+      to indicate whether the transaction was card-based or not.
   - name: amount
     data_type: DECIMAL(18,2)
+    description: Monetary value of the transaction.
   - name: currency
     data_type: string
+    description: ISO 4217 three-letter currency code (e.g. USD, EUR).
   - name: currency_code_numeric
     data_type: string
+    description: Numeric ISO 4217 currency code (e.g. '840' for USD).
   - name: currency_name
     data_type: string
+    description: Full English name of the currency (e.g. 'US Dollar').
   - name: comments
     data_type: string
+    description: Free-text transaction description from the source system.
   - name: merchant_name
     data_type: string
+    description: Name of the merchant where the transaction occurred.
   - name: merchant_category
     data_type: string
+    description: MCC (Merchant Category Code) — industry classification used
+      for fraud and loyalty analysis.
   - name: use_chip
     data_type: string
+    description: Whether the card was inserted (chip) vs. tapped/swiped.
   - name: merchant_city
     data_type: string
+    description: City where the merchant is located.
   - name: merchant_state
     data_type: string
+    description: State/province where the merchant is located.
   - name: merchant_zip
     data_type: string
+    description: Postal/ZIP code of the merchant location.
   - name: channel
     data_type: string
+    description: How the transaction was initiated (e.g. POS, ONLINE, ATM).
   - name: status
     data_type: string
+    description: Transaction status.
   - name: transacted_at
     data_type: timestamp_ltz(3)
-  - name: transaction_date_only 
+    description: Event-time timestamp of the transaction (local time zone).
+  - name: transaction_date_only
     data_type: DATE
-  - name:  transaction_hour 
+    description: Date extracted from transacted_at for partitioning and reporting.
+  - name: transaction_hour
     data_type: bigint
+    description: Hour-of-day (0–23) extracted from transacted_at.
   - name: day_of_week
     data_type: bigint
-  - name:  transaction_month
+    description: Day of week (1 = Sunday … 7 = Saturday) extracted from the date.
+  - name: transaction_month
     data_type: bigint
-  - name:  transaction_quarter
+    description: Month (1–12) extracted from the transaction date.
+  - name: transaction_quarter
     data_type: bigint
-  - name:  transaction_year
+    description: Quarter (1–4) of the transaction date.
+  - name: transaction_year
     data_type: bigint
+    description: Calendar year of the transaction.
   - name: order_size_category
     data_type: string
+    description: >-
+      Order-size bucket used by fraud and SMB-spike CEP patterns:
+      Small (< $200), Medium (< $500), Large (< $1500), XLarge (>= $1500).

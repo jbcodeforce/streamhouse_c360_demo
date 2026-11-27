@@ -1,28 +1,43 @@
 models:
 - name: fct_crm_summary
-  description: ""
+  description: >
+    Global roll-up summary of all customers from fct_c360_profile with a
+    single row having qscope = 'ALL'. Provides portfolio-level metrics:
+    total customers, accounts, balance, transaction counts, total spend,
+    average income, and data completeness (missing email / phone flags).
+    Used as the baseline for the CRM dashboard.
   columns:
   - name: qscope
     data_type: string
+    description: Query scope — always 'ALL' for this aggregate row.
     constraints:
       - type: not_null
       - type: primary_key
         expression: "not enforced"
   - name: total_customers
     data_type: BIGINT
+    description: Total distinct customers in the portfolio.
   - name: total_accounts
     data_type: BIGINT
+    description: Total distinct accounts across all customers.
   - name: total_balance
     data_type: decimal
+    description: Sum of balances across all accounts.
   - name: total_transactions
     data_type: BIGINT
+    description: Total number of transactions across all accounts.
   - name: total_txn_amount
     data_type: decimal
+    description: Total dollar value of all transactions.
   - name: avg_income
     data_type: double
+    description: Average yearly income across all customers.
   - name: missing_email
     data_type: INTEGER
+    description: Count of customers missing an email address.
   - name: missing_phone
     data_type: INTEGER
+    description: Count of customers missing a phone number.
   - name: complete
     data_type: INTEGER
+    description: Count of customers with both email and phone present.

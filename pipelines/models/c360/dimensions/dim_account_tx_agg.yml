@@ -1,28 +1,43 @@
-
 models:
 - name: dim_account_tx_agg
-  description: "Aggregates cross account"
+  description: >
+    Per-account aggregations that join checking accounts (src_accounts,
+    account_type = 'CHECKING') with their transaction summaries from the
+    transaction dimension (dim_transactions). Produces a materialized table
+    with per-account transaction count, total spend, and most recent
+    transaction time — used as input to customer-level roll-ups and the
+    360 profile.
   config:
     contract:
       enforced: true
   columns:
   - name: account_id
     data_type: varchar(2147483647)
+    description: Primary key — the checking account identifier.
     constraints:
       - type: not_null
       - type: primary_key
         expression: "not enforced"
   - name: customer_id
     data_type: string
+    description: The customer who owns this account.
   - name: account_type
     data_type: string
+    description: Account type — always 'CHECKING' at this layer (other types
+      are filtered out upstream).
   - name: account_status
     data_type: string
+    description: Current status of the account (ACTIVE, FROZEN, etc.).
   - name: balance
     data_type: DECIMAL(18,2)
+    description: Current account balance from the source accounts table.
   - name: txn_count
     data_type: BIGINT
+    description: Total number of transactions over this account (aggregated
+      from dim_transactions).
   - name: txn_total
     data_type: DECIMAL(18,2)
+    description: Total dollar value of all transactions over this account.
   - name: last_transacted_at
     data_type: timestamp_ltz
+    description: Timestamp of the most recent transaction on this account.

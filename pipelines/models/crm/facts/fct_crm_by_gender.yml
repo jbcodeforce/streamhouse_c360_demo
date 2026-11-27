@@ -1,13 +1,18 @@
 models:
 - name: fct_crm_by_gender
-  description: ""
+  description: >
+    Customer count break-down by gender, derived from dim_customers.
+    Uses COALESCE(NULL, 'M') to handle missing gender values (defaults
+    to 'M'). One row per unique gender, used for demographic CRM
+    dashboards.
   columns:
   - name: gender
     data_type: string
+    description: Customer gender (defaults to 'M' for missing values).
     constraints:
       - type: not_null
       - type: primary_key
         expression: "not enforced"
   - name: gender_count
     data_type: BIGINT
-
+    description: Number of distinct customers with this gender value.
